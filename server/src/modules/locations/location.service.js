@@ -28,6 +28,152 @@ const supplementalPincodeLocations = new Map([
 
 let pincodeCache = null;
 
+export const ST_DESTINATION_ADDRESS =
+  'STMicroelectronics Private Limited, Plot No. 1, Knowledge Park III, Greater Noida, Uttar Pradesh 201308';
+
+const ST_DESTINATION_FALLBACK = {
+  label: 'STMicroelectronics Private Limited',
+  address: ST_DESTINATION_ADDRESS,
+  latitude: 28.4725,
+  longitude: 77.48889,
+  provider: 'Fixed destination',
+};
+const FULL_HOME_ADDRESS_ERROR =
+  'Please enter your full home address with house/flat, street or area, city, state, and 6-digit pincode.';
+const PINCODE_PATTERN = /\b\d{6}\b/;
+
+const getMapboxToken = () => {
+  const candidates = [
+    process.env.MAPBOX_TOKEN,
+    process.env.VITE_MAPBOX_TOKEN,
+    process.env.MAP_API_KEY,
+  ];
+
+  return candidates.find((token) => token?.trim().startsWith('pk.'))?.trim();
+};
+
+const normalizeAddress = (address) => String(address || '').replace(/\s+/g, ' ').trim();
+
+const getAddressPincode = (address) => address.match(PINCODE_PATTERN)?.[0] || '';
+
+const getAddressFallbackLabel = (address) => {
+  const [firstPart] = address
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return firstPart || 'Home address';
+};
+
+const getFullAddressValidationError = (address) => {
+  const addressParts = address
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const wordCount = address
+    .split(/\s+/)
+    .filter((word) => /[a-zA-Z0-9]/.test(word)).length;
+
+  if (
+    address.length < 20 ||
+    addressParts.length < 4 ||
+    wordCount < 6 ||
+    !PINCODE_PATTERN.test(address)
+  ) {
+    return FULL_HOME_ADDRESS_ERROR;
+  }
+
+  return '';
+};
+
+const toLocationPayload = ({ label, address, latitude, longitude, provider }) => ({
+  label,
+  address,
+  latitude,
+  longitude,
+  position: {
+    lat: latitude,
+    lng: longitude,
+  },
+  provider,
+});
+
+const geocodeWithMapbox = async (address) => {
+  const token = getMapboxToken();
+
+  if (!token) {
+    return null;
+  }
+
+  const query = new URLSearchParams({
+    access_token: token,
+    country: 'in',
+    limit: '1',
+  });
+
+  const response = await fetch(
+    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?${query}`
+  );
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new ApiError(502, data?.message || 'Mapbox geocoding request failed.');
+  }
+
+  const feature = data?.features?.[0];
+  const [longitude, latitude] = feature?.center || [];
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  return toLocationPayload({
+    label: feature.text || address,
+    address: feature.place_name || address,
+    latitude,
+    longitude,
+    provider: 'Mapbox',
+  });
+};
+
+const geocodeWithNominatim = async (address) => {
+  const query = new URLSearchParams({
+    q: address,
+    format: 'json',
+    addressdetails: '1',
+    limit: '1',
+    countrycodes: 'in',
+  });
+
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?${query}`, {
+    headers: {
+      'User-Agent': 'Carpooling-ST-Project/1.0',
+      Accept: 'application/json',
+    },
+  });
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new ApiError(502, 'OpenStreetMap geocoding request failed.');
+  }
+
+  const result = data?.[0];
+  const latitude = Number(result?.lat);
+  const longitude = Number(result?.lon);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  return toLocationPayload({
+    label: result.name || address,
+    address: result.display_name || address,
+    latitude,
+    longitude,
+    provider: 'OpenStreetMap',
+  });
+};
+
 const parseCsvLine = (line) => {
   const values = [];
   let current = '';
@@ -130,6 +276,62 @@ export const getMapConfig = () => {
   }
 
   return { apiKey };
+};
+
+export const geocodeAddress = async (address) => {
+  const normalizedAddress = normalizeAddress(address);
+  const validationError = getFullAddressValidationError(normalizedAddress);
+
+  if (validationError) {
+    throw new ApiError(400, validationError);
+  }
+
+  const mapboxLocation = await geocodeWithMapbox(normalizedAddress);
+  if (mapboxLocation) {
+    return mapboxLocation;
+  }
+
+  const nominatimLocation = await geocodeWithNominatim(normalizedAddress);
+  if (nominatimLocation) {
+    return nominatimLocation;
+  }
+
+  const pincode = getAddressPincode(normalizedAddress);
+
+  if (pincode) {
+    try {
+      const pincodeLocation = await findPincodeLocation(pincode);
+
+      return toLocationPayload({
+        label: getAddressFallbackLabel(normalizedAddress),
+        address: `${normalizedAddress} (matched by pincode ${pincode})`,
+        latitude: pincodeLocation.latitude,
+        longitude: pincodeLocation.longitude,
+        provider: 'Pincode fallback',
+      });
+    } catch {
+      // Fall through to the clearer address-level error below.
+    }
+  }
+
+  throw new ApiError(404, 'No location found for that address. Please include area, city, state, and pincode.');
+};
+
+export const getFixedOfficeLocation = async () => {
+  return toLocationPayload(ST_DESTINATION_FALLBACK);
+};
+
+export const getAddressRouteLocations = async (homeAddress) => {
+  const [homeLocation, officeLocation] = await Promise.all([
+    geocodeAddress(homeAddress),
+    getFixedOfficeLocation(),
+  ]);
+
+  return {
+    homeLocation,
+    officeLocation,
+    destinationAddress: ST_DESTINATION_ADDRESS,
+  };
 };
 
 export const findPincodeLocation = async (pincode) => {

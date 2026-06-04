@@ -75,6 +75,7 @@ const getOpenRouteServiceDrivingRoute = async (origin, destination) => {
           [origin.lng, origin.lat],
           [destination.lng, destination.lat],
         ],
+        preference: 'fastest',
       }),
     });
   } catch {
