@@ -1,10 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
+import api from '../../services/api.js';
 
 const Profile = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [vehicles, setVehicles] = useState([]);
+
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      if (user?.role !== 'driver') return;
+
+      try {
+        const response = await api.get('/vehicles');
+        setVehicles(response.data.data.vehicles);
+      } catch (error) {
+        console.error('Failed to load vehicles', error);
+      }
+    };
+
+    fetchVehicles();
+  }, [user?.role]);
 
   const handleLogout = () => {
     logout();
@@ -100,24 +117,32 @@ const Profile = () => {
                 Vehicle Specifications
               </h4>
               
-              <div className="grid sm:grid-cols-2 gap-6 text-sm bg-slate-900/20 border border-slate-800/80 p-5 rounded-2xl">
-                <div className="space-y-1">
-                  <p className="text-slate-400 font-medium">Vehicle Name</p>
-                  <p className="text-slate-200 text-base font-semibold">{user.vehicleName || 'N/A'}</p>
+              <div className="space-y-4">
+                {vehicles.length > 0 ? vehicles.map((vehicle) => (
+                  <div key={vehicle._id} className="grid sm:grid-cols-2 gap-6 text-sm bg-slate-900/20 border border-slate-800/80 p-5 rounded-2xl">
+                    <div className="space-y-1">
+                      <p className="text-slate-400 font-medium">Vehicle Name</p>
+                      <p className="text-slate-200 text-base font-semibold">{vehicle.vehicleName || 'N/A'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-slate-400 font-medium">Plate Number</p>
+                      <p className="text-slate-200 text-base font-mono uppercase tracking-wider font-semibold">{vehicle.vehiclePlateNumber || 'N/A'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-slate-400 font-medium">Fuel Type</p>
+                      <p className="text-slate-200 text-base capitalize font-semibold">{vehicle.vehicleType || 'N/A'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-slate-400 font-medium">Mileage</p>
+                      <p className="text-slate-200 text-base font-semibold">{vehicle.mileage !== undefined ? `${vehicle.mileage} km/l` : 'N/A'}</p>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-sm text-slate-400 bg-slate-900/20 border border-slate-800/80 p-5 rounded-2xl">
+                    No vehicle details found.
+                  </div>
+                )}
                 </div>
-                <div className="space-y-1">
-                  <p className="text-slate-400 font-medium">Plate Number</p>
-                  <p className="text-slate-200 text-base font-mono uppercase tracking-wider font-semibold">{user.vehiclePlateNumber || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-slate-400 font-medium">Fuel Type</p>
-                  <p className="text-slate-200 text-base capitalize font-semibold">{user.vehicleType || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-slate-400 font-medium">Mileage</p>
-                  <p className="text-slate-200 text-base font-semibold">{user.mileage !== undefined ? `${user.mileage} km/l` : 'N/A'}</p>
-                </div>
-              </div>
             </div>
           )}
 

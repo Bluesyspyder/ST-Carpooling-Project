@@ -21,6 +21,7 @@ export const registerSchema = z.object({
     vehiclePlateNumber: z.string().optional(),
     vehicleType: z.enum(['diesel', 'petrol', 'ev']).optional(),
     mileage: z.coerce.number().min(0, 'Mileage must be a positive number').optional(),
+    seatCount: z.coerce.number().int().min(1, 'Seat count must be at least 1').max(10, 'Seat count cannot exceed 10').optional(),
     
     // Passenger/helpful optional fields
     emergencyContact: z.string().optional(),
@@ -34,13 +35,14 @@ export const registerSchema = z.object({
           !!data.vehicleName &&
           !!data.vehiclePlateNumber &&
           !!data.vehicleType &&
-          data.mileage !== undefined
+          data.mileage !== undefined &&
+          data.seatCount !== undefined
         );
       }
       return true;
     },
     {
-      message: 'Vehicle name, plate number, type, and mileage are required for car owners',
+      message: 'Vehicle name, plate number, type, mileage, and seat count are required for drivers',
       path: ['vehicleName'],
     }
   ),

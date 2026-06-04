@@ -55,53 +55,6 @@ const userSchema = new mongoose.Schema(
       min: [1, 'Rating must be at least 1'],
       max: [5, 'Rating must be at most 5'],
     },
-    // Car Owner-specific fields (only required when role is 'driver')
-    vehicleName: {
-      type: String,
-      trim: true,
-      required: [
-        function () {
-          return this.role === 'driver';
-        },
-        'Vehicle name is required for car owners',
-      ],
-    },
-    vehiclePlateNumber: {
-      type: String,
-      trim: true,
-      required: [
-        function () {
-          return this.role === 'driver';
-        },
-        'Vehicle plate number is required for car owners',
-      ],
-    },
-    vehicleType: {
-      type: String,
-      // Custom validator: only enforce enum when value is provided (avoids enum errors for passengers)
-      validate: {
-        validator: function (v) {
-          if (!v) return true; // Allow empty/null for passengers
-          return ['diesel', 'petrol', 'ev'].includes(v);
-        },
-        message: 'Vehicle type must be diesel, petrol, or ev',
-      },
-      required: [
-        function () {
-          return this.role === 'driver';
-        },
-        'Vehicle type is required for car owners',
-      ],
-    },
-    mileage: {
-      type: Number,
-      required: [
-        function () {
-          return this.role === 'driver';
-        },
-        'Mileage is required for car owners',
-      ],
-    },
     // Passenger/Rider helpful fields
     emergencyContact: {
       type: String,

@@ -113,12 +113,20 @@ const RideDetails = () => {
               <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Vehicle Details</h4>
               <div className="grid sm:grid-cols-2 gap-4 text-sm bg-slate-900/30 p-4 rounded-xl border border-slate-800/50">
                 <div>
-                  <p className="text-xs text-slate-400">Make & Model</p>
-                  <p className="text-slate-200 font-medium mt-0.5">{ride.vehicle.make} {ride.vehicle.model}</p>
+                  <p className="text-xs text-slate-400">Vehicle Name</p>
+                  <p className="text-slate-200 font-medium mt-0.5">{ride.vehicle.vehicleName}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400">License Plate</p>
-                  <p className="text-slate-200 font-medium mt-0.5">{ride.vehicle.registrationNumber}</p>
+                  <p className="text-slate-200 font-medium mt-0.5">{ride.vehicle.vehiclePlateNumber}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">Fuel Type</p>
+                  <p className="text-slate-200 font-medium mt-0.5 capitalize">{ride.vehicle.vehicleType}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">Mileage</p>
+                  <p className="text-slate-200 font-medium mt-0.5">{ride.vehicle.mileage} km/l</p>
                 </div>
               </div>
             </div>

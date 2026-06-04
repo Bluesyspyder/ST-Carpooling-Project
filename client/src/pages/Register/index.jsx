@@ -15,6 +15,7 @@ const Register = () => {
     vehiclePlateNumber: '',
     vehicleType: 'diesel',
     mileage: '',
+    seatCount: 4,
     emergencyContact: '',
     bio: '',
   });
@@ -48,12 +49,14 @@ const Register = () => {
       if (payload.role === 'driver') {
         // Convert mileage to a number
         payload.mileage = parseFloat(payload.mileage) || 0;
+        payload.seatCount = Number(payload.seatCount) || 4;
       } else {
         // Strip all vehicle fields for passengers — don't send them at all
         delete payload.vehicleName;
         delete payload.vehiclePlateNumber;
         delete payload.vehicleType;
         delete payload.mileage;
+        delete payload.seatCount;
       }
 
       // Strip empty optional string fields so they're not stored as empty strings
@@ -193,7 +196,7 @@ const Register = () => {
 
             <div>
               <label htmlFor="role" className="block text-sm font-medium text-slate-300">
-                Primary Account Type
+                Your Type of Account
               </label>
               <select
                 id="role"
@@ -202,8 +205,8 @@ const Register = () => {
                 onChange={handleChange}
                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-slate-800 focus:outline-none focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm rounded-lg bg-slate-900 text-slate-100"
               >
-                <option value="passenger">Passenger (Seeking rides)</option>
-                <option value="driver">Car Owner (Offering rides)</option>
+                <option value="passenger">Passenger</option>
+                <option value="driver">Driver</option>
               </select>
             </div>
 
@@ -279,6 +282,24 @@ const Register = () => {
                       placeholder="e.g. 15.5"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label htmlFor="seatCount" className="block text-sm font-medium text-slate-300">
+                    Seat Count
+                  </label>
+                  <input
+                    id="seatCount"
+                    name="seatCount"
+                    type="number"
+                    min="1"
+                    max="10"
+                    required
+                    value={formData.seatCount}
+                    onChange={handleChange}
+                    className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                    placeholder="e.g. 4"
+                  />
                 </div>
               </div>
             )}

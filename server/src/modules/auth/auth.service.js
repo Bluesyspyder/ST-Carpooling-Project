@@ -14,20 +14,32 @@ export const register = async (userData) => {
     throw new ApiError(400, 'Email is already registered');
   }
 
-  const user = await User.create(userData);
+  const {
+    vehicleName,
+    vehiclePlateNumber,
+    vehicleType,
+    mileage,
+    seatCount,
+    ...userFields
+  } = userData;
+
+  const user = await User.create(userFields);
   
   // Automatically create a Vehicle document if role is driver (Car Owner)
   if (user.role === 'driver') {
-    await Vehicle.create({
-      owner: user._id,
-      make: userData.vehicleName,
-      model: userData.vehicleName,
-      year: new Date().getFullYear(),
-      registrationNumber: userData.vehiclePlateNumber,
-      seatCount: 4, // Default seats
-      type: userData.vehicleType,
-      mileage: userData.mileage,
-    });
+    try {
+      await Vehicle.create({
+        owner: user._id,
+        vehicleName,
+        vehiclePlateNumber,
+        seatCount,
+        vehicleType,
+        mileage,
+      });
+    } catch (error) {
+      await User.findByIdAndDelete(user._id);
+      throw error;
+    }
   }
   
   // Convert document to plain JS object and strip sensitive fields

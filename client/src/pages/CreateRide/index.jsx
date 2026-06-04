@@ -114,7 +114,7 @@ const CreateRide = () => {
                 >
                   {vehicles.map(v => (
                     <option key={v._id} value={v._id}>
-                      {v.make} {v.model} ({v.registrationNumber})
+                      {v.vehicleName} ({v.vehiclePlateNumber})
                     </option>
                   ))}
                 </select>
