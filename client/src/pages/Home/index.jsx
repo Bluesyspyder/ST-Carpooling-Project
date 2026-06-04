@@ -7,9 +7,9 @@ const Home = () => {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between">
+    <div className="min-h-[calc(100vh-73px)] bg-slate-950 text-slate-100 flex flex-col justify-between">
       {/* Hero Section */}
-      <main className="max-w-6xl mx-auto px-4 py-16 flex-grow flex flex-col items-center justify-center text-center relative overflow-hidden">
+      <main className="w-full max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12 flex-grow flex flex-col items-center text-center relative overflow-hidden">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-green-500/10 blur-[120px] rounded-full pointer-events-none"></div>
         <div className="absolute top-1/3 left-1/3 w-80 h-80 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none"></div>
         
@@ -22,18 +22,18 @@ const Home = () => {
           Carpool App
         </h1>
         
-        <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mb-12">
+        <p className="text-lg sm:text-xl text-slate-400 max-w-3xl mb-10">
           Connect with drivers and passengers heading your way. Share rides, split travel expenses, reduce emissions, and meet amazing people.
         </p>
 
-        <section className="w-full max-w-5xl mb-10 text-left">
+        <section className="w-full mb-10 text-left">
           <div className="glass-panel rounded-2xl overflow-hidden shadow-2xl border border-slate-800/50">
             <PincodeDirectionsMap />
           </div>
         </section>
 
         {/* Action cards */}
-        <div className="grid md:grid-cols-2 gap-6 w-full max-w-4xl">
+        <div className="grid md:grid-cols-2 gap-6 w-full">
           <Link to="/search" className="glass-card p-8 rounded-2xl text-left hover:scale-[1.01]">
             <div className="w-12 h-12 bg-emerald-500/15 border border-emerald-500/20 rounded-xl flex items-center justify-center mb-6">
               <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

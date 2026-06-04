@@ -30,17 +30,17 @@ const Profile = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
+      <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">
         Loading profile...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[calc(100vh-73px)] bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
-      <div className="max-w-3xl mx-auto">
+      <div className="w-full max-w-[1400px] mx-auto">
         <h2 className="text-3xl font-extrabold text-slate-100 mb-8">
           User Profile
         </h2>
@@ -62,7 +62,7 @@ const Profile = () => {
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-6 text-sm">
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-6 text-sm">
             <div className="space-y-1">
               <p className="text-slate-400 font-medium">Email Address</p>
               <p className="text-slate-200 text-base">{user.email}</p>
@@ -119,7 +119,7 @@ const Profile = () => {
               
               <div className="space-y-4">
                 {vehicles.length > 0 ? vehicles.map((vehicle) => (
-                  <div key={vehicle._id} className="grid sm:grid-cols-2 gap-6 text-sm bg-slate-900/20 border border-slate-800/80 p-5 rounded-2xl">
+                  <div key={vehicle._id} className="grid sm:grid-cols-2 xl:grid-cols-4 gap-6 text-sm bg-slate-900/20 border border-slate-800/80 p-5 rounded-2xl">
                     <div className="space-y-1">
                       <p className="text-slate-400 font-medium">Vehicle Name</p>
                       <p className="text-slate-200 text-base font-semibold">{vehicle.vehicleName || 'N/A'}</p>

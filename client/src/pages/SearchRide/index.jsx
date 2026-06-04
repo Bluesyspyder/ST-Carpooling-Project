@@ -42,10 +42,10 @@ const SearchRide = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[calc(100vh-73px)] bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="w-full max-w-[1500px] mx-auto space-y-8">
         <h2 className="text-3xl font-extrabold text-slate-100 mb-8">
           Search Rides
         </h2>
@@ -118,7 +118,7 @@ const SearchRide = () => {
           {loading ? (
             <div className="text-center py-12 text-slate-400">Loading matching rides...</div>
           ) : rides.length > 0 ? (
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {rides.map((ride) => (
                 <div key={ride._id} className="glass-card p-6 rounded-2xl flex flex-col justify-between">
                   <div>

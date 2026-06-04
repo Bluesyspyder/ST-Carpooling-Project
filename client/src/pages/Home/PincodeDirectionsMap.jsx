@@ -65,7 +65,7 @@ const RouteMap = ({ homeLocation, officeLocation, mapCenter, routePath }) => {
       center={mapCenter}
       zoom={DEFAULT_ZOOM}
       minZoom={2}
-      className="h-full min-h-[340px] w-full"
+      className="h-full min-h-[520px] w-full"
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -138,8 +138,8 @@ const PincodeDirectionsMap = () => {
   };
 
   return (
-    <div className="grid lg:grid-cols-[320px_1fr]">
-      <div className="p-6 border-b lg:border-b-0 lg:border-r border-slate-800/70 flex flex-col justify-between gap-6">
+    <div className="grid min-h-[62vh] lg:grid-cols-[360px_1fr] xl:grid-cols-[400px_1fr]">
+      <div className="p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-slate-800/70 flex flex-col justify-between gap-6">
         <div>
           <h2 className="text-xl font-bold text-slate-100">Explore route by pincode</h2>
           <p className="text-sm text-slate-400 mt-2">
@@ -209,7 +209,7 @@ const PincodeDirectionsMap = () => {
         </div>
       </div>
 
-      <div className="relative min-h-[340px] bg-slate-900">
+      <div className="relative min-h-[520px] bg-slate-900">
         <RouteMap
           homeLocation={homeLocation}
           officeLocation={officeLocation}

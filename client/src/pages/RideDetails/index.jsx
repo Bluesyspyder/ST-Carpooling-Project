@@ -60,7 +60,7 @@ const RideDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
+      <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">
         Loading ride details...
       </div>
     );
@@ -68,17 +68,17 @@ const RideDetails = () => {
 
   if (error || !ride) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
+      <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">
         {error || 'Ride not found.'}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[calc(100vh-73px)] bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
-      <div className="max-w-4xl mx-auto grid md:grid-cols-3 gap-6">
+      <div className="w-full max-w-[1500px] mx-auto grid md:grid-cols-[1fr_360px] xl:grid-cols-[1fr_420px] gap-6">
         {/* Ride details panel */}
         <div className="md:col-span-2 glass-panel p-6 sm:p-8 rounded-2xl shadow-xl space-y-6">
           <div className="flex justify-between items-start">

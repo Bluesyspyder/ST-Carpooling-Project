@@ -17,7 +17,7 @@ const Login = () => {
     setIsSubmitting(true);
     try {
       await login(email, password);
-      navigate('/profile');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please verify credentials.');
     } finally {
@@ -26,10 +26,10 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute top-1/4 left-1/3 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none"></div>
       
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="sm:mx-auto sm:w-full sm:max-w-5xl">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-100">
           Welcome back
         </h2>
@@ -41,7 +41,7 @@ const Login = () => {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-5xl">
         <div className="glass-panel py-8 px-4 shadow-2xl rounded-2xl sm:px-10">
           {error && (
             <div className="mb-4 bg-red-950/40 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm">
@@ -49,7 +49,7 @@ const Login = () => {
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="grid gap-6 lg:grid-cols-2" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-300">
                 Email address
@@ -86,7 +86,7 @@ const Login = () => {
               </div>
             </div>
 
-            <div>
+            <div className="lg:col-span-2">
               <button
                 type="submit"
                 disabled={isSubmitting}

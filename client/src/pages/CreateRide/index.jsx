@@ -74,10 +74,10 @@ const CreateRide = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[calc(100vh-73px)] bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-green-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
-      <div className="max-w-2xl mx-auto">
+      <div className="w-full max-w-[1400px] mx-auto">
         <h2 className="text-3xl font-extrabold text-slate-100 mb-8 text-center">
           Offer a Ride
         </h2>
@@ -95,8 +95,8 @@ const CreateRide = () => {
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
+          <form className="grid gap-6 lg:grid-cols-2" onSubmit={handleSubmit}>
+            <div className="lg:col-span-2">
               <label htmlFor="vehicle" className="block text-sm font-medium text-slate-300">
                 Select Vehicle
               </label>
@@ -121,7 +121,7 @@ const CreateRide = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4 lg:col-span-2">
               <div>
                 <label htmlFor="source" className="block text-sm font-medium text-slate-300">
                   Starting Point (Source)
@@ -154,7 +154,7 @@ const CreateRide = () => {
               </div>
             </div>
 
-            <div>
+            <div className="lg:col-span-2">
               <label htmlFor="departureTime" className="block text-sm font-medium text-slate-300">
                 Departure Date & Time
               </label>
@@ -169,7 +169,7 @@ const CreateRide = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4 lg:col-span-2">
               <div>
                 <label htmlFor="availableSeats" className="block text-sm font-medium text-slate-300">
                   Available Seats
@@ -203,7 +203,7 @@ const CreateRide = () => {
               </div>
             </div>
 
-            <div>
+            <div className="lg:col-span-2">
               <button
                 type="submit"
                 disabled={isSubmitting}

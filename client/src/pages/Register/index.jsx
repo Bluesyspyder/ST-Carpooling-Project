@@ -64,7 +64,7 @@ const Register = () => {
       if (!payload.bio) delete payload.bio;
 
       await register(payload);
-      navigate('/profile');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Check your data.');
     } finally {
@@ -73,10 +73,10 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="sm:mx-auto sm:w-full sm:max-w-5xl">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-100">
           Create your account
         </h2>
@@ -88,16 +88,16 @@ const Register = () => {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="glass-panel py-8 px-4 shadow-2xl rounded-2xl sm:px-10 max-h-[85vh] overflow-y-auto">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-5xl">
+        <div className="glass-panel py-8 px-4 shadow-2xl rounded-2xl sm:px-10 max-h-[calc(100vh-190px)] overflow-y-auto">
           {error && (
             <div className="mb-4 bg-red-950/40 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm">
               {error}
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-2 gap-4">
+          <form className="grid gap-6 lg:grid-cols-2" onSubmit={handleSubmit}>
+            <div className="grid sm:grid-cols-2 gap-4 lg:col-span-2">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-slate-300">
                   First Name
@@ -194,7 +194,7 @@ const Register = () => {
               />
             </div>
 
-            <div>
+            <div className="lg:col-span-2">
               <label htmlFor="role" className="block text-sm font-medium text-slate-300">
                 Your Type of Account
               </label>
@@ -211,7 +211,7 @@ const Register = () => {
             </div>
 
             {formData.role === 'driver' && (
-              <div className="space-y-4 border-t border-slate-800 pt-4">
+              <div className="space-y-4 border-t border-slate-800 pt-4 lg:col-span-2">
                 <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wider">
                   Vehicle Details
                 </h3>
@@ -248,7 +248,7 @@ const Register = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="vehicleType" className="block text-sm font-medium text-slate-300">
                       Fuel Type
@@ -304,7 +304,7 @@ const Register = () => {
               </div>
             )}
 
-            <div className="space-y-4 border-t border-slate-800 pt-4">
+            <div className="space-y-4 border-t border-slate-800 pt-4 lg:col-span-2">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Additional Info (Optional)
               </h3>
@@ -340,7 +340,7 @@ const Register = () => {
               </div>
             </div>
 
-            <div>
+            <div className="lg:col-span-2">
               <button
                 type="submit"
                 disabled={isSubmitting}
