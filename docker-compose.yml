@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: carpool-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - carpool-network
+
+  server:
+    build: ./server
+    container_name: carpool-server
+    restart: always
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./server/.env
+    environment:
+      - PORT=5000
+      - MONGO_URI=mongodb://mongodb:27017/carpool
+      - JWT_SECRET=super_secret_carpool_jwt_key_12345
+      - JWT_EXPIRES_IN=7d
+      - NODE_ENV=development
+    volumes:
+      - ./pincode_with_lat-long.csv:/pincode_with_lat-long.csv:ro
+    depends_on:
+      - mongodb
+    networks:
+      - carpool-network
+
+  client:
+    build: ./client
+    container_name: carpool-client
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_PROXY_TARGET=http://server:5000
+    depends_on:
+      - server
+    networks:
+      - carpool-network
+
+volumes:
+  mongo-data:
+
+networks:
+  carpool-network:
+    driver: bridge

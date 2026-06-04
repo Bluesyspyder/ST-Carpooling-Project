@@ -1,0 +1,338 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth.js';
+
+const Register = () => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    phone: '',
+    address: '',
+    role: 'passenger',
+    vehicleName: '',
+    vehiclePlateNumber: '',
+    vehicleType: 'diesel',
+    mileage: '',
+    emergencyContact: '',
+    bio: '',
+  });
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { register } = useAuth();
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Client-side domain validation
+    if (!formData.email.toLowerCase().endsWith('@st.com')) {
+      setError('Registration is restricted to employees. Email must end with @st.com');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = { ...formData };
+
+      if (payload.role === 'driver') {
+        // Convert mileage to a number
+        payload.mileage = parseFloat(payload.mileage) || 0;
+      } else {
+        // Strip all vehicle fields for passengers — don't send them at all
+        delete payload.vehicleName;
+        delete payload.vehiclePlateNumber;
+        delete payload.vehicleType;
+        delete payload.mileage;
+      }
+
+      // Strip empty optional string fields so they're not stored as empty strings
+      if (!payload.emergencyContact) delete payload.emergencyContact;
+      if (!payload.bio) delete payload.bio;
+
+      await register(payload);
+      navigate('/profile');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed. Check your data.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
+      <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-100">
+          Create your account
+        </h2>
+        <p className="mt-2 text-center text-sm text-slate-400">
+          Already have an account?{' '}
+          <Link to="/login" className="font-medium text-emerald-400 hover:text-emerald-300">
+            Sign in
+          </Link>
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="glass-panel py-8 px-4 shadow-2xl rounded-2xl sm:px-10 max-h-[85vh] overflow-y-auto">
+          {error && (
+            <div className="mb-4 bg-red-950/40 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-slate-300">
+                  First Name
+                </label>
+                <input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  required
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                  placeholder="John"
+                />
+              </div>
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-slate-300">
+                  Last Name
+                </label>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  required
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                  placeholder="Doe"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300">
+                Email address (Must be @st.com)
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                placeholder="employee@st.com"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                placeholder="Min 6 characters"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-slate-300">
+                Phone Number
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="text"
+                required
+                value={formData.phone}
+                onChange={handleChange}
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                placeholder="+1 (555) 000-0000"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="address" className="block text-sm font-medium text-slate-300">
+                Home / Office Address
+              </label>
+              <input
+                id="address"
+                name="address"
+                type="text"
+                required
+                value={formData.address}
+                onChange={handleChange}
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                placeholder="123 Corporate Way, Suite 400"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-slate-300">
+                Primary Account Type
+              </label>
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-slate-800 focus:outline-none focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm rounded-lg bg-slate-900 text-slate-100"
+              >
+                <option value="passenger">Passenger (Seeking rides)</option>
+                <option value="driver">Car Owner (Offering rides)</option>
+              </select>
+            </div>
+
+            {formData.role === 'driver' && (
+              <div className="space-y-4 border-t border-slate-800 pt-4">
+                <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wider">
+                  Vehicle Details
+                </h3>
+                
+                <div>
+                  <label htmlFor="vehicleName" className="block text-sm font-medium text-slate-300">
+                    Vehicle Name
+                  </label>
+                  <input
+                    id="vehicleName"
+                    name="vehicleName"
+                    type="text"
+                    required
+                    value={formData.vehicleName}
+                    onChange={handleChange}
+                    className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                    placeholder="e.g. Toyota Prius"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="vehiclePlateNumber" className="block text-sm font-medium text-slate-300">
+                    Vehicle Plate Number
+                  </label>
+                  <input
+                    id="vehiclePlateNumber"
+                    name="vehiclePlateNumber"
+                    type="text"
+                    required
+                    value={formData.vehiclePlateNumber}
+                    onChange={handleChange}
+                    className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                    placeholder="e.g. ABC-1234"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="vehicleType" className="block text-sm font-medium text-slate-300">
+                      Fuel Type
+                    </label>
+                    <select
+                      id="vehicleType"
+                      name="vehicleType"
+                      value={formData.vehicleType}
+                      onChange={handleChange}
+                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-slate-800 focus:outline-none focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm rounded-lg bg-slate-900 text-slate-100"
+                    >
+                      <option value="diesel">Diesel</option>
+                      <option value="petrol">Petrol</option>
+                      <option value="ev">EV</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="mileage" className="block text-sm font-medium text-slate-300">
+                      Mileage (km/l)
+                    </label>
+                    <input
+                      id="mileage"
+                      name="mileage"
+                      type="number"
+                      step="0.1"
+                      required
+                      value={formData.mileage}
+                      onChange={handleChange}
+                      className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                      placeholder="e.g. 15.5"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-4 border-t border-slate-800 pt-4">
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Additional Info (Optional)
+              </h3>
+              
+              <div>
+                <label htmlFor="emergencyContact" className="block text-sm font-medium text-slate-300">
+                  Emergency Contact Phone
+                </label>
+                <input
+                  id="emergencyContact"
+                  name="emergencyContact"
+                  type="text"
+                  value={formData.emergencyContact}
+                  onChange={handleChange}
+                  className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                  placeholder="+1 (555) 000-0000"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="bio" className="block text-sm font-medium text-slate-300">
+                  Short Bio
+                </label>
+                <textarea
+                  id="bio"
+                  name="bio"
+                  rows="2"
+                  value={formData.bio}
+                  onChange={handleChange}
+                  className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                  placeholder="Tell co-workers about yourself..."
+                />
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 disabled:opacity-50"
+              >
+                {isSubmitting ? 'Registering...' : 'Register'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Register;
