@@ -3,6 +3,7 @@ import * as userController from './user.controller.js';
 import { updateProfileSchema } from './user.validation.js';
 import validate from '../../shared/middleware/validate.middleware.js';
 import { protect } from '../auth/auth.middleware.js';
+import { handleImageUpload } from '../../shared/middleware/upload.middleware.js';
 
 const router = express.Router();
 
@@ -11,5 +12,6 @@ router.use(protect);
 
 router.get('/profile', userController.getProfile);
 router.patch('/profile', validate(updateProfileSchema), userController.updateProfile);
+router.post('/profile/upload-image', handleImageUpload('profileImage'), userController.uploadProfileImage);
 
 export default router;

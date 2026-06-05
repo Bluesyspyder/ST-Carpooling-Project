@@ -69,8 +69,11 @@ const Login = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300">
-                Password
+              <label htmlFor="password" className="block text-sm font-medium text-slate-300 flex justify-between">
+                <span>Password</span>
+                <Link to="/forgot-password" className="text-xs text-emerald-400 hover:text-emerald-300">
+                  Forgot password?
+                </Link>
               </label>
               <div className="mt-1">
                 <input

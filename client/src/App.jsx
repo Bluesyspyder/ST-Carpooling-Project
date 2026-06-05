@@ -25,8 +25,21 @@ const Header = () => {
             <Link to="/create-ride" className="text-slate-300 hover:text-emerald-400 transition">
               Offer Ride
             </Link>
-            <Link to="/profile" className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition">
-              Profile
+            <Link 
+              to="/profile" 
+              className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-emerald-500/30 hover:border-emerald-500/60 overflow-hidden bg-emerald-500/10 transition"
+            >
+              {user.profileImage ? (
+                <img 
+                  src={user.profileImage} 
+                  alt={user.firstName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-xs font-bold text-emerald-400 uppercase">
+                  {user.firstName?.[0]}{user.lastName?.[0]}
+                </span>
+              )}
             </Link>
           </>
         ) : (

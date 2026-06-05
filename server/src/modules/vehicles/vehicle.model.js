@@ -37,6 +37,10 @@ const vehicleSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'Vehicle mileage is required'],
     },
+    vehicleImage: {
+      type: String,
+      required: [true, 'Vehicle image is required'],
+    },
   },
   {
     timestamps: true,

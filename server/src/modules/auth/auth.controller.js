@@ -30,3 +30,51 @@ export const login = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Handle forgot password request
+ */
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.forgotPassword(email);
+    return res.status(200).json({
+      status: 'success',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Handle OTP verification
+ */
+export const verifyOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const result = await authService.verifyOtp(email, otp);
+    return res.status(200).json({
+      status: 'success',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Handle password reset
+ */
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    const result = await authService.resetPassword(email, otp, newPassword);
+    return res.status(200).json({
+      status: 'success',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

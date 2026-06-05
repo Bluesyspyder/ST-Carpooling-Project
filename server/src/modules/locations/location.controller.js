@@ -18,7 +18,7 @@ export const getMapConfigHandler = (req, res, next) => {
 export const getPincodeLocationHandler = async (req, res, next) => {
   try {
     const location = await findPincodeLocation(req.params.pincode);
-
+    
     res.status(200).json({
       status: 'success',
       data: { location },

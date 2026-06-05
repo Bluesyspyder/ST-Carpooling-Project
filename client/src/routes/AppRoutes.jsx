@@ -7,6 +7,9 @@ import Profile from '../pages/Profile/index.jsx';
 import CreateRide from '../pages/CreateRide/index.jsx';
 import SearchRide from '../pages/SearchRide/index.jsx';
 import RideDetails from '../pages/RideDetails/index.jsx';
+import ForgotPassword from '../pages/ForgotPassword/index.jsx';
+import VerifyOTP from '../pages/VerifyOTP/index.jsx';
+import ResetPassword from '../pages/ResetPassword/index.jsx';
 import { useAuth } from '../hooks/useAuth.js';
 
 /**
@@ -40,6 +43,9 @@ const AppRoutes = () => {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/verify-otp" element={<VerifyOTP />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/search" element={<SearchRide />} />
       <Route path="/rides/:id" element={<RideDetails />} />
       

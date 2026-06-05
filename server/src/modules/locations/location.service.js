@@ -156,7 +156,7 @@ const geocodeWithNominatim = async (address) => {
   if (!response.ok) {
     throw new ApiError(502, 'OpenStreetMap geocoding request failed.');
   }
-
+  console.log(data)
   const result = data?.[0];
   const latitude = Number(result?.lat);
   const longitude = Number(result?.lon);
@@ -349,6 +349,6 @@ export const findPincodeLocation = async (pincode) => {
   if (!location) {
     throw new ApiError(404, `No location found for pincode ${normalizedPincode}.`);
   }
-
+  console.log(location)
   return location;
 };

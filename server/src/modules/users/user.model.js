@@ -47,7 +47,7 @@ const userSchema = new mongoose.Schema(
     },
     profileImage: {
       type: String,
-      default: '',
+      default: null,
     },
     averageRating: {
       type: Number,
@@ -63,6 +63,17 @@ const userSchema = new mongoose.Schema(
     bio: {
       type: String,
       trim: true,
+    },
+    // OTP-based forgot password fields
+    resetOtp: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    resetOtpExpiry: {
+      type: Date,
+      default: null,
+      select: false,
     },
   },
   {

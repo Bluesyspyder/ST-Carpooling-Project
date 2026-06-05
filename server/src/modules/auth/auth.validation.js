@@ -60,3 +60,42 @@ export const loginSchema = z.object({
     password: z.string().min(1, 'Password is required'),
   }).strict(),
 });
+
+/**
+ * Forgot Password Request Validation Schema
+ */
+export const forgotPasswordSchema = z.object({
+  body: z.object({
+    email: z
+      .string()
+      .email('Please enter a valid email address')
+      .regex(/^[a-zA-Z0-9._%+-]+@st\.com$/, 'Email must end with @st.com'),
+  }).strict(),
+});
+
+/**
+ * Verify OTP Request Validation Schema
+ */
+export const verifyOtpSchema = z.object({
+  body: z.object({
+    email: z
+      .string()
+      .email('Please enter a valid email address')
+      .regex(/^[a-zA-Z0-9._%+-]+@st\.com$/, 'Email must end with @st.com'),
+    otp: z.string().length(4, 'OTP must be exactly 4 digits').regex(/^\d{4}$/, 'OTP must contain only digits'),
+  }).strict(),
+});
+
+/**
+ * Reset Password Request Validation Schema
+ */
+export const resetPasswordSchema = z.object({
+  body: z.object({
+    email: z
+      .string()
+      .email('Please enter a valid email address')
+      .regex(/^[a-zA-Z0-9._%+-]+@st\.com$/, 'Email must end with @st.com'),
+    otp: z.string().length(4, 'OTP must be exactly 4 digits').regex(/^\d{4}$/, 'OTP must contain only digits'),
+    newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+  }).strict(),
+});
