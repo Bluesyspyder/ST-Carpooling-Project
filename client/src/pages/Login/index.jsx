@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 
@@ -16,10 +16,13 @@ const Login = () => {
     setError('');
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await login(email.trim().toLowerCase(), password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please verify credentials.');
+      setError(
+        err.response?.data?.message ||
+        'Login server is unavailable. Please make sure the backend is running.'
+      );
     } finally {
       setIsSubmitting(false);
     }

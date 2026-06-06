@@ -1,4 +1,5 @@
 import Ride from './ride.model.js';
+import Vehicle from '../vehicles/vehicle.model.js';
 import ApiError from '../../shared/utils/api-error.js';
 
 /**
@@ -7,6 +8,19 @@ import ApiError from '../../shared/utils/api-error.js';
  * @returns {Promise<object>} Created ride document
  */
 export const createRide = async (rideData) => {
+  const vehicle = await Vehicle.findOne({
+    _id: rideData.vehicle,
+    owner: rideData.driver,
+  });
+
+  if (!vehicle) {
+    throw new ApiError(403, 'You can only create rides with your own vehicle');
+  }
+
+  if (rideData.availableSeats > vehicle.seatCount) {
+    throw new ApiError(400, 'Available seats cannot exceed vehicle seat count');
+  }
+
   return await Ride.create(rideData);
 };
 

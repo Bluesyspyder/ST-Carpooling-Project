@@ -13,6 +13,14 @@ export const createBooking = async (bookingData) => {
     throw new ApiError(404, 'Ride not found');
   }
 
+  if (ride.driver.toString() === bookingData.passenger.toString()) {
+    throw new ApiError(400, 'You cannot book your own ride');
+  }
+
+  if (ride.status !== 'pending' && ride.status !== 'active') {
+    throw new ApiError(400, 'This ride is not available for booking');
+  }
+
   if (ride.availableSeats < bookingData.seatsBooked) {
     throw new ApiError(400, 'Insufficient seats available for this ride');
   }

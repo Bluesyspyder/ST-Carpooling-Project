@@ -1,28 +1,28 @@
-import { createContext, useState, useEffect } from 'react';
+import { useState } from 'react';
 import api from '../services/api.js';
+import { AuthContext } from './AuthContext.js';
 
-export const AuthContext = createContext(null);
+const readPersistedUser = () => {
+  const savedUser = localStorage.getItem('user');
+  const savedToken = localStorage.getItem('token');
+
+  if (!savedUser || !savedToken) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(savedUser);
+  } catch (err) {
+    console.error('Failed to parse persisted user details', err);
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    return null;
+  }
+};
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Load persisted session on initial render
-    const savedUser = localStorage.getItem('user');
-    const savedToken = localStorage.getItem('token');
-    
-    if (savedUser && savedToken) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (err) {
-        console.error('Failed to parse persisted user details', err);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-      }
-    }
-    setLoading(false);
-  }, []);
+  const [user, setUser] = useState(readPersistedUser);
+  const [loading, setLoading] = useState(false);
 
   /**
    * Log in user using email and password
@@ -37,8 +37,6 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(loggedInUser));
       setUser(loggedInUser);
       return loggedInUser;
-    } catch (error) {
-      throw error;
     } finally {
       setLoading(false);
     }
@@ -57,8 +55,6 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(registeredUser));
       setUser(registeredUser);
       return registeredUser;
-    } catch (error) {
-      throw error;
     } finally {
       setLoading(false);
     }

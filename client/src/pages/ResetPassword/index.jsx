@@ -1,27 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import api from '../../services/api.js';
 
 const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const email = location.state?.email || '';
+  const otp = location.state?.otp || '';
 
   useEffect(() => {
-    // Get email and otp from navigation state or redirect to forgot password
-    if (location.state?.email && location.state?.otp) {
-      setEmail(location.state.email);
-      setOtp(location.state.otp);
-    } else {
+    if (!email || !otp) {
       navigate('/forgot-password');
     }
-  }, [location, navigate]);
+  }, [email, otp, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import api from '../../services/api.js';
@@ -13,7 +13,7 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchVehicles = async () => {
-      if (user?.role !== 'driver') return;
+      if (user?.role !== 'hybrid') return;
 
       try {
         const response = await api.get('/vehicles');
@@ -150,7 +150,7 @@ const Profile = () => {
                 {user.firstName} {user.lastName}
               </h3>
               <p className="text-emerald-400 font-semibold text-sm capitalize mt-1">
-                {user.role === 'driver' ? 'Car Owner' : 'Passenger'} Account
+                {user.role === 'hybrid' ? 'Car Owner' : 'Passenger'} Account
               </p>
             </div>
           </div>
@@ -200,7 +200,7 @@ const Profile = () => {
             </div>
           )}
 
-          {user.role === 'driver' && (
+          {user.role === 'hybrid' && (
             <div className="pt-6 border-t border-slate-800 space-y-4">
               <h4 className="text-lg font-bold text-slate-100 flex items-center gap-2">
                 <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

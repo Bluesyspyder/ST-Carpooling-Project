@@ -1,23 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import api from '../../services/api.js';
 
 const VerifyOTP = () => {
   const [otp, setOtp] = useState('');
-  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const email = location.state?.email || '';
 
   useEffect(() => {
-    // Get email from navigation state or redirect to forgot password
-    if (location.state?.email) {
-      setEmail(location.state.email);
-    } else {
+    if (!email) {
       navigate('/forgot-password');
     }
-  }, [location, navigate]);
+  }, [email, navigate]);
 
   const handleChange = (e) => {
     const value = e.target.value.replace(/\D/g, ''); // Only allow digits

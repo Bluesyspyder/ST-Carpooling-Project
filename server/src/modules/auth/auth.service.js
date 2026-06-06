@@ -34,8 +34,8 @@ export const register = async (userData) => {
 
   const user = await User.create(userFields);
   
-  // Automatically create a Vehicle document if role is driver (Car Owner)
-  if (user.role === 'driver') {
+  // Automatically create a Vehicle document if the user can offer rides.
+  if (user.role === 'hybrid') {
     try {
       await Vehicle.create({
         owner: user._id,
@@ -68,8 +68,10 @@ export const register = async (userData) => {
  * @returns {Promise<object>} Logged in user info & signed token
  */
 export const login = async (email, password) => {
+  const normalizedEmail = email.trim().toLowerCase();
+
   // Retrieve user with password field explicitly selected
-  const user = await User.findOne({ email }).select('+password');
+  const user = await User.findOne({ email: normalizedEmail }).select('+password');
   
   if (!user || !(await user.comparePassword(password))) {
     throw new ApiError(401, 'Invalid email or password');

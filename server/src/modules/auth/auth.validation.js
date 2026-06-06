@@ -14,7 +14,7 @@ export const registerSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
     phone: z.string().min(5, 'Please enter a valid phone number'),
     address: z.string().min(3, 'Address must be at least 3 characters'),
-    role: z.enum(['passenger', 'driver']).default('passenger'),
+    role: z.enum(['passenger', 'hybrid']).default('passenger'),
     
     // Car Owner vehicle details (optional in base object, checked via refine)
     vehicleName: z.string().optional(),
@@ -22,15 +22,17 @@ export const registerSchema = z.object({
     vehicleType: z.enum(['diesel', 'petrol', 'ev']).optional(),
     mileage: z.coerce.number().min(0, 'Mileage must be a positive number').optional(),
     seatCount: z.coerce.number().int().min(1, 'Seat count must be at least 1').max(10, 'Seat count cannot exceed 10').optional(),
+    vehicleImage: z.string().optional(),
     
     // Passenger/helpful optional fields
     emergencyContact: z.string().optional(),
     bio: z.string().optional(),
+    profileImage: z.string().optional(),
   })
   .strict()
   .refine(
     (data) => {
-      if (data.role === 'driver') {
+      if (data.role === 'hybrid') {
         return (
           !!data.vehicleName &&
           !!data.vehiclePlateNumber &&
@@ -42,7 +44,7 @@ export const registerSchema = z.object({
       return true;
     },
     {
-      message: 'Vehicle name, plate number, type, mileage, and seat count are required for drivers',
+      message: 'Vehicle name, plate number, type, mileage, and seat count are required for hybrid accounts',
       path: ['vehicleName'],
     }
   ),
