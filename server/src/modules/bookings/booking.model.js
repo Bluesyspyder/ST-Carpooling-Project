@@ -30,6 +30,13 @@ const bookingSchema = new mongoose.Schema(
       enum: ['pending', 'confirmed', 'cancelled'],
       default: 'pending',
     },
+    pickupLocation: {
+      address: { type: String, required: true },
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
+      geocodingFallbackLevel: { type: String },
+      geocodingVerified: { type: Boolean, default: true }
+    },
   },
   {
     timestamps: true,

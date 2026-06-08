@@ -1,6 +1,7 @@
 import Booking from './booking.model.js';
 import Ride from '../rides/ride.model.js';
 import ApiError from '../../shared/utils/api-error.js';
+import { geocodeAddressWithFallback } from '../locations/geocoding.service.js';
 
 /**
  * Register a new booking and deduct seats from the ride
@@ -25,9 +26,42 @@ export const createBooking = async (bookingData) => {
     throw new ApiError(400, 'Insufficient seats available for this ride');
   }
 
+  // Resolve pickup location
+  let pickup;
+  if (
+    bookingData.pickupLocation &&
+    Number.isFinite(bookingData.pickupLocation.latitude) &&
+    Number.isFinite(bookingData.pickupLocation.longitude) &&
+    (bookingData.pickupLocation.confirmed || bookingData.pickupLocation.manual)
+  ) {
+    pickup = {
+      address: bookingData.pickupLocation.address || bookingData.pickupAddress,
+      latitude: bookingData.pickupLocation.latitude,
+      longitude: bookingData.pickupLocation.longitude,
+      geocodingFallbackLevel: bookingData.pickupLocation.geocodingFallbackLevel || 'User Confirmed',
+      geocodingVerified: bookingData.pickupLocation.geocodingVerified !== undefined ? bookingData.pickupLocation.geocodingVerified : true,
+    };
+  } else {
+    const geocoded = await geocodeAddressWithFallback(bookingData.pickupAddress);
+    if (!geocoded) {
+      const error = new ApiError(400, 'Geocoding failed for pickup address. Please select location manually.');
+      error.code = 'GEOCODING_FAILED';
+      error.data = { field: 'pickupAddress', address: bookingData.pickupAddress };
+      throw error;
+    }
+    if (!geocoded.geocodingVerified && (!bookingData.pickupLocation || !bookingData.pickupLocation.confirmed)) {
+      const error = new ApiError(400, 'Low confidence result for pickup address. Please confirm.');
+      error.code = 'GEOCODING_LOW_CONFIDENCE';
+      error.data = { field: 'pickupAddress', location: geocoded };
+      throw error;
+    }
+    pickup = geocoded;
+  }
+
   // Calculate pricing based on ride price
   bookingData.bookingAmount = ride.pricePerSeat * bookingData.seatsBooked;
   bookingData.bookingStatus = 'confirmed'; // Auto-confirm for boilerplate simplicity
+  bookingData.pickupLocation = pickup;
 
   const booking = await Booking.create(bookingData);
 

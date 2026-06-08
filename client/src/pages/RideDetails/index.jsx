@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
+import LocationConfirmationMap from '../../components/LocationConfirmationMap.jsx';
 
 const RideDetails = () => {
   const { id } = useParams();
@@ -15,6 +16,12 @@ const RideDetails = () => {
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const [isBooking, setIsBooking] = useState(false);
+
+  // Passenger geocoding state variables
+  const [pickupAddress, setPickupAddress] = useState('');
+  const [geocodingState, setGeocodingState] = useState(null); // null, 'confirming', 'manual'
+  const [warningMsg, setWarningMsg] = useState('');
+  const [pickupLocation, setPickupLocation] = useState({ address: '', lat: null, lng: null });
 
   useEffect(() => {
     const fetchRideDetails = async () => {
@@ -31,28 +38,64 @@ const RideDetails = () => {
     fetchRideDetails();
   }, [id]);
 
-  const handleBooking = async (e) => {
-    e.preventDefault();
+  const handleBooking = async (e, forceConfirmed = false) => {
+    if (e) e.preventDefault();
     if (!user) {
       navigate('/login');
       return;
     }
-    
+
     setIsBooking(true);
     setBookingError('');
+    setWarningMsg('');
     setBookingSuccess(false);
 
     try {
-      await api.post('/bookings', {
+      const payload = {
         ride: id,
         seatsBooked: Number(bookingSeats),
-      });
+        pickupAddress: pickupAddress,
+      };
+
+      if (forceConfirmed || geocodingState === 'confirming' || geocodingState === 'manual') {
+        payload.pickupLocation = {
+          address: pickupLocation.address || pickupAddress,
+          latitude: pickupLocation.lat,
+          longitude: pickupLocation.lng,
+          confirmed: true,
+          manual: geocodingState === 'manual',
+        };
+      }
+
+      await api.post('/bookings', payload);
       setBookingSuccess(true);
       // Refresh ride details to update seats
       const updatedResponse = await api.get(`/rides/${id}`);
       setRide(updatedResponse.data.data.ride);
+      setGeocodingState(null);
     } catch (err) {
-      setBookingError(err.response?.data?.message || 'Failed to book seats.');
+      const responseData = err.response?.data;
+      if (responseData && responseData.code === 'GEOCODING_LOW_CONFIDENCE') {
+        setGeocodingState('confirming');
+        setWarningMsg(responseData.message || 'Pickup location resolved with low specificity. Please verify and drag/adjust the pin on the map.');
+        const errorData = responseData.data || {};
+        if (errorData.location) {
+          const loc = errorData.location;
+          setPickupLocation({ address: loc.address, lat: loc.latitude, lng: loc.longitude });
+        }
+      } else if (responseData && responseData.code === 'GEOCODING_FAILED') {
+        setGeocodingState('manual');
+        setBookingError(responseData.message || 'Geocoding failed completely. Please place your pickup pin manually on the map.');
+        
+        if (!pickupLocation.lat) {
+          // Default to ride starting coordinates or default center
+          const centerLat = ride?.pickupLocation?.latitude || 28.5355;
+          const centerLng = ride?.pickupLocation?.longitude || 77.3910;
+          setPickupLocation({ address: pickupAddress, lat: centerLat, lng: centerLng });
+        }
+      } else {
+        setBookingError(err.response?.data?.message || 'Failed to book seats.');
+      }
     } finally {
       setIsBooking(false);
     }
@@ -165,10 +208,56 @@ const RideDetails = () => {
               <p className="text-xs text-green-300">Your seats have been reserved. Details are available on your profile.</p>
             </div>
           ) : (
-            <form onSubmit={handleBooking} className="space-y-4">
+            <form onSubmit={(e) => handleBooking(e)} className="space-y-4">
               {bookingError && (
                 <div className="bg-red-950/40 border border-red-500/20 text-red-400 p-3 rounded-lg text-xs">
                   {bookingError}
+                </div>
+              )}
+
+              {warningMsg && (
+                <div className="bg-amber-950/40 border border-amber-500/20 text-amber-300 p-3 rounded-lg text-xs">
+                  <span className="font-bold block mb-0.5">Warning:</span>
+                  <span>{warningMsg}</span>
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="pickupAddress" className="block text-xs text-slate-400 mb-1">
+                  Pickup Location (Address)
+                </label>
+                <input
+                  id="pickupAddress"
+                  name="pickupAddress"
+                  type="text"
+                  required
+                  disabled={geocodingState !== null}
+                  value={pickupAddress}
+                  onChange={(e) => setPickupAddress(e.target.value)}
+                  placeholder="e.g. Sector 62 Metro Station, Noida"
+                  className="block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm disabled:opacity-50"
+                />
+              </div>
+
+              {geocodingState !== null && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-300">
+                      {geocodingState === 'manual' ? 'Pin Location Manually' : 'Adjust Pickup Marker'}
+                    </span>
+                  </div>
+                  <LocationConfirmationMap
+                    pickup={pickupLocation}
+                    onPickupChange={handlePickupChange}
+                    manualMode={geocodingState === 'manual'}
+                    activeField="pickup"
+                    interactive={true}
+                  />
+                  {pickupLocation.lat && (
+                    <p className="text-[10px] text-slate-400">
+                      Selected Coords: {pickupLocation.lat.toFixed(5)}, {pickupLocation.lng.toFixed(5)}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -182,9 +271,10 @@ const RideDetails = () => {
                   type="number"
                   min="1"
                   max={Math.min(8, ride.availableSeats)}
+                  disabled={geocodingState !== null}
                   value={bookingSeats}
                   onChange={(e) => setBookingSeats(e.target.value)}
-                  className="block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm"
+                  className="block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm disabled:opacity-50"
                 />
               </div>
 
@@ -195,13 +285,37 @@ const RideDetails = () => {
                 </span>
               </div>
 
-              <button
-                type="submit"
-                disabled={isBooking || ride.availableSeats <= 0 || ride.status !== 'pending'}
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition duration-150 disabled:opacity-50"
-              >
-                {isBooking ? 'Processing...' : ride.availableSeats <= 0 ? 'Fully Booked' : 'Confirm Booking'}
-              </button>
+              {geocodingState === null ? (
+                <button
+                  type="submit"
+                  disabled={isBooking || ride.availableSeats <= 0 || ride.status !== 'pending'}
+                  className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition duration-150 disabled:opacity-50"
+                >
+                  {isBooking ? 'Processing...' : ride.availableSeats <= 0 ? 'Fully Booked' : 'Confirm Booking'}
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGeocodingState(null);
+                      setWarningMsg('');
+                      setBookingError('');
+                    }}
+                    className="w-1/2 flex justify-center py-2 px-3 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 bg-slate-900 hover:bg-slate-800 transition"
+                  >
+                    Edit Address
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBooking(null, true)}
+                    disabled={isBooking}
+                    className="w-1/2 flex justify-center py-2 px-3 border border-transparent rounded-lg shadow-sm text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-500 transition disabled:opacity-50"
+                  >
+                    {isBooking ? 'Confirming...' : 'Confirm & Book'}
+                  </button>
+                </div>
+              )}
             </form>
           )}
         </div>

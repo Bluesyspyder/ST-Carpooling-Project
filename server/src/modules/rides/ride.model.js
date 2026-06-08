@@ -25,6 +25,20 @@ const rideSchema = new mongoose.Schema(
       required: [true, 'Destination location is required'],
       trim: true,
     },
+    pickupLocation: {
+      address: { type: String, required: true },
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
+      geocodingFallbackLevel: { type: String },
+      geocodingVerified: { type: Boolean, default: true }
+    },
+    destinationLocation: {
+      address: { type: String, required: true },
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
+      geocodingFallbackLevel: { type: String },
+      geocodingVerified: { type: Boolean, default: true }
+    },
     departureTime: {
       type: Date,
       required: [true, 'Departure time is required'],

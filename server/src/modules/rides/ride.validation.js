@@ -11,6 +11,20 @@ export const createRideSchema = z.object({
     departureTime: z.string().datetime('Invalid departure date-time format'),
     availableSeats: z.number().int().min(1, 'Must offer at least 1 seat'),
     pricePerSeat: z.number().min(0, 'Price per seat cannot be negative'),
+    pickupLocation: z.object({
+      address: z.string().optional(),
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
+      confirmed: z.boolean().optional(),
+      manual: z.boolean().optional(),
+    }).optional(),
+    destinationLocation: z.object({
+      address: z.string().optional(),
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
+      confirmed: z.boolean().optional(),
+      manual: z.boolean().optional(),
+    }).optional(),
   }).strict(),
 });
 

@@ -1,6 +1,7 @@
 import Ride from './ride.model.js';
 import Vehicle from '../vehicles/vehicle.model.js';
 import ApiError from '../../shared/utils/api-error.js';
+import { geocodeAddressWithFallback } from '../locations/geocoding.service.js';
 
 /**
  * Register a new ride offer
@@ -21,7 +22,80 @@ export const createRide = async (rideData) => {
     throw new ApiError(400, 'Available seats cannot exceed vehicle seat count');
   }
 
-  return await Ride.create(rideData);
+  // Resolve pickup location
+  let pickup;
+  if (
+    rideData.pickupLocation &&
+    Number.isFinite(rideData.pickupLocation.latitude) &&
+    Number.isFinite(rideData.pickupLocation.longitude) &&
+    (rideData.pickupLocation.confirmed || rideData.pickupLocation.manual)
+  ) {
+    pickup = {
+      address: rideData.pickupLocation.address || rideData.source,
+      latitude: rideData.pickupLocation.latitude,
+      longitude: rideData.pickupLocation.longitude,
+      geocodingFallbackLevel: rideData.pickupLocation.geocodingFallbackLevel || 'User Confirmed',
+      geocodingVerified: rideData.pickupLocation.geocodingVerified !== undefined ? rideData.pickupLocation.geocodingVerified : true,
+    };
+  } else {
+    const geocoded = await geocodeAddressWithFallback(rideData.source);
+    if (!geocoded) {
+      const error = new ApiError(400, 'Geocoding failed for pickup address. Please select location manually.');
+      error.code = 'GEOCODING_FAILED';
+      error.data = { field: 'source', address: rideData.source };
+      throw error;
+    }
+    if (!geocoded.geocodingVerified && (!rideData.pickupLocation || !rideData.pickupLocation.confirmed)) {
+      const error = new ApiError(400, 'Low confidence result for pickup address. Please confirm.');
+      error.code = 'GEOCODING_LOW_CONFIDENCE';
+      error.data = { field: 'source', location: geocoded };
+      throw error;
+    }
+    pickup = geocoded;
+  }
+
+  // Resolve destination location
+  let destination;
+  if (
+    rideData.destinationLocation &&
+    Number.isFinite(rideData.destinationLocation.latitude) &&
+    Number.isFinite(rideData.destinationLocation.longitude) &&
+    (rideData.destinationLocation.confirmed || rideData.destinationLocation.manual)
+  ) {
+    destination = {
+      address: rideData.destinationLocation.address || rideData.destination,
+      latitude: rideData.destinationLocation.latitude,
+      longitude: rideData.destinationLocation.longitude,
+      geocodingFallbackLevel: rideData.destinationLocation.geocodingFallbackLevel || 'User Confirmed',
+      geocodingVerified: rideData.destinationLocation.geocodingVerified !== undefined ? rideData.destinationLocation.geocodingVerified : true,
+    };
+  } else {
+    const geocoded = await geocodeAddressWithFallback(rideData.destination);
+    if (!geocoded) {
+      const error = new ApiError(400, 'Geocoding failed for destination address. Please select location manually.');
+      error.code = 'GEOCODING_FAILED';
+      error.data = { field: 'destination', address: rideData.destination };
+      throw error;
+    }
+    if (!geocoded.geocodingVerified && (!rideData.destinationLocation || !rideData.destinationLocation.confirmed)) {
+      const error = new ApiError(400, 'Low confidence result for destination address. Please confirm.');
+      error.code = 'GEOCODING_LOW_CONFIDENCE';
+      error.data = { field: 'destination', location: geocoded };
+      throw error;
+    }
+    destination = geocoded;
+  }
+
+  // Setup normalized ride data with coords and backward compatible source/destination strings
+  const finalRideData = {
+    ...rideData,
+    pickupLocation: pickup,
+    destinationLocation: destination,
+    source: pickup.address,
+    destination: destination.address,
+  };
+
+  return await Ride.create(finalRideData);
 };
 
 /**
