@@ -1,0 +1,302 @@
+import { useEffect, useRef, useCallback, useState } from 'react';
+import { fetchReverseGeocode } from '../services/locationService.js';
+import useCurrentLocation from '../hooks/useCurrentLocation.js';
+
+/**
+ * Single-location Leaflet map preview with a draggable marker.
+ *
+ * Spec Part 5 buttons (always visible when interactive):
+ *   [ Confirm Location ]  [ Reset Marker ]  [ Use Current Location ]
+ *
+ * Props:
+ *   location           – { address, latitude, longitude }
+ *   onLocationChange   – fn({ address, latitude, longitude })  (called on drag-end / GPS / reset)
+ *   height             – CSS string (default '280px')
+ *   interactive        – bool; enables dragging + action buttons
+ *   onConfirm          – fn() — called when user clicks Confirm (sets verified: true upstream)
+ *   onUnconfirm        – fn() — called when user clicks Edit after confirming (sets verified: false)
+ *   confirmed          – bool; shows verified badge + Edit button
+ *   markerColor        – hex color for the custom pin (default '#7c3aed' violet)
+ *   markerLabel        – single char label inside pin (default '📍')
+ */
+const MapPreview = ({
+  location,
+  onLocationChange,
+  height = '280px',
+  interactive = false,
+  onConfirm,
+  onUnconfirm,
+  confirmed = false,
+  markerColor = '#7c3aed',
+  markerLabel = '●',
+}) => {
+  const mapRef              = useRef(null);
+  const leafletMapRef       = useRef(null);
+  const markerRef           = useRef(null);
+  const reverseGeocodeTimer = useRef(null);
+  const isMountedRef        = useRef(true);
+  // Track the "clean" coordinates last set by autocomplete/GPS (for Reset)
+  const baseLocationRef     = useRef(null);
+
+  const [reverseLoading, setReverseLoading] = useState(false);
+
+  const { getCurrentLocation, loading: gpsLoading } = useCurrentLocation();
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(reverseGeocodeTimer.current);
+    };
+  }, []);
+
+  // Keep baseLocationRef in sync when location changes from the outside (autocomplete / GPS)
+  useEffect(() => {
+    if (location?.latitude && location?.longitude) {
+      baseLocationRef.current = { ...location };
+    }
+  }, [location?.latitude, location?.longitude]);
+
+  // ── Reverse geocode after drag ──────────────────────────────────────────
+  const handleDragEnd = useCallback(
+    async (newLat, newLng) => {
+      // Immediately push new coordinates upstream (address stays unchanged temporarily)
+      onLocationChange?.({ ...location, latitude: newLat, longitude: newLng });
+
+      // Debounced reverse geocode
+      clearTimeout(reverseGeocodeTimer.current);
+      setReverseLoading(true);
+      reverseGeocodeTimer.current = setTimeout(async () => {
+        try {
+          const result = await fetchReverseGeocode(newLat, newLng);
+          if (isMountedRef.current && result?.address) {
+            onLocationChange?.({ address: result.address, latitude: newLat, longitude: newLng });
+          }
+        } catch {
+          // Keep old address with new coords — silent fail
+        } finally {
+          if (isMountedRef.current) setReverseLoading(false);
+        }
+      }, 400);
+    },
+    [location, onLocationChange]
+  );
+
+  // ── Reset Marker ────────────────────────────────────────────────────────
+  const handleReset = useCallback(() => {
+    const base = baseLocationRef.current;
+    if (!base?.latitude || !base?.longitude) return;
+    if (markerRef.current) markerRef.current.setLatLng([base.latitude, base.longitude]);
+    if (leafletMapRef.current) leafletMapRef.current.setView([base.latitude, base.longitude], 15);
+    onLocationChange?.({ ...base });
+  }, [onLocationChange]);
+
+  // ── Use Current Location ────────────────────────────────────────────────
+  const handleCurrentLocation = useCallback(async () => {
+    const loc = await getCurrentLocation();
+    if (!loc || !isMountedRef.current) return;
+    // Move marker on map
+    if (markerRef.current) markerRef.current.setLatLng([loc.latitude, loc.longitude]);
+    if (leafletMapRef.current) leafletMapRef.current.setView([loc.latitude, loc.longitude], 15);
+    // Update base so Reset snaps back here
+    baseLocationRef.current = { ...loc };
+    onLocationChange?.({ ...loc });
+  }, [getCurrentLocation, onLocationChange]);
+
+  // ── Build custom pin icon ───────────────────────────────────────────────
+  const buildIcon = useCallback((L, color) =>
+    L.divIcon({
+      className: '',
+      html: `<div style="
+        display:flex;align-items:center;justify-content:center;
+        width:32px;height:32px;
+        border-radius:50% 50% 50% 0;
+        transform:rotate(-45deg);
+        background:${color};
+        color:#fff;border:2px solid rgba(255,255,255,0.9);
+        font-weight:700;font-size:11px;
+        box-shadow:0 4px 10px rgba(0,0,0,0.45);
+        transition:transform 0.15s ease
+      "><span style="transform:rotate(45deg);line-height:1">${confirmed ? '✓' : markerLabel}</span></div>`,
+      iconAnchor: [16, 32],
+    }),
+    [confirmed, markerLabel]
+  );
+
+  // ── Initialise / update map ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!location?.latitude || !location?.longitude) return;
+
+    const init = async () => {
+      const L = (await import('leaflet')).default;
+      await import('leaflet/dist/leaflet.css');
+
+      const lat = location.latitude;
+      const lng = location.longitude;
+      const icon = buildIcon(L, confirmed ? '#10b981' : markerColor);
+
+      if (!leafletMapRef.current) {
+        leafletMapRef.current = L
+          .map(mapRef.current, { zoomControl: true, scrollWheelZoom: false })
+          .setView([lat, lng], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+        }).addTo(leafletMapRef.current);
+      } else {
+        leafletMapRef.current.setView([lat, lng], 15);
+      }
+
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lng]);
+        markerRef.current.setIcon(icon);
+      } else {
+        markerRef.current = L.marker([lat, lng], { draggable: interactive, icon })
+          .addTo(leafletMapRef.current);
+
+        if (interactive) {
+          markerRef.current.on('dragend', (e) => {
+            const { lat: nLat, lng: nLng } = e.target.getLatLng();
+            handleDragEnd(nLat, nLng);
+          });
+        }
+      }
+    };
+
+    init();
+
+    return () => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  // Re-init only when coordinates change; confirmed changes only update icon colour
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location?.latitude, location?.longitude]);
+
+  // Update icon color when confirmed state changes (without re-initing the map)
+  useEffect(() => {
+    if (!markerRef.current) return;
+    const updateIcon = async () => {
+      const L = (await import('leaflet')).default;
+      markerRef.current.setIcon(buildIcon(L, confirmed ? '#10b981' : markerColor));
+    };
+    updateIcon();
+  }, [confirmed, buildIcon, markerColor]);
+
+  // ── Empty state ─────────────────────────────────────────────────────────
+  if (!location?.latitude) {
+    return (
+      <div
+        style={{ height }}
+        className="bg-slate-800/60 rounded-xl border border-dashed border-slate-600/50 flex flex-col items-center justify-center gap-2 text-slate-500 text-sm"
+      >
+        <span className="text-3xl opacity-40">🗺️</span>
+        <span>Map preview appears after selecting an address</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-slate-600/50 shadow-lg">
+      {/* Map tile */}
+      <div ref={mapRef} style={{ height }} className="w-full" />
+
+      {/* Footer — address + action buttons */}
+      {interactive && (
+        <div className="bg-slate-900/95 border-t border-slate-700/60 px-4 py-3 space-y-2.5">
+          {/* Address row */}
+          <div className="flex items-start gap-2">
+            <span className="text-slate-500 text-sm mt-0.5 flex-shrink-0">📍</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-slate-200 text-sm leading-snug truncate">
+                {reverseLoading ? (
+                  <span className="text-slate-400 italic text-xs">Resolving address…</span>
+                ) : (
+                  location.address || 'Unknown address'
+                )}
+              </p>
+              <p className="text-slate-500 text-xs mt-0.5 font-mono">
+                {location.latitude?.toFixed(6)}, {location.longitude?.toFixed(6)}
+              </p>
+            </div>
+            {reverseLoading && (
+              <div className="w-3.5 h-3.5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin flex-shrink-0 mt-1" />
+            )}
+          </div>
+
+          {/* Action buttons */}
+          {confirmed ? (
+            /* ── Confirmed state ── */
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-emerald-400 text-sm font-semibold">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+                Location Verified
+              </div>
+              {onUnconfirm && (
+                <button
+                  onClick={onUnconfirm}
+                  className="text-xs text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  ✏ Edit
+                </button>
+              )}
+            </div>
+          ) : (
+            /* ── Unconfirmed state: all 3 spec buttons ── */
+            <div className="flex flex-wrap gap-2">
+              {/* Use Current Location */}
+              <button
+                onClick={handleCurrentLocation}
+                disabled={gpsLoading}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/50 hover:border-emerald-500/50 text-slate-300 hover:text-emerald-300 transition-all disabled:opacity-50"
+              >
+                {gpsLoading ? (
+                  <div className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <span>📍</span>
+                )}
+                {gpsLoading ? 'Getting GPS…' : 'Use Current Location'}
+              </button>
+
+              {/* Reset Marker */}
+              <button
+                onClick={handleReset}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/50 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 transition-all"
+              >
+                <span>↺</span>
+                Reset Marker
+              </button>
+
+              {/* Confirm Location */}
+              {onConfirm && (
+                <button
+                  onClick={onConfirm}
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors ml-auto"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Confirm Location
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Drag hint */}
+          {!confirmed && (
+            <p className="text-xs text-slate-500 text-center border-t border-slate-700/40 pt-2">
+              Drag the pin to fine-tune · Confirm when the position is correct
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MapPreview;

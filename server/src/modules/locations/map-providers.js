@@ -6,14 +6,11 @@ const getMapboxToken = () => {
     process.env.VITE_MAPBOX_TOKEN,
     process.env.MAP_API_KEY,
   ];
-
   return candidates.find((token) => token?.trim().startsWith('pk.'))?.trim();
 };
 
 /**
  * Perform geocoding query using Mapbox API
- * @param {string} address - The address to geocode
- * @returns {Promise<object|null>} The geocoded location or null
  */
 export const geocodeWithMapbox = async (address) => {
   const token = getMapboxToken();
@@ -43,17 +40,15 @@ export const geocodeWithMapbox = async (address) => {
     if (!feature) return null;
 
     const [longitude, latitude] = feature.center || [];
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-      return null;
-    }
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
 
     return {
       label: feature.text || address,
       address: feature.place_name || address,
       latitude,
       longitude,
-      relevance: feature.relevance || 0,
       provider: 'Mapbox',
+      providerPlaceId: feature.id || null,
     };
   } catch (err) {
     console.error('[MAPBOX] Request error:', err.message);
@@ -62,53 +57,68 @@ export const geocodeWithMapbox = async (address) => {
 };
 
 /**
- * Perform geocoding query using Nominatim (OpenStreetMap) API
- * @param {string} address - The address to geocode
- * @returns {Promise<object|null>} The geocoded location or null
+ * Mapbox autocomplete — returns up to 5 suggestions for a partial query
  */
-export const geocodeWithNominatim = async (address) => {
-  const query = new URLSearchParams({
-    q: address,
-    format: 'json',
-    addressdetails: '1',
-    limit: '1',
-    countrycodes: 'in',
+export const autocompleteWithMapbox = async (query) => {
+  const token = getMapboxToken();
+  if (!token) return null;
+
+  const params = new URLSearchParams({
+    access_token: token,
+    country: 'in',
+    limit: '5',
+    autocomplete: 'true',
+    language: 'en',
   });
 
   try {
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?${query}`, {
-      headers: {
-        'User-Agent': 'Carpooling-ST-Project/1.0',
-        Accept: 'application/json',
-      },
-    });
+    const response = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params}`
+    );
     const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.features) return null;
 
-    if (!response.ok || !Array.isArray(data)) {
-      console.warn(`[NOMINATIM] API Request failed: ${response.statusText}`);
-      return null;
-    }
+    return data.features.map((f) => {
+      const [lng, lat] = f.center || [];
+      return {
+        address: f.place_name || f.text,
+        latitude: lat,
+        longitude: lng,
+        provider: 'Mapbox',
+        providerPlaceId: f.id || null,
+      };
+    });
+  } catch (err) {
+    console.error('[MAPBOX_AUTOCOMPLETE] Error:', err.message);
+    return null;
+  }
+};
 
-    const result = data?.[0];
-    if (!result) return null;
+/**
+ * Mapbox reverse geocoding — lat/lng → address
+ */
+export const reverseGeocodeWithMapbox = async (lat, lng) => {
+  const token = getMapboxToken();
+  if (!token) return null;
 
-    const latitude = Number(result.lat);
-    const longitude = Number(result.lon);
+  const params = new URLSearchParams({ access_token: token, language: 'en' });
 
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-      return null;
-    }
+  try {
+    const response = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?${params}`
+    );
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.features?.length) return null;
 
+    const f = data.features[0];
     return {
-      label: result.name || address,
-      address: result.display_name || address,
-      latitude,
-      longitude,
-      importance: Number(result.importance) || 0,
-      provider: 'OpenStreetMap',
+      address: f.place_name || f.text,
+      latitude: lat,
+      longitude: lng,
+      provider: 'Mapbox',
     };
   } catch (err) {
-    console.error('[NOMINATIM] Request error:', err.message);
+    console.error('[MAPBOX_REVERSE] Error:', err.message);
     return null;
   }
 };
