@@ -1,5 +1,6 @@
 import Ride from './ride.model.js';
 import Vehicle from '../vehicles/vehicle.model.js';
+import User from '../users/user.model.js';
 import ApiError from '../../shared/utils/api-error.js';
 import { recordLocationUsage } from '../users/user.service.js';
 
@@ -36,7 +37,7 @@ const buildVerifiedLocation = (raw, fieldName) => {
  * pickupLocation and destinationLocation must both be coordinate-verified.
  */
 export const createRide = async (rideData) => {
-  const vehicle = await Vehicle.findOne({ _id: rideData.vehicle, owner: rideData.driver });
+  const vehicle = await Vehicle.findOne({ _id: rideData.driverVehicle, owner: rideData.driver });
   if (!vehicle) throw new ApiError(403, 'You can only create rides with your own vehicle');
   if (rideData.availableSeats > vehicle.seatCount) {
     throw new ApiError(400, 'Available seats cannot exceed vehicle seat count');
@@ -49,8 +50,7 @@ export const createRide = async (rideData) => {
     ...rideData,
     pickupLocation: pickup,
     destinationLocation: destination,
-    source: pickup.address,
-    destination: destination.address,
+    rideStatus: 'ACTIVE',
   };
 
   const ride = await Ride.create(finalRideData);
@@ -67,7 +67,7 @@ export const createRide = async (rideData) => {
 export const getRideById = async (id) => {
   const ride = await Ride.findById(id)
     .populate('driver', 'firstName lastName profileImage averageRating phone')
-    .populate('vehicle');
+    .populate('driverVehicle');
   if (!ride) throw new ApiError(404, 'Ride not found');
   return ride;
 };
@@ -75,60 +75,57 @@ export const getRideById = async (id) => {
 export const getRides = async (filters = {}) => {
   const query = {};
 
-  // Coordinate-based proximity matching (5 km radius) for pickup
-  if (filters.sourceLat && filters.sourceLng) {
-    const lat = Number(filters.sourceLat);
-    const lng = Number(filters.sourceLng);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      const maxDeg = 5 / 111.12; // ~5 km in degrees
-      query['pickupLocation.latitude']  = { $gte: lat - maxDeg, $lte: lat + maxDeg };
-      query['pickupLocation.longitude'] = { $gte: lng - maxDeg, $lte: lng + maxDeg };
-    }
-  } else if (filters.source) {
-    query.source = { $regex: filters.source, $options: 'i' };
-  }
+  // Default to ACTIVE rides only
+  query.rideStatus = 'ACTIVE';
 
-  // Coordinate-based proximity matching for destination
-  if (filters.destLat && filters.destLng) {
-    const lat = Number(filters.destLat);
-    const lng = Number(filters.destLng);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      const maxDeg = 5 / 111.12;
-      query['destinationLocation.latitude']  = { $gte: lat - maxDeg, $lte: lat + maxDeg };
-      query['destinationLocation.longitude'] = { $gte: lng - maxDeg, $lte: lng + maxDeg };
-    }
-  } else if (filters.destination) {
-    query.destination = { $regex: filters.destination, $options: 'i' };
-  }
-
-  if (filters.date) {
-    const date = new Date(filters.date);
+  if (filters.journeyDate) {
+    const date = new Date(filters.journeyDate);
     const nextDay = new Date(date);
     nextDay.setDate(nextDay.getDate() + 1);
-    query.departureTime = { $gte: date, $lt: nextDay };
+    query.journeyDate = { $gte: date, $lt: nextDay };
   }
 
-  query.status = { $in: ['pending', 'active'] };
-  query.availableSeats = { $gte: Number(filters.seats) || 1 };
+  if (filters.pickupArea) {
+    query['pickupLocation.address'] = { $regex: filters.pickupArea, $options: 'i' };
+  }
+
+  if (filters.seats) {
+    query.availableSeats = { $gte: Number(filters.seats) };
+  }
+
+  // Driver Name search
+  if (filters.driverName) {
+    const driverRegex = new RegExp(filters.driverName, 'i');
+    const matchingDrivers = await User.find({
+      $or: [{ firstName: driverRegex }, { lastName: driverRegex }]
+    }).select('_id');
+    const driverIds = matchingDrivers.map(d => d._id);
+    if (driverIds.length > 0) {
+      query.driver = { $in: driverIds };
+    } else {
+      // Force empty result if no driver matched
+      return [];
+    }
+  }
 
   return await Ride.find(query)
     .populate('driver', 'firstName lastName profileImage averageRating')
-    .populate('vehicle')
-    .sort({ departureTime: 1 });
+    .populate('driverVehicle')
+    .sort({ journeyDate: 1, journeyTime: 1 });
 };
 
 export const getRidesByDriver = async (driverId) => {
   return await Ride.find({ driver: driverId })
-    .populate('vehicle')
+    .populate('driverVehicle')
     .sort({ createdAt: -1 });
 };
 
 export const updateRideStatus = async (id, driverId, status) => {
   const ride = await Ride.findOne({ _id: id, driver: driverId });
   if (!ride) throw new ApiError(404, 'Ride not found or unauthorized');
-  const allowed = ['pending', 'active', 'completed', 'cancelled'];
+  const allowed = ['ACTIVE', 'FULL', 'CANCELLED', 'COMPLETED'];
   if (!allowed.includes(status)) throw new ApiError(400, 'Invalid status');
-  ride.status = status;
+  ride.rideStatus = status;
   await ride.save();
   return ride;
 };

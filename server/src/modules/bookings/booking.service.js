@@ -10,6 +10,11 @@ const buildVerifiedLocation = (raw, fieldName) => {
       `${fieldName} with valid coordinates is required. Please use the address autocomplete and confirm on the map.`
     );
   }
+  const lat = Number(raw.latitude);
+  const lng = Number(raw.longitude);
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    throw new ApiError(400, `${fieldName} coordinates are out of valid range.`);
+  }
   if (raw.verified !== true) {
     throw new ApiError(
       400,
@@ -18,8 +23,9 @@ const buildVerifiedLocation = (raw, fieldName) => {
   }
   return {
     address:         raw.address || '',
-    latitude:        Number(raw.latitude),
-    longitude:       Number(raw.longitude),
+    latitude:        lat,
+    longitude:       lng,
+    coordinates:     [lng, lat],
     verified:        true,
     verifiedAt:      new Date(),
     provider:        raw.provider || null,
@@ -29,7 +35,8 @@ const buildVerifiedLocation = (raw, fieldName) => {
 
 /**
  * Register a new booking.
- * pickupLocation must be coordinate-verified before booking can be created.
+ * Starts in 'pending' status. Coordinates verified required.
+ * 24h booking policy: cannot book if departure is within 24 hours.
  */
 export const createBooking = async (bookingData) => {
   const ride = await Ride.findById(bookingData.ride);
@@ -44,47 +51,175 @@ export const createBooking = async (bookingData) => {
     throw new ApiError(400, 'Insufficient seats available for this ride');
   }
 
+  // ⏰ 24-hour booking policy
+  const now = new Date();
+  const hoursUntilDeparture = (new Date(ride.departureTime) - now) / (1000 * 60 * 60);
+  if (hoursUntilDeparture < 24) {
+    throw new ApiError(
+      400,
+      `Bookings must be made at least 24 hours before departure. This ride departs in ${Math.round(hoursUntilDeparture)} hour(s).`
+    );
+  }
+
   const pickup = buildVerifiedLocation(bookingData.pickupLocation, 'Pickup location');
 
   bookingData.bookingAmount  = ride.pricePerSeat * bookingData.seatsBooked;
-  bookingData.bookingStatus  = 'confirmed';
+  bookingData.bookingStatus  = 'pending';
   bookingData.pickupLocation = pickup;
 
   const booking = await Booking.create(bookingData);
 
-  ride.availableSeats -= bookingData.seatsBooked;
-  await ride.save();
-
-  // Record usage (fire-and-forget)
   recordLocationUsage(bookingData.passenger, pickup)
     .catch((err) => console.warn('[BOOKING] recordLocationUsage error:', err.message));
 
   return booking;
 };
 
-export const getBookingsByUser = async (userId) => {
-  return await Booking.find({ passenger: userId })
+export const getMyBookingsPaginated = async (userId, page = 1, limit = 10) => {
+  const skip = (page - 1) * limit;
+  const bookings = await Booking.find({ passenger: userId })
     .populate({
       path: 'ride',
       populate: [
-        { path: 'driver',  select: 'firstName lastName profileImage' },
-        { path: 'vehicle' },
-      ],
+        { path: 'driver', select: 'firstName lastName profileImage email phone averageRating' },
+        { path: 'vehicle' }
+      ]
+    })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Booking.countDocuments({ passenger: userId });
+
+  return {
+    bookings,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
+};
+
+export const getMyRidesBookingsPaginated = async (driverId, page = 1, limit = 10) => {
+  const skip = (page - 1) * limit;
+  
+  // Find all rides created by this driver
+  const rides = await Ride.find({ driver: driverId }).select('_id');
+  const rideIds = rides.map(r => r._id);
+
+  const bookings = await Booking.find({ ride: { $in: rideIds } })
+    .populate('passenger', 'firstName lastName profileImage email phone averageRating')
+    .populate({
+      path: 'ride',
+      populate: [
+        { path: 'vehicle' }
+      ]
+    })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Booking.countDocuments({ ride: { $in: rideIds } });
+
+  return {
+    bookings,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
+};
+
+export const updateBookingStatus = async (bookingId, driverId, status) => {
+  const booking = await Booking.findById(bookingId)
+    .populate({
+      path: 'ride',
+      select: 'driver availableSeats'
     });
+
+  if (!booking) throw new ApiError(404, 'Booking not found');
+
+  // Verify the user is the driver of the ride
+  if (booking.ride.driver.toString() !== driverId) {
+    throw new ApiError(403, 'Unauthorized to update this booking status');
+  }
+
+  const oldStatus = booking.bookingStatus;
+  const newStatus = status;
+
+  if (oldStatus === newStatus) return booking;
+
+  // Validate allowed status transitions
+  const allowed = ['pending', 'confirmed', 'cancelled', 'rejected'];
+  if (!allowed.includes(newStatus)) {
+    throw new ApiError(400, 'Invalid booking status');
+  }
+
+  const ride = await Ride.findById(booking.ride._id);
+
+  if (newStatus === 'confirmed') {
+    if (oldStatus !== 'pending') {
+      throw new ApiError(400, 'Can only confirm pending bookings');
+    }
+    if (ride.availableSeats < booking.seatsBooked) {
+      throw new ApiError(400, 'Insufficient seats available for this ride');
+    }
+    ride.availableSeats -= booking.seatsBooked;
+    await ride.save();
+  } else if (newStatus === 'rejected') {
+    if (oldStatus !== 'pending') {
+      throw new ApiError(400, 'Can only reject pending bookings');
+    }
+  } else if (newStatus === 'cancelled') {
+    if (oldStatus === 'confirmed') {
+      ride.availableSeats += booking.seatsBooked;
+      await ride.save();
+    }
+  }
+
+  booking.bookingStatus = newStatus;
+  await booking.save();
+  return booking;
 };
 
 export const cancelBooking = async (id, userId) => {
-  const booking = await Booking.findOne({ _id: id, passenger: userId });
-  if (!booking) throw new ApiError(404, 'Booking not found or unauthorized');
-  if (booking.bookingStatus === 'cancelled') throw new ApiError(400, 'Booking is already cancelled');
+  const booking = await Booking.findOne({ _id: id, passenger: userId })
+    .populate({ path: 'ride', select: 'departureTime availableSeats' });
 
+  if (!booking) throw new ApiError(404, 'Booking not found or unauthorized');
+  if (booking.bookingStatus === 'cancelled' || booking.bookingStatus === 'rejected') {
+    throw new ApiError(400, 'Booking is already cancelled or rejected');
+  }
+
+  // ⏰ 24-hour cancellation policy
+  const now = new Date();
+  const hoursUntilDeparture = (new Date(booking.ride.departureTime) - now) / (1000 * 60 * 60);
+
+  if (hoursUntilDeparture < 24) {
+    throw new ApiError(
+      400,
+      `Cancellations must be made at least 24 hours before departure. This ride departs in ${Math.round(hoursUntilDeparture)} hour(s).`
+    );
+  }
+
+  // Flag if within 6 hours (should not happen due to 24h gate, but kept for future flexibility)
+  const isWarningZone = hoursUntilDeparture < 6;
+
+  const oldStatus = booking.bookingStatus;
   booking.bookingStatus = 'cancelled';
   await booking.save();
 
-  const ride = await Ride.findById(booking.ride);
-  if (ride) {
-    ride.availableSeats += booking.seatsBooked;
-    await ride.save();
+  if (oldStatus === 'confirmed') {
+    const ride = await Ride.findById(booking.ride._id || booking.ride);
+    if (ride) {
+      ride.availableSeats += booking.seatsBooked;
+      await ride.save();
+    }
   }
-  return booking;
+
+  return { booking, isWarningZone };
 };

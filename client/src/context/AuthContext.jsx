@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { createContext, useState } from 'react';
 import api from '../services/api.js';
-import { AuthContext } from './AuthContext.js';
+
+export const AuthContext = createContext(null);
 
 const readPersistedUser = () => {
   const savedUser = localStorage.getItem('user');
@@ -22,42 +23,32 @@ const readPersistedUser = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(readPersistedUser);
-  const [loading, setLoading] = useState(false);
+  const loading = false; // No longer toggle global loading during auth operations
 
   /**
    * Log in user using email and password
    */
   const login = async (email, password) => {
-    setLoading(true);
-    try {
-      const response = await api.post('/auth/login', { email, password });
-      const { user: loggedInUser, token } = response.data.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(loggedInUser));
-      setUser(loggedInUser);
-      return loggedInUser;
-    } finally {
-      setLoading(false);
-    }
+    const response = await api.post('/auth/login', { email, password });
+    const { user: loggedInUser, token } = response.data.data;
+    
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(loggedInUser));
+    setUser(loggedInUser);
+    return loggedInUser;
   };
 
   /**
    * Register a new user account
    */
   const register = async (userData) => {
-    setLoading(true);
-    try {
-      const response = await api.post('/auth/register', userData);
-      const { user: registeredUser, token } = response.data.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(registeredUser));
-      setUser(registeredUser);
-      return registeredUser;
-    } finally {
-      setLoading(false);
-    }
+    const response = await api.post('/auth/register', userData);
+    const { user: registeredUser, token } = response.data.data;
+    
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(registeredUser));
+    setUser(registeredUser);
+    return registeredUser;
   };
 
   /**

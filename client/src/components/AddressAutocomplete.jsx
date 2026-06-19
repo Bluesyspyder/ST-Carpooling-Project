@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { fetchAutocomplete } from '../services/locationService.js';
+import { fetchAutocomplete, fetchGeocode } from '../services/locationService.js';
 import useCurrentLocation from '../hooks/useCurrentLocation.js';
 
 /**
@@ -28,16 +28,16 @@ const AddressAutocomplete = ({
   disabled = false,
   showCurrentLocation = false,
 }) => {
-  const [inputText,   setInputText]   = useState(value);
+  const [inputText, setInputText] = useState(value);
   const [suggestions, setSuggestions] = useState([]);
-  const [open,        setOpen]        = useState(false);
-  const [loading,     setLoading]     = useState(false);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [selected,    setSelected]    = useState(false); // true once user picks a suggestion
+  const [selected, setSelected] = useState(false); // true once user picks a suggestion
 
-  const debounceRef  = useRef(null);
-  const cacheRef     = useRef({});  // query → suggestions[]
-  const wrapperRef   = useRef(null);
+  const debounceRef = useRef(null);
+  const cacheRef = useRef({});  // query → suggestions[]
+  const wrapperRef = useRef(null);
 
   const { getCurrentLocation, loading: gpsLoading, error: gpsError } = useCurrentLocation();
 
@@ -81,30 +81,51 @@ const AddressAutocomplete = ({
       return;
     }
 
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const results = await fetchAutocomplete(text);
-        const list = results || [];
-        cacheRef.current[cacheKey] = list; // cache result
-        setSuggestions(list);
-        setOpen(true);
-      } catch {
-        setSuggestions([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 300);
+      debounceRef.current = setTimeout(async () => {
+        setLoading(true);
+
+        try {
+          const results = await fetchAutocomplete(text);
+          let list = results || [];
+
+          cacheRef.current[cacheKey] = list;
+          setSuggestions(list);
+          setOpen(true);
+        } catch (err) {
+          console.error(err);
+          setSuggestions([]);
+        } finally {
+          setLoading(false);
+        }
+      }, 300);
   }, []);
 
   // ── Selection ─────────────────────────────────────────────────────────
-  const handleSelect = useCallback((suggestion) => {
+  const handleSelect = useCallback(async (suggestion) => {
     setInputText(suggestion.address);
     setSuggestions([]);
     setOpen(false);
     setActiveIndex(-1);
     setSelected(true);
-    onChange?.(suggestion);
+
+    if (suggestion.latitude != null && suggestion.longitude != null) {
+      onChange?.(suggestion);
+    } else {
+      setLoading(true);
+      try {
+        const geoResult = await fetchGeocode(suggestion.address);
+        if (geoResult && geoResult.latitude != null) {
+          onChange?.({ ...suggestion, latitude: geoResult.latitude, longitude: geoResult.longitude });
+        } else {
+          onChange?.(suggestion);
+        }
+      } catch (e) {
+        console.error('Geocode fallback failed', e);
+        onChange?.(suggestion);
+      } finally {
+        setLoading(false);
+      }
+    }
   }, [onChange]);
 
   // ── Clear field ───────────────────────────────────────────────────────
@@ -259,7 +280,12 @@ const AddressAutocomplete = ({
               <span className="text-slate-500 mt-0.5 text-sm flex-shrink-0">📌</span>
               <div className="min-w-0">
                 <p className="text-sm leading-snug">{s.address}</p>
-                {s.provider && (
+
+                {s.distance && Number.isFinite(s.distance) && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    {s.distance.toFixed(1)} km away
+                  </p>
+                )}                {s.provider && (
                   <p className="text-xs text-slate-500 mt-0.5">{s.provider}</p>
                 )}
               </div>

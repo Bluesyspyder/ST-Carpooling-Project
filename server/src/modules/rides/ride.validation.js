@@ -21,14 +21,14 @@ const locationSchema = z.object({
  */
 export const createRideSchema = z.object({
   body: z.object({
-    vehicle: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Vehicle ID format'),
-    source: z.string().min(2, 'Source must be at least 2 characters'),
-    destination: z.string().min(2, 'Destination must be at least 2 characters'),
-    departureTime: z.string().datetime('Invalid departure date-time format'),
+    driverVehicle: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Vehicle ID format'),
+    journeyDate: z.string().datetime('Invalid journey date format'),
+    journeyTime: z.string().min(1, 'Journey time is required'),
+    flexibilityMinutes: z.number().int().min(0).optional(),
     availableSeats: z.number().int().min(1, 'Must offer at least 1 seat'),
-    pricePerSeat: z.number().min(0, 'Price per seat cannot be negative'),
     pickupLocation: locationSchema,
     destinationLocation: locationSchema,
+    notes: z.string().optional(),
   }),
 });
 
@@ -38,13 +38,9 @@ export const createRideSchema = z.object({
  */
 export const searchRidesSchema = z.object({
   query: z.object({
-    source: z.string().optional(),
-    destination: z.string().optional(),
-    departureDate: z.string().optional(),
-    sourceLat: z.string().or(z.number()).optional(),
-    sourceLng: z.string().or(z.number()).optional(),
-    destLat: z.string().or(z.number()).optional(),
-    destLng: z.string().or(z.number()).optional(),
+    journeyDate: z.string().optional(),
+    pickupArea: z.string().optional(),
+    driverName: z.string().optional(),
     seats: z.string().or(z.number()).optional(),
   }),
 });

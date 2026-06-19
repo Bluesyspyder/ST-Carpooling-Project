@@ -28,8 +28,8 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      // If window object exists, reload page to trigger auth state reset
-      if (typeof window !== 'undefined') {
+      // If window object exists, reload page to trigger auth state reset ONLY if not already on login/register page
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
         window.location.href = '/login';
       }
     }

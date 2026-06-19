@@ -32,7 +32,9 @@ const SavedLocationsManager = () => {
     try {
       const data = await fetchSavedAddresses();
       setAddresses(data || []);
-    } catch { /* silent */ }
+    } catch (error) {
+      console.error('Failed to load saved addresses:', error);
+    }
     finally { setLoading(false); }
   };
 
@@ -86,11 +88,23 @@ const SavedLocationsManager = () => {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this saved address?')) return;
-    try { await deleteSavedAddress(id); await load(); } catch { /* silent */ }
+    try {
+      await deleteSavedAddress(id);
+      await load();
+    } catch (error) {
+      console.error('Failed to delete saved address:', error);
+      alert('Failed to delete address. Please try again.');
+    }
   };
 
   const handleSetDefault = async (id) => {
-    try { await setDefaultSavedAddress(id); await load(); } catch { /* silent */ }
+    try {
+      await setDefaultSavedAddress(id);
+      await load();
+    } catch (error) {
+      console.error('Failed to set default saved address:', error);
+      alert('Failed to set default address. Please try again.');
+    }
   };
 
   if (loading) return <div className="text-slate-400 text-sm py-4">Loading saved locations…</div>;
@@ -212,7 +226,7 @@ const SavedLocationsManager = () => {
               <h3 className="text-white font-semibold">{viewLocation.icon} {viewLocation.label}</h3>
               <button onClick={() => setViewLocation(null)} className="text-slate-400 hover:text-white">✕</button>
             </div>
-            <MapPreview location={viewLocation} height="300px" interactive={false} />
+            <MapPreview location={viewLocation} height="200px" interactive={false} />
           </div>
         </div>
       )}

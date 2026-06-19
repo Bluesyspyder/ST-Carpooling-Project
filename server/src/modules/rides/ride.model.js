@@ -27,23 +27,32 @@ const rideSchema = new mongoose.Schema(
       ref: 'User',
       required: [true, 'Driver is required'],
     },
-    vehicle: {
+    driverVehicle: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Vehicle',
       required: [true, 'Vehicle is required'],
     },
-    // Human-readable display strings (derived from location objects)
-    source: {
-      type: String,
-      required: [true, 'Source location is required'],
-      trim: true,
+    journeyDate: {
+      type: Date,
+      required: [true, 'Journey date is required'],
     },
-    destination: {
+    journeyTime: {
       type: String,
-      required: [true, 'Destination location is required'],
-      trim: true,
+      required: [true, 'Journey time is required'],
     },
-    // Coordinate-authoritative location objects
+    flexibilityMinutes: {
+      type: Number,
+      default: 0,
+    },
+    availableSeats: {
+      type: Number,
+      required: [true, 'Available seats count is required'],
+      min: [1, 'Must have at least 1 available seat'],
+    },
+    bookedSeats: {
+      type: Number,
+      default: 0,
+    },
     pickupLocation: {
       type: locationSchema,
       required: [true, 'Pickup location with coordinates is required'],
@@ -52,31 +61,13 @@ const rideSchema = new mongoose.Schema(
       type: locationSchema,
       required: [true, 'Destination location with coordinates is required'],
     },
-    // Cached route data (populated after first calculation, updated on demand)
-    routeData: {
-      distanceKm:      { type: Number, default: null },
-      durationMinutes: { type: Number, default: null },
-      provider:        { type: String, default: null },
-      calculatedAt:    { type: Date, default: null },
-    },
-    departureTime: {
-      type: Date,
-      required: [true, 'Departure time is required'],
-    },
-    availableSeats: {
-      type: Number,
-      required: [true, 'Available seats count is required'],
-      min: [1, 'Must have at least 1 available seat'],
-    },
-    pricePerSeat: {
-      type: Number,
-      required: [true, 'Price per seat is required'],
-      min: [0, 'Price cannot be negative'],
-    },
-    status: {
+    routeDistance: { type: Number, default: null },
+    routeDuration: { type: Number, default: null },
+    notes: { type: String, default: '' },
+    rideStatus: {
       type: String,
-      enum: ['pending', 'active', 'completed', 'cancelled'],
-      default: 'pending',
+      enum: ['ACTIVE', 'FULL', 'CANCELLED', 'COMPLETED'],
+      default: 'ACTIVE',
     },
   },
   {

@@ -1,149 +1,31 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api.js';
-import AddressAutocomplete from '../../components/AddressAutocomplete.jsx';
-import MapPreview from '../../components/MapPreview.jsx';
-import QuickLocationChips from '../../components/QuickLocationChips.jsx';
-import useCurrentLocation from '../../hooks/useCurrentLocation.js';
-import {
-  fetchSavedAddresses,
-  fetchRecentAddresses,
-  fetchFrequentAddresses,
-} from '../../services/locationService.js';
 
 const SearchRide = () => {
   const [filters, setFilters] = useState({
-    source: '',
-    sourceLat: null,
-    sourceLng: null,
-    sourceVerified: false,
-    destination: '',
-    destLat: null,
-    destLng: null,
-    destVerified: false,
-    departureDate: '',
+    pickupArea: '',
+    driverName: '',
+    journeyDate: '',
+    seats: 1,
   });
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
 
-  const [savedAddresses, setSavedAddresses] = useState([]);
-  const [recentAddresses, setRecentAddresses] = useState([]);
-  const [frequentAddresses, setFrequentAddresses] = useState([]);
-
-  // Track which field's map is expanded
-  const [showSourceMap, setShowSourceMap] = useState(false);
-  const [showDestMap, setShowDestMap] = useState(false);
-
-  const { getCurrentLocation } = useCurrentLocation();
-
-  useEffect(() => {
-    const loadLists = async () => {
-      try {
-        const [saved, recent, frequent] = await Promise.all([
-          fetchSavedAddresses(),
-          fetchRecentAddresses(),
-          fetchFrequentAddresses(),
-        ]);
-        setSavedAddresses(saved || []);
-        setRecentAddresses(recent || []);
-        setFrequentAddresses(frequent || []);
-      } catch { /* not logged in or network error – silent */ }
-    };
-    loadLists();
-  }, []);
-
-  const handleChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
-  };
-
-  const handleSourceSelect = (loc) => {
-    setFilters((f) => ({
-      ...f,
-      source: loc?.address || '',
-      sourceLat: loc?.latitude || null,
-      sourceLng: loc?.longitude || null,
-      sourceVerified: false,
-    }));
-    if (loc?.latitude) setShowSourceMap(true);
-  };
-
-  const handleDestSelect = (loc) => {
-    setFilters((f) => ({
-      ...f,
-      destination: loc?.address || '',
-      destLat: loc?.latitude || null,
-      destLng: loc?.longitude || null,
-      destVerified: false,
-    }));
-    if (loc?.latitude) setShowDestMap(true);
-  };
-
-  const handleSourceMapChange = (loc) => {
-    setFilters((f) => ({
-      ...f,
-      sourceLat: loc.latitude,
-      sourceLng: loc.longitude,
-      source: loc.address || f.source,
-      sourceVerified: false,
-    }));
-  };
-
-  const handleDestMapChange = (loc) => {
-    setFilters((f) => ({
-      ...f,
-      destLat: loc.latitude,
-      destLng: loc.longitude,
-      destination: loc.address || f.destination,
-      destVerified: false,
-    }));
-  };
-
-  const handleSourceConfirm   = () => setFilters((f) => ({ ...f, sourceVerified: true }));
-  const handleSourceUnconfirm = () => setFilters((f) => ({ ...f, sourceVerified: false }));
-  const handleDestConfirm     = () => setFilters((f) => ({ ...f, destVerified: true }));
-  const handleDestUnconfirm   = () => setFilters((f) => ({ ...f, destVerified: false }));
-
-  const handleCurrentForSource = async () => {
-    const loc = await getCurrentLocation();
-    if (loc) {
-      setFilters((f) => ({
-        ...f,
-        source: loc.address,
-        sourceLat: loc.latitude,
-        sourceLng: loc.longitude,
-        sourceVerified: false,
-      }));
-      setShowSourceMap(true);
-    }
-  };
-
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  // Fetch immediately on mount and when filters change
+  const fetchRides = async () => {
     setLoading(true);
     setError('');
-    setSearched(true);
     try {
       const params = {};
-      if (filters.source) {
-        params.source = filters.source;
-        if (filters.sourceLat) {
-          params.sourceLat = filters.sourceLat;
-          params.sourceLng = filters.sourceLng;
-        }
-      }
-      if (filters.destination) {
-        params.destination = filters.destination;
-        if (filters.destLat) {
-          params.destLat = filters.destLat;
-          params.destLng = filters.destLng;
-        }
-      }
-      if (filters.departureDate) params.departureDate = filters.departureDate;
-      
+      if (filters.pickupArea) params.pickupArea = filters.pickupArea;
+      if (filters.driverName) params.driverName = filters.driverName;
+      if (filters.journeyDate) params.journeyDate = filters.journeyDate;
+      if (filters.seats > 1) params.seats = filters.seats;
+
       const response = await api.get('/rides', { params });
-      setRides(response.data.data.rides);
+      setRides(response.data.data.rides || []);
     } catch (err) {
       setError('Failed to fetch rides. Please try again.');
       console.error(err);
@@ -151,6 +33,22 @@ const SearchRide = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRides();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run on mount
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    fetchRides();
+  };
+
+  const handleChange = (e) => {
+    setFilters({ ...filters, [e.target.name]: e.target.value });
+  };
+
+  const inputClass = "w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all";
 
   return (
     <div className="min-h-[calc(100vh-73px)] bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8 relative">
@@ -162,158 +60,165 @@ const SearchRide = () => {
         </h2>
 
         {/* Search filter form */}
-        <div className="glass-panel p-6 rounded-2xl shadow-xl">
-          {/* Quick chips */}
-          <div className="mb-4">
-            <QuickLocationChips
-              savedAddresses={savedAddresses}
-              recentAddresses={recentAddresses}
-              frequentAddresses={frequentAddresses}
-              onSelect={handleSourceSelect}
-              showCurrentLocation
-              onCurrentLocation={handleCurrentForSource}
-            />
-          </div>
-
+        <div className="glass-panel p-6 rounded-2xl shadow-xl relative z-20">
           <form className="space-y-4" onSubmit={handleSearch}>
-            <div className="grid sm:grid-cols-4 gap-4 items-end">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
               <div>
-                <AddressAutocomplete
-                  value={filters.source}
-                  onChange={handleSourceSelect}
-                  placeholder="e.g. City Center"
-                  label="Source Location"
-                  showCurrentLocation
-                />
-              </div>
-              
-              <div>
-                <AddressAutocomplete
-                  value={filters.destination}
-                  onChange={handleDestSelect}
-                  placeholder="e.g. Airport"
-                  label="Destination"
+                <label className="block text-xs text-slate-400 mb-1.5 font-medium">Pickup Area</label>
+                <input
+                  type="text"
+                  name="pickupArea"
+                  value={filters.pickupArea}
+                  onChange={handleChange}
+                  placeholder="e.g. City Center, Sector 14"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label htmlFor="departureDate" className="block text-xs font-medium text-slate-400 mb-1">
-                  Departure Date
-                </label>
+                <label className="block text-xs text-slate-400 mb-1.5 font-medium">Driver Name</label>
                 <input
-                  id="departureDate"
-                  name="departureDate"
-                  type="date"
-                  value={filters.departureDate}
+                  type="text"
+                  name="driverName"
+                  value={filters.driverName}
                   onChange={handleChange}
-                  className="block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 text-sm"
+                  placeholder="e.g. John"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5 font-medium">Date</label>
+                <input
+                  type="date"
+                  name="journeyDate"
+                  value={filters.journeyDate}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5 font-medium">Required Seats</label>
+                <input
+                  type="number"
+                  name="seats"
+                  min="1"
+                  max="8"
+                  value={filters.seats}
+                  onChange={handleChange}
+                  className={inputClass}
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition duration-150"
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all duration-200 cursor-pointer disabled:opacity-50"
               >
                 {loading ? 'Searching...' : 'Search'}
               </button>
             </div>
-
-            {/* Map previews for pin verification */}
-            {(showSourceMap && filters.sourceLat) && (
-              <div>
-                <p className="text-xs text-slate-400 mb-1">Verify source location on map (optional):</p>
-                <MapPreview
-                  location={{ address: filters.source, latitude: filters.sourceLat, longitude: filters.sourceLng }}
-                  onLocationChange={handleSourceMapChange}
-                  height="180px"
-                  interactive
-                  onConfirm={handleSourceConfirm}
-                  onUnconfirm={handleSourceUnconfirm}
-                  confirmed={filters.sourceVerified}
-                  markerColor="#10b981"
-                  markerLabel="A"
-                />
-              </div>
-            )}
-
-            {(showDestMap && filters.destLat) && (
-              <div>
-                <p className="text-xs text-slate-400 mb-1">Verify destination on map (optional):</p>
-                <MapPreview
-                  location={{ address: filters.destination, latitude: filters.destLat, longitude: filters.destLng }}
-                  onLocationChange={handleDestMapChange}
-                  height="180px"
-                  interactive
-                  onConfirm={handleDestConfirm}
-                  onUnconfirm={handleDestUnconfirm}
-                  confirmed={filters.destVerified}
-                  markerColor="#6366f1"
-                  markerLabel="B"
-                />
-              </div>
-            )}
           </form>
         </div>
 
-        {error && (
-          <div className="bg-red-950/40 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-
         {/* Results grid */}
-        <div className="space-y-4">
+        <div className="space-y-4 relative z-10">
           {loading ? (
-            <div className="text-center py-12 text-slate-400">Loading matching rides...</div>
+            <div className="text-center py-12 text-slate-400 glass-panel rounded-2xl">
+              <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              Loading available rides...
+            </div>
+          ) : error ? (
+            <div className="text-center py-12 text-red-400 bg-red-950/20 border border-red-500/20 rounded-2xl shadow-lg">
+              ⚠️ Unable to fetch rides. Please check your connection.
+            </div>
           ) : rides.length > 0 ? (
-            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {rides.map((ride) => (
-                <div key={ride._id} className="glass-card p-6 rounded-2xl flex flex-col justify-between">
+                <div key={ride._id} className="glass-card p-6 rounded-2xl flex flex-col justify-between border border-slate-800/80 hover:border-emerald-500/30 transition-colors">
                   <div>
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="text-emerald-400 font-extrabold text-lg">${ride.pricePerSeat} / seat</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{ride.availableSeats} seats left</p>
+                    {/* Header: Driver + Status */}
+                    <div className="flex justify-between items-start mb-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center text-sm font-bold text-emerald-400 flex-shrink-0 uppercase">
+                          {ride.driver?.firstName?.[0]}{ride.driver?.lastName?.[0]}
+                        </div>
+                        <div>
+                          <p className="text-slate-100 font-bold text-sm">
+                            {ride.driver?.firstName} {ride.driver?.lastName}
+                          </p>
+                          <p className="text-xs text-emerald-400 font-medium">★ {ride.driver?.averageRating?.toFixed(1) || '5.0'}</p>
+                        </div>
                       </div>
-                      <span className="px-2.5 py-1 text-xs font-semibold bg-emerald-950 text-emerald-400 border border-emerald-500/20 rounded-full capitalize">
-                        {ride.status}
-                      </span>
+                      <div className="text-right">
+                        <span className="px-2.5 py-1 text-[10px] font-bold tracking-wider bg-emerald-950/50 text-emerald-400 border border-emerald-500/20 rounded-full">
+                          {ride.rideStatus}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="space-y-2 mb-6">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full"></span>
-                        <p className="text-slate-200 text-sm truncate"><span className="text-slate-400 font-medium">From:</span> {ride.source}</p>
+                    {/* Time & Vehicle */}
+                    <div className="grid grid-cols-2 gap-4 mb-5 p-3 rounded-xl bg-slate-900/30 border border-slate-800/50">
+                      <div>
+                        <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-0.5">Journey Time</p>
+                        <p className="text-sm text-slate-200 font-bold">{new Date(ride.journeyDate).toLocaleDateString()} at {ride.journeyTime}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">Wait: {ride.flexibilityMinutes} mins</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 bg-indigo-400 rounded-full"></span>
-                        <p className="text-slate-200 text-sm truncate"><span className="text-slate-400 font-medium">To:</span> {ride.destination}</p>
+                      <div>
+                        <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-0.5">Vehicle</p>
+                        <p className="text-sm text-slate-200 font-bold truncate" title={ride.driverVehicle?.vehicleName}>{ride.driverVehicle?.vehicleName || 'Car'}</p>
+                        <p className="text-xs text-emerald-400 font-medium mt-0.5">{ride.availableSeats} seats left</p>
+                      </div>
+                    </div>
+
+                    {/* Locations */}
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1 flex flex-col items-center">
+                          <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full"></span>
+                          <div className="w-px h-5 bg-slate-700/50 my-0.5"></div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-slate-500 font-semibold uppercase">Pickup</p>
+                          <p className="text-slate-200 text-xs font-medium line-clamp-2">{ride.pickupLocation?.address}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1 flex flex-col items-center">
+                          <span className="w-2.5 h-2.5 bg-indigo-400 rounded-full"></span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-slate-500 font-semibold uppercase">Destination</p>
+                          <p className="text-slate-200 text-xs font-medium line-clamp-2">{ride.destinationLocation?.address}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-                    <div className="text-xs text-slate-400">
-                      {new Date(ride.departureTime).toLocaleString()}
-                    </div>
+                  {/* Actions */}
+                  <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+                    <p className="text-xs text-slate-400 flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {ride.routeDistance ? `${ride.routeDistance.toFixed(1)} km` : 'Route info N/A'}
+                    </p>
                     <Link
                       to={`/rides/${ride._id}`}
-                      className="px-4 py-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-100 rounded-lg text-xs font-bold transition duration-150"
+                      className="px-5 py-2 bg-slate-900 border border-slate-700 hover:border-emerald-500 hover:bg-slate-800 hover:text-emerald-400 text-slate-100 rounded-xl text-xs font-bold transition-all duration-200"
                     >
-                      Details
+                      View Details →
                     </Link>
                   </div>
                 </div>
               ))}
             </div>
-          ) : searched ? (
-            <div className="text-center py-12 text-slate-400 glass-panel rounded-2xl">
-              No matching rides found. Try adjusting filters or expanding search.
-            </div>
           ) : (
-            <div className="text-center py-12 text-slate-400 glass-panel rounded-2xl">
-              Enter your source and destination to view available rides.
+            <div className="text-center py-16 text-slate-400 glass-panel rounded-2xl flex flex-col items-center">
+              <span className="text-4xl mb-3">🚗</span>
+              <p className="text-lg font-semibold text-slate-300">No active rides found</p>
+              <p className="text-sm mt-1 max-w-md">Try adjusting your filters or check back later. More rides are added regularly!</p>
             </div>
           )}
         </div>

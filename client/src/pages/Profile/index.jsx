@@ -4,11 +4,15 @@ import { useAuth } from '../../hooks/useAuth.js';
 import api from '../../services/api.js';
 import SavedLocationsManager from '../../components/SavedLocationsManager.jsx';
 import LocationInsights from '../../components/LocationInsights.jsx';
+import AddressAutocomplete from '../../components/AddressAutocomplete.jsx';
+import MapPreview from '../../components/MapPreview.jsx';
 import {
   fetchFrequentAddresses,
   fetchRecentAddresses,
   fetchSavedAddresses,
 } from '../../services/locationService.js';
+
+/* ──────────────────────────── helpers ──────────────────────────── */
 
 const timeAgo = (date) => {
   const diff = Date.now() - new Date(date).getTime();
@@ -20,18 +24,61 @@ const timeAgo = (date) => {
   return `${Math.floor(hrs / 24)}d ago`;
 };
 
+/* ────────────────────── sub-component: EditField ─────────────────── */
+
+const EditField = ({ label, value, onChange, type = 'text', readOnly = false, maxLength }) => (
+  <div className="space-y-1">
+    <label className="text-slate-400 text-xs font-semibold uppercase tracking-wider">{label}</label>
+    {readOnly ? (
+      <p className="text-slate-200 text-sm font-medium bg-slate-900/30 border border-slate-800/60 rounded-lg px-3 py-2.5 select-all">
+        {value || '—'}
+      </p>
+    ) : (
+      <input
+        type={type}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        maxLength={maxLength}
+        className="w-full bg-slate-900/60 border border-slate-700/60 focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/30 text-slate-100 rounded-lg px-3 py-2.5 text-sm outline-none transition"
+      />
+    )}
+  </div>
+);
+
+/* ═══════════════════════════ PROFILE PAGE ═══════════════════════════ */
+
 const Profile = () => {
   const { user, logout, setUser } = useAuth();
   const navigate = useNavigate();
-  const [vehicles, setVehicles]       = useState([]);
+
+  /* ── vehicles ── */
+  const [vehicles, setVehicles] = useState([]);
+
+  /* ── photo upload ── */
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [vehicleImageUpload, setVehicleImageUpload] = useState({});
   const profileInputRef = useRef(null);
 
+  /* ── location data ── */
   const [frequentAddresses, setFrequentAddresses] = useState([]);
   const [recentAddresses,   setRecentAddresses]   = useState([]);
   const [savedAddresses,    setSavedAddresses]    = useState([]);
 
+  /* ── edit personal info ── */
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  /* ── home location ── */
+  const [homeLocEdit, setHomeLocEdit] = useState(false);
+  const [homeLoc, setHomeLoc] = useState({ address: '', latitude: null, longitude: null, verified: false });
+  const [homeLocSaving, setHomeLocSaving] = useState(false);
+  const [homeLocGPSLoading, setHomeLocGPSLoading] = useState(false);
+  const [homeLocError, setHomeLocError] = useState('');
+
+  /* ── initial data load ── */
   useEffect(() => {
     const fetchVehicles = async () => {
       if (user?.role !== 'hybrid') return;
@@ -52,14 +99,29 @@ const Profile = () => {
         setFrequentAddresses(frequent || []);
         setRecentAddresses(recent || []);
         setSavedAddresses(saved || []);
-      } catch { /* silent */ }
+      } catch (error) {
+        console.error('Failed to load user location details in Profile:', error);
+      }
     };
     fetchVehicles();
     loadLocationData();
   }, [user?.role]);
 
+  /* ── sync homeLocation from user object ── */
+  useEffect(() => {
+    if (user?.homeLocation) {
+      setHomeLoc({
+        address:   user.homeLocation.address   || '',
+        latitude:  user.homeLocation.latitude  ?? null,
+        longitude: user.homeLocation.longitude ?? null,
+      });
+    }
+  }, [user]);
+
+  /* ── handlers: logout ── */
   const handleLogout = () => { logout(); navigate('/'); };
 
+  /* ── handlers: profile photo ── */
   const handleProfilePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -72,10 +134,14 @@ const Profile = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setUser(response.data.data.user);
-    } catch { alert('Failed to upload profile photo. Please try again.'); }
+    } catch (error) {
+      console.error('Profile photo upload error:', error);
+      alert('Failed to upload profile photo. Please try again.');
+    }
     finally { setIsUploadingProfile(false); }
   };
 
+  /* ── handlers: vehicle photo ── */
   const handleVehiclePhotoChange = async (vehicleId, file) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) { alert('Vehicle image must be less than 5MB'); return; }
@@ -87,10 +153,95 @@ const Profile = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setVehicles((prev) => prev.map((v) => (v._id === vehicleId ? response.data.data.vehicle : v)));
-    } catch { alert('Failed to upload vehicle photo. Please try again.'); }
+    } catch (error) {
+      console.error('Vehicle photo upload error:', error);
+      alert('Failed to upload vehicle photo. Please try again.');
+    }
     finally { setVehicleImageUpload((prev) => ({ ...prev, [vehicleId]: false })); }
   };
 
+  /* ── handlers: enter edit mode ── */
+  const handleStartEdit = () => {
+    setEditForm({
+      firstName:        user.firstName        || '',
+      lastName:         user.lastName         || '',
+      phone:            user.phone            || '',
+      address:          user.address          || '',
+      bio:              user.bio              || '',
+      emergencyContact: user.emergencyContact || '',
+    });
+    setSaveError('');
+    setSaveSuccess(false);
+    setEditMode(true);
+  };
+
+  /* ── handlers: save personal info ── */
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    setSaveError('');
+    setSaveSuccess(false);
+    try {
+      const response = await api.patch('/users/profile', editForm);
+      setUser(response.data.data.user);
+      setSaveSuccess(true);
+      setEditMode(false);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      setSaveError(err.response?.data?.message || 'Failed to save changes. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* ── handlers: GPS home location ── */
+  const handleUseGPS = () => {
+    if (!navigator.geolocation) {
+      setHomeLocError('Geolocation is not supported by your browser.');
+      return;
+    }
+    setHomeLocGPSLoading(true);
+    setHomeLocError('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setHomeLoc({ address: `GPS Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`, latitude: lat, longitude: lng });
+        setHomeLocGPSLoading(false);
+      },
+      (err) => {
+        setHomeLocError('Could not get GPS location: ' + err.message);
+        setHomeLocGPSLoading(false);
+      },
+      { timeout: 10000 }
+    );
+  };
+
+  const handleSaveHomeLocation = async () => {
+    if (!homeLoc.latitude || !homeLoc.longitude) {
+      setHomeLocError('Please select a valid location first.');
+      return;
+    }
+    setHomeLocSaving(true);
+    setHomeLocError('');
+    try {
+      const response = await api.patch('/users/profile', {
+        homeLocation: {
+          address:   homeLoc.address,
+          latitude:  homeLoc.latitude,
+          longitude: homeLoc.longitude,
+          verified:  true,
+        },
+      });
+      setUser(response.data.data.user);
+      setHomeLocEdit(false);
+    } catch (err) {
+      setHomeLocError(err.response?.data?.message || 'Failed to save home location.');
+    } finally {
+      setHomeLocSaving(false);
+    }
+  };
+
+  /* ── guards ── */
   if (!user) {
     return (
       <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">
@@ -99,7 +250,6 @@ const Profile = () => {
     );
   }
 
-  // Location statistics
   const locationStats = {
     saved:    savedAddresses.length,
     recent:   recentAddresses.length,
@@ -107,6 +257,7 @@ const Profile = () => {
     totalUses: frequentAddresses.reduce((s, a) => s + (a.useCount || 0), 0),
   };
 
+  /* ──────────────────────────────── RENDER ──────────────────────────────── */
   return (
     <div className="min-h-[calc(100vh-73px)] bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
@@ -114,7 +265,7 @@ const Profile = () => {
       <div className="w-full max-w-[1400px] mx-auto">
         <h2 className="text-3xl font-extrabold text-slate-100 mb-8">User Profile</h2>
 
-        <div className="glass-panel rounded-2xl overflow-hidden shadow-2xl p-6 sm:p-10 space-y-6">
+        <div className="glass-panel rounded-2xl overflow-hidden shadow-2xl p-6 sm:p-10 space-y-8">
 
           {/* ── Profile Photo ── */}
           <div className="flex flex-col items-center pb-6 border-b border-slate-800">
@@ -141,49 +292,234 @@ const Profile = () => {
               <p className="text-emerald-400 font-semibold text-sm capitalize mt-1">
                 {user.role === 'hybrid' ? 'Car Owner' : 'Passenger'} Account
               </p>
+              {isUploadingProfile && (
+                <p className="text-xs text-indigo-400 animate-pulse mt-1">Uploading photo…</p>
+              )}
             </div>
           </div>
 
-          {/* ── User details grid ── */}
-          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-6 text-sm">
-            {[
-              { label: 'Email', value: user.email },
-              { label: 'Phone', value: user.phone || 'Not provided' },
-              { label: 'Address', value: user.address || 'Not provided' },
-              { label: 'Member Since', value: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' },
-            ].map(({ label, value }) => (
-              <div key={label} className="space-y-1">
-                <p className="text-slate-400 font-medium">{label}</p>
-                <p className="text-slate-200 text-base">{value}</p>
-              </div>
-            ))}
-            <div className="space-y-1">
-              <p className="text-slate-400 font-medium">Average Rating</p>
-              <div className="flex items-center gap-1.5 text-base text-amber-400 font-bold">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                {user.averageRating?.toFixed(1) || '5.0'} / 5.0
-              </div>
+          {/* ════ PERSONAL INFO SECTION ════ */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                <span>👤</span> Personal Information
+              </h3>
+              {!editMode ? (
+                <button
+                  id="edit-profile-btn"
+                  onClick={handleStartEdit}
+                  className="px-4 py-1.5 text-xs font-bold rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition"
+                >
+                  ✏️ Edit Details
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEditMode(false)}
+                    className="px-4 py-1.5 text-xs font-bold rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-800 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    id="save-profile-btn"
+                    onClick={handleSaveProfile}
+                    disabled={saving}
+                    className="px-4 py-1.5 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 transition disabled:opacity-50"
+                  >
+                    {saving ? 'Saving…' : '✓ Save Changes'}
+                  </button>
+                </div>
+              )}
             </div>
-            {user.emergencyContact && (
-              <div className="space-y-1">
-                <p className="text-slate-400 font-medium">Emergency Contact</p>
-                <p className="text-slate-200 text-base">{user.emergencyContact}</p>
+
+            {saveError && (
+              <div className="bg-red-950/40 border border-red-500/20 text-red-400 text-xs rounded-lg px-4 py-2.5">
+                {saveError}
+              </div>
+            )}
+            {saveSuccess && (
+              <div className="bg-emerald-950/40 border border-emerald-500/20 text-emerald-400 text-xs rounded-lg px-4 py-2.5">
+                ✓ Profile updated successfully!
+              </div>
+            )}
+
+            {editMode ? (
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <EditField label="First Name" value={editForm.firstName} onChange={(v) => setEditForm(f => ({ ...f, firstName: v }))} />
+                <EditField label="Last Name"  value={editForm.lastName}  onChange={(v) => setEditForm(f => ({ ...f, lastName: v }))} />
+                <EditField label="Phone"      value={editForm.phone}     onChange={(v) => setEditForm(f => ({ ...f, phone: v }))} type="tel" />
+                <EditField label="Address"    value={editForm.address}   onChange={(v) => setEditForm(f => ({ ...f, address: v }))} />
+                <EditField label="Emergency Contact" value={editForm.emergencyContact} onChange={(v) => setEditForm(f => ({ ...f, emergencyContact: v }))} type="tel" />
+                <EditField label="Email (read-only)" value={user.email} readOnly />
+                <div className="sm:col-span-2 xl:col-span-3 space-y-1">
+                  <label className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Bio <span className="text-slate-600 normal-case">(max 300 chars)</span></label>
+                  <textarea
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm(f => ({ ...f, bio: e.target.value }))}
+                    maxLength={300}
+                    rows={3}
+                    className="w-full bg-slate-900/60 border border-slate-700/60 focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/30 text-slate-100 rounded-lg px-3 py-2.5 text-sm outline-none transition resize-none"
+                    placeholder="Tell others about yourself…"
+                  />
+                  <p className="text-right text-[10px] text-slate-600">{(editForm.bio || '').length}/300</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5 text-sm">
+                {[
+                  { label: 'Email',    value: user.email },
+                  { label: 'Phone',    value: user.phone || 'Not provided' },
+                  { label: 'Address',  value: user.address || 'Not provided' },
+                  { label: 'Member Since', value: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' },
+                ].map(({ label, value }) => (
+                  <div key={label} className="space-y-1">
+                    <p className="text-slate-400 font-medium text-xs">{label}</p>
+                    <p className="text-slate-200 text-sm">{value}</p>
+                  </div>
+                ))}
+                <div className="space-y-1">
+                  <p className="text-slate-400 font-medium text-xs">Average Rating</p>
+                  <div className="flex items-center gap-1.5 text-amber-400 font-bold text-sm">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    {user.averageRating?.toFixed(1) || '5.0'} / 5.0
+                  </div>
+                </div>
+                {user.emergencyContact && (
+                  <div className="space-y-1">
+                    <p className="text-slate-400 font-medium text-xs">Emergency Contact</p>
+                    <p className="text-slate-200 text-sm">{user.emergencyContact}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!editMode && user.bio && (
+              <div className="pt-2 space-y-1">
+                <p className="text-slate-400 text-xs font-medium">Bio</p>
+                <p className="text-slate-300 text-sm bg-slate-900/40 p-3 rounded-lg border border-slate-800/60 italic">"{user.bio}"</p>
               </div>
             )}
           </div>
 
-          {user.bio && (
-            <div className="pt-4 border-t border-slate-800 space-y-1">
-              <p className="text-slate-400 text-sm font-medium">Bio</p>
-              <p className="text-slate-300 text-sm bg-slate-900/40 p-3 rounded-lg border border-slate-800/60 italic">"{user.bio}"</p>
+          {/* ════ HOME LOCATION SECTION (Feature 7 — GPS Support) ════ */}
+          {user.role === 'hybrid' && (
+            <div className="pt-6 border-t border-slate-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                  <span>🏠</span> Home Location
+                  <span className="text-xs text-slate-500 font-normal">(used for pickup impact analysis)</span>
+                </h3>
+                {!homeLocEdit ? (
+                  <button
+                    id="edit-home-location-btn"
+                    onClick={() => { setHomeLocEdit(true); setHomeLocError(''); }}
+                    className="px-4 py-1.5 text-xs font-bold rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition"
+                  >
+                    {user.homeLocation?.verified ? '✏️ Change' : '+ Set Location'}
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setHomeLocEdit(false); setHomeLocError(''); }}
+                      className="px-4 py-1.5 text-xs font-bold rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-800 transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      id="save-home-location-btn"
+                      onClick={handleSaveHomeLocation}
+                      disabled={homeLocSaving || !homeLoc.latitude}
+                      className="px-4 py-1.5 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 transition disabled:opacity-50"
+                    >
+                      {homeLocSaving ? 'Saving…' : '✓ Confirm & Save'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {homeLocError && (
+                <div className="bg-red-950/40 border border-red-500/20 text-red-400 text-xs rounded-lg px-4 py-2.5">
+                  {homeLocError}
+                </div>
+              )}
+
+              {!homeLocEdit ? (
+                user.homeLocation?.verified ? (
+                  <div className="bg-slate-900/40 border border-slate-700/50 rounded-xl p-4 flex items-start gap-3">
+                    <span className="text-2xl">📍</span>
+                    <div>
+                      <p className="text-slate-200 text-sm font-semibold">{user.homeLocation.address || 'Verified Location'}</p>
+                      <p className="text-slate-500 text-xs mt-0.5">
+                        {user.homeLocation.latitude?.toFixed(5)}, {user.homeLocation.longitude?.toFixed(5)}
+                      </p>
+                      <span className="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/20 rounded-full">
+                        ✓ Verified
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-amber-950/20 border border-amber-500/20 rounded-xl p-4 text-sm text-amber-400/80">
+                    ⚠️ No home location set. Set your home address so drivers and the system can calculate pickup impact accurately.
+                  </div>
+                )
+              ) : (
+                <div className="space-y-4 bg-slate-900/30 border border-slate-700/40 rounded-xl p-4">
+                  {/* GPS Button */}
+                  <button
+                    id="use-gps-btn"
+                    onClick={handleUseGPS}
+                    disabled={homeLocGPSLoading}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-600/20 border border-indigo-500/30 hover:bg-indigo-600/30 text-indigo-300 text-xs font-bold transition disabled:opacity-50"
+                  >
+                    {homeLocGPSLoading ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
+                    {homeLocGPSLoading ? 'Getting your GPS…' : '📡 Use Current GPS Location'}
+                  </button>
+
+                  <div className="text-slate-500 text-xs text-center">— or search an address below —</div>
+
+                  {/* Address Autocomplete */}
+                  <AddressAutocomplete
+                    value={homeLoc.address}
+                    onChange={({ address, latitude, longitude }) => {
+                      setHomeLoc({ address, latitude, longitude, verified: false });
+                    }}
+                    placeholder="Search your home address…"
+                    showCurrentLocation
+                  />
+
+                  {/* Map Preview for draggable pin */}
+                  {homeLoc.latitude && (
+                    <div className="mt-2">
+                      <MapPreview
+                        location={homeLoc}
+                        onLocationChange={(loc) => setHomeLoc((prev) => ({ ...prev, ...loc, verified: false }))}
+                        height="220px"
+                        interactive
+                        onConfirm={() => setHomeLoc((prev) => ({ ...prev, verified: true }))}
+                        onUnconfirm={() => setHomeLoc((prev) => ({ ...prev, verified: false }))}
+                        confirmed={homeLoc.verified}
+                        markerColor="#6366f1"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {/* ════════════════════════════════════════════
-               LOCATION MANAGEMENT SECTION
-          ════════════════════════════════════════════ */}
+          {/* ════ LOCATION MANAGEMENT SECTION ════ */}
           <div className="pt-6 border-t border-slate-800 space-y-8">
             <h3 className="text-xl font-bold text-slate-100 flex items-center gap-2">
               <span>🗺️</span> Location Management
@@ -192,10 +528,10 @@ const Profile = () => {
             {/* Location Statistics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { icon: '📌', label: 'Saved',       value: locationStats.saved },
-                { icon: '🕐', label: 'Recent',      value: locationStats.recent },
-                { icon: '🔥', label: 'Frequent',    value: locationStats.frequent },
-                { icon: '🚗', label: 'Total Trips',  value: locationStats.totalUses },
+                { icon: '📌', label: 'Saved',      value: locationStats.saved },
+                { icon: '🕐', label: 'Recent',     value: locationStats.recent },
+                { icon: '🔥', label: 'Frequent',   value: locationStats.frequent },
+                { icon: '🚗', label: 'Total Trips', value: locationStats.totalUses },
               ].map(({ icon, label, value }) => (
                 <div key={label} className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4 text-center">
                   <div className="text-2xl mb-1">{icon}</div>
@@ -205,10 +541,8 @@ const Profile = () => {
               ))}
             </div>
 
-            {/* Saved Locations CRUD */}
             <SavedLocationsManager />
 
-            {/* Recent Addresses */}
             {recentAddresses.length > 0 && (
               <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
                 <h4 className="text-slate-200 font-semibold mb-4 flex items-center gap-2">
@@ -233,7 +567,6 @@ const Profile = () => {
               </div>
             )}
 
-            {/* Frequent Locations */}
             {frequentAddresses.length > 0 && (
               <LocationInsights
                 frequentAddresses={frequentAddresses}
@@ -241,7 +574,6 @@ const Profile = () => {
               />
             )}
           </div>
-          {/* ══════════════════════════════════════════ */}
 
           {/* ── Vehicles (hybrid only) ── */}
           {user.role === 'hybrid' && (
@@ -258,11 +590,11 @@ const Profile = () => {
                   <div key={vehicle._id} className="border border-slate-800/80 p-5 rounded-2xl bg-slate-900/20">
                     <div className="grid sm:grid-cols-2 gap-4 mb-4">
                       {[
-                        { label: 'Vehicle Name', value: vehicle.vehicleName },
-                        { label: 'Plate Number', value: vehicle.vehiclePlateNumber, mono: true },
-                        { label: 'Fuel Type', value: vehicle.vehicleType, capitalize: true },
-                        { label: 'Mileage', value: `${vehicle.mileage} km/l` },
-                        { label: 'Seats', value: vehicle.seatCount },
+                        { label: 'Vehicle Name',   value: vehicle.vehicleName },
+                        { label: 'Plate Number',   value: vehicle.vehiclePlateNumber, mono: true },
+                        { label: 'Fuel Type',      value: vehicle.vehicleType, capitalize: true },
+                        { label: 'Mileage',        value: `${vehicle.mileage} km/l` },
+                        { label: 'Seats',          value: vehicle.seatCount },
                       ].map(({ label, value, mono, capitalize }) => (
                         <div key={label} className="space-y-1">
                           <p className="text-slate-400 font-medium text-sm">{label}</p>
@@ -313,6 +645,7 @@ const Profile = () => {
               Sign Out
             </button>
           </div>
+
         </div>
       </div>
     </div>

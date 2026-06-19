@@ -111,6 +111,28 @@ const userSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
+    // Email verification fields
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    emailVerificationExpiry: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+    // Home / starting location for the driver (used in impact analysis)
+    homeLocation: {
+      address:   { type: String, default: null },
+      latitude:  { type: Number, default: null },
+      longitude: { type: Number, default: null },
+      verified:  { type: Boolean, default: false },
+    },
   },
   {
     timestamps: true,

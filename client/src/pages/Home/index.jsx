@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
-import PincodeDirectionsMap from './PincodeDirectionsMap.jsx';
 
 const Home = () => {
   const { user } = useAuth();
@@ -12,10 +11,10 @@ const Home = () => {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-green-500/10 blur-[120px] rounded-full pointer-events-none"></div>
         <div className="absolute top-1/3 left-1/3 w-80 h-80 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none"></div>
 
-        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-6">
-          <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span>
-          Eco-Friendly Commuting
-        </span>
+          {/* <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-6">
+            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span>
+            Eco-Friendly Commuting
+          </span> */}
 
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight mb-6 bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">
           Carpool App
@@ -25,11 +24,7 @@ const Home = () => {
           Connect with drivers and passengers heading your way. Share rides, split travel expenses, reduce emissions, and meet amazing people.
         </p>
 
-        <section className="w-full mb-10 text-left">
-          <div className="glass-panel rounded-2xl overflow-hidden shadow-2xl border border-slate-800/50">
-            <PincodeDirectionsMap />
-          </div>
-        </section>
+
 
         {/* Action cards */}
         <div className="grid md:grid-cols-2 gap-6 w-full">

@@ -80,6 +80,49 @@ export const sendOtpEmail = async (email, otp, userName) => {
 };
 
 /**
+ * Send email verification link after registration
+ * @param {string} email - Recipient email
+ * @param {string} firstName - User's first name
+ * @param {string} token - Verification token
+ */
+export const sendVerificationEmail = async (email, firstName, token) => {
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const verifyUrl = `${clientUrl}/verify-email?token=${token}`;
+  try {
+    const trans = await getTransporter();
+    const mailOptions = {
+      from: 'noreply@stcarpool.com',
+      to: email,
+      subject: 'Verify your ST Carpool account',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #0f172a; color: #f1f5f9; border-radius: 12px;">
+          <h2 style="color: #34d399; margin-bottom: 8px;">ST Carpool — Verify your email</h2>
+          <p style="color: #94a3b8;">Hi ${firstName},</p>
+          <p style="color: #cbd5e1;">Thanks for registering! Click the button below to verify your @st.com email address and activate your account.</p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${verifyUrl}" style="display: inline-block; background: #34d399; color: #0f172a; font-weight: bold; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-size: 15px;">
+              Verify Email Address
+            </a>
+          </div>
+          <p style="color: #64748b; font-size: 12px;">This link is valid for <strong style="color: #94a3b8;">24 hours</strong>. If you did not create an account, you can safely ignore this email.</p>
+          <p style="color: #64748b; font-size: 11px;">Or copy this URL: ${verifyUrl}</p>
+          <hr style="border: none; border-top: 1px solid #1e293b; margin: 20px 0;" />
+          <p style="color: #475569; font-size: 11px; text-align: center;">ST Carpool Platform · Internal Employee Use Only</p>
+        </div>
+      `,
+    };
+    const info = await trans.sendMail(mailOptions);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[MAIL] Verification email preview URL:', nodemailer.getTestMessageUrl(info));
+    }
+    return true;
+  } catch (error) {
+    console.error('[MAIL] Error sending verification email:', error);
+    throw error;
+  }
+};
+
+/**
  * Send welcome email after registration
  */
 export const sendWelcomeEmail = async (email, firstName) => {

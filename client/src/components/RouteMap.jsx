@@ -2,11 +2,13 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import api from '../services/api.js';
 
 /**
- * RouteMap — Leaflet map that draws a route polyline between two verified locations.
+ * RouteMap — Leaflet map that draws a route polyline between two verified locations
+ * or a sequence of multiple waypoints.
  *
  * Props:
- *  pickup       – { address, latitude, longitude, verified }
- *  destination  – { address, latitude, longitude, verified }
+ *  pickup       – { address, latitude, longitude, verified } (fallback if waypoints not provided)
+ *  destination  – { address, latitude, longitude, verified } (fallback if waypoints not provided)
+ *  waypoints    – Array of { address, latitude, longitude, label } (Feature 3 & 5 multi-point routing)
  *  height       – CSS string (default '320px')
  *  autoFetch    – bool: auto-calculate route when both locations are verified (default true)
  *  showPanel    – bool: show distance/ETA info panel below map (default true)
@@ -15,6 +17,8 @@ import api from '../services/api.js';
 const RouteMap = ({
   pickup,
   destination,
+  waypoints = null,
+  externalRouteData = null,  // { routePath, distanceKm, durationMinutes, provider, isFallback }
   height = '320px',
   autoFetch = true,
   showPanel = true,
@@ -22,8 +26,7 @@ const RouteMap = ({
 }) => {
   const mapRef        = useRef(null);
   const leafletMapRef = useRef(null);
-  const pickupMarker  = useRef(null);
-  const destMarker    = useRef(null);
+  const markersRef    = useRef([]);
   const polylineRef   = useRef(null);
   const isMounted     = useRef(true);
 
@@ -32,38 +35,43 @@ const RouteMap = ({
   const [error, setError]           = useState('');
 
   // ── Map icons (created once per map instance) ────────────────────────────
-  const createIcons = useCallback((L) => {
-    const pin = (color, letter) =>
-      L.divIcon({
-        className: '',
-        html: `<div style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;
-                border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};
-                color:#fff;border:2px solid #fff;font-weight:700;font-size:13px;
-                box-shadow:0 3px 8px rgba(0,0,0,.4)">
-                 <span style="transform:rotate(45deg)">${letter}</span></div>`,
-        iconAnchor: [16, 32],
-      });
-    return {
-      pickupIcon: pin('#10b981', 'A'),
-      destIcon:   pin('#6366f1', 'B'),
-    };
+  const createIcon = useCallback((L, color, letter) => {
+    return L.divIcon({
+      className: '',
+      html: `<div style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;
+              border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};
+              color:#fff;border:2px solid #fff;font-weight:700;font-size:13px;
+              box-shadow:0 3px 8px rgba(0,0,0,.4)">
+               <span style="transform:rotate(45deg)">${letter}</span></div>`,
+      iconAnchor: [16, 32],
+    });
   }, []);
 
   // ── Fetch route from backend ──────────────────────────────────────────────
-  const fetchRoute = useCallback(async (pLoc, dLoc) => {
-    if (
-      !pLoc?.latitude || !pLoc?.longitude ||
-      !dLoc?.latitude || !dLoc?.longitude
-    ) return;
-
+  const fetchRoute = useCallback(async (pLoc, dLoc, wps) => {
     setLoading(true);
     setError('');
 
     try {
-      const res = await api.post('/routes/calculate', {
-        origin:      { latitude: pLoc.latitude,  longitude: pLoc.longitude },
-        destination: { latitude: dLoc.latitude,  longitude: dLoc.longitude },
-      });
+      let res;
+      if (wps && wps.length >= 2) {
+        res = await api.post('/routes/calculate', {
+          waypoints: wps.map(w => ({ latitude: w.latitude, longitude: w.longitude }))
+        });
+      } else {
+        if (
+          !pLoc?.latitude || !pLoc?.longitude ||
+          !dLoc?.latitude || !dLoc?.longitude
+        ) {
+          setLoading(false);
+          return;
+        }
+        res = await api.post('/routes/calculate', {
+          origin:      { latitude: pLoc.latitude,  longitude: pLoc.longitude },
+          destination: { latitude: dLoc.latitude,  longitude: dLoc.longitude },
+        });
+      }
+
       const { routePath, distanceKm, durationMinutes, provider, isFallback } = res.data.data;
 
       if (!isMounted.current) return;
@@ -107,50 +115,84 @@ const RouteMap = ({
       if (leafletMapRef.current) {
         leafletMapRef.current.remove();
         leafletMapRef.current = null;
-        pickupMarker.current  = null;
-        destMarker.current    = null;
         polylineRef.current   = null;
       }
 
-      // Default center: Noida/Delhi region
-      const defaultCenter = [28.5355, 77.3910];
-      const center =
-        pickup?.latitude && pickup?.longitude
-          ? [pickup.latitude, pickup.longitude]
-          : destination?.latitude && destination?.longitude
-          ? [destination.latitude, destination.longitude]
-          : defaultCenter;
+      markersRef.current.forEach(m => m.remove());
+      markersRef.current = [];
+
+      // Determine center point
+      let center = [28.5355, 77.3910];
+      if (waypoints && waypoints.length > 0) {
+        const first = waypoints[0];
+        if (first?.latitude) center = [first.latitude, first.longitude];
+      } else if (pickup?.latitude) {
+        center = [pickup.latitude, pickup.longitude];
+      }
 
       leafletMapRef.current = L.map(mapRef.current, {
         zoomControl: true,
         scrollWheelZoom: true,
       }).setView(center, 12);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+      L.tileLayer(`https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/{z}/{x}/{y}.png?api_key=${import.meta.env.VITE_OLA_MAPS_API_KEY}`, {
+        attribution: '© Ola Maps',
       }).addTo(leafletMapRef.current);
 
-      const { pickupIcon, destIcon } = createIcons(L);
+      // Render markers based on waypoints if present, else fall back to pickup & destination
+      if (waypoints && waypoints.length > 0) {
+        const bounds = L.latLngBounds();
+        waypoints.forEach((wp, index) => {
+          if (!wp.latitude || !wp.longitude) return;
+          
+          let color = '#6366f1'; // default Indigo
+          let label = wp.label || String(index + 1);
+          
+          if (index === 0) {
+            color = '#10b981'; // Driver home (Green)
+            label = 'D';
+          } else if (index === waypoints.length - 1) {
+            color = '#ef4444'; // Office (Red)
+            label = 'O';
+          } else {
+            color = '#3b82f6'; // Pickups (Blue)
+          }
 
-      if (pickup?.latitude && pickup?.longitude) {
-        pickupMarker.current = L.marker([pickup.latitude, pickup.longitude], { icon: pickupIcon })
-          .addTo(leafletMapRef.current)
-          .bindPopup(`<b>Pickup</b><br>${pickup.address || ''}`, { maxWidth: 220 });
-      }
+          const icon = createIcon(L, color, label);
+          const marker = L.marker([wp.latitude, wp.longitude], { icon })
+            .addTo(leafletMapRef.current)
+            .bindPopup(`<b>${index === 0 ? 'Driver Start' : index === waypoints.length - 1 ? 'Destination' : `Pickup #${index}`}</b><br>${wp.address || ''}`, { maxWidth: 220 });
+          
+          markersRef.current.push(marker);
+          bounds.extend([wp.latitude, wp.longitude]);
+        });
 
-      if (destination?.latitude && destination?.longitude) {
-        destMarker.current = L.marker([destination.latitude, destination.longitude], { icon: destIcon })
-          .addTo(leafletMapRef.current)
-          .bindPopup(`<b>Destination</b><br>${destination.address || ''}`, { maxWidth: 220 });
-      }
+        if (waypoints.length >= 2) {
+          leafletMapRef.current.fitBounds(bounds, { padding: [50, 50] });
+        }
+      } else {
+        const bounds = L.latLngBounds();
+        if (pickup?.latitude && pickup?.longitude) {
+          const icon = createIcon(L, '#10b981', 'A');
+          const marker = L.marker([pickup.latitude, pickup.longitude], { icon })
+            .addTo(leafletMapRef.current)
+            .bindPopup(`<b>Pickup</b><br>${pickup.address || ''}`, { maxWidth: 220 });
+          markersRef.current.push(marker);
+          bounds.extend([pickup.latitude, pickup.longitude]);
+        }
 
-      // Fit bounds to markers if both present
-      if (pickup?.latitude && destination?.latitude) {
-        const bounds = L.latLngBounds(
-          [pickup.latitude, pickup.longitude],
-          [destination.latitude, destination.longitude]
-        );
-        leafletMapRef.current.fitBounds(bounds, { padding: [50, 50] });
+        if (destination?.latitude && destination?.longitude) {
+          const icon = createIcon(L, '#6366f1', 'B');
+          const marker = L.marker([destination.latitude, destination.longitude], { icon })
+            .addTo(leafletMapRef.current)
+            .bindPopup(`<b>Destination</b><br>${destination.address || ''}`, { maxWidth: 220 });
+          markersRef.current.push(marker);
+          bounds.extend([destination.latitude, destination.longitude]);
+        }
+
+        if (pickup?.latitude && destination?.latitude) {
+          leafletMapRef.current.fitBounds(bounds, { padding: [50, 50] });
+        }
       }
     };
 
@@ -161,25 +203,47 @@ const RouteMap = ({
       if (leafletMapRef.current) {
         leafletMapRef.current.remove();
         leafletMapRef.current = null;
-        pickupMarker.current  = null;
-        destMarker.current    = null;
         polylineRef.current   = null;
       }
+      markersRef.current.forEach(m => m.remove());
+      markersRef.current = [];
     };
-    // Only re-init map when coordinates actually change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     pickup?.latitude, pickup?.longitude,
     destination?.latitude, destination?.longitude,
+    waypoints
   ]);
 
-  // ── Auto-fetch route when both locations are verified ─────────────────────
+  // ── Draw externally-provided route (no extra API call) ───────────────────
   useEffect(() => {
-    if (!autoFetch) return;
-    if (pickup?.verified && destination?.verified) {
-      fetchRoute(pickup, destination);
+    if (!externalRouteData) return;
+    const draw = async () => {
+      const { routePath, distanceKm, durationMinutes, provider, isFallback } = externalRouteData;
+      setRouteInfo({ distanceKm, durationMinutes, provider, isFallback });
+      setLoading(false);
+      const L = (await import('leaflet')).default;
+      if (!leafletMapRef.current) return;
+      if (polylineRef.current) polylineRef.current.remove();
+      const latlngs = routePath.map(({ lat, lng }) => [lat, lng]);
+      polylineRef.current = L.polyline(latlngs, {
+        color:     isFallback ? '#f59e0b' : '#818cf8',
+        weight:    4,
+        opacity:   0.85,
+        dashArray: isFallback ? '6 8' : null,
+      }).addTo(leafletMapRef.current);
+      if (latlngs.length > 1) leafletMapRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [40, 40] });
+    };
+    draw();
+  }, [externalRouteData]);
+
+  // ── Auto-fetch route ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!autoFetch || externalRouteData) return;
+    if (waypoints && waypoints.length >= 2) {
+      fetchRoute(null, null, waypoints);
+    } else if (pickup?.verified && destination?.verified) {
+      fetchRoute(pickup, destination, null);
     } else {
-      // Clear stale route when a location becomes unverified
       setRouteInfo(null);
       if (polylineRef.current) {
         polylineRef.current.remove();
@@ -187,15 +251,17 @@ const RouteMap = ({
       }
     }
   }, [
-    autoFetch, fetchRoute,
+    autoFetch, fetchRoute, externalRouteData,
     pickup?.verified,   pickup?.latitude,   pickup?.longitude,
     destination?.verified, destination?.latitude, destination?.longitude,
+    waypoints
   ]);
 
   const hasPickup = pickup?.latitude && pickup?.longitude;
   const hasDest   = destination?.latitude && destination?.longitude;
+  const hasWaypoints = waypoints && waypoints.length >= 2;
 
-  if (!hasPickup && !hasDest) return null;
+  if (!hasPickup && !hasDest && !hasWaypoints) return null;
 
   const fmtDuration = (mins) => {
     if (!mins) return '—';
@@ -254,7 +320,6 @@ const RouteMap = ({
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              {/* Legend */}
               {hasPickup && (
                 <div className="flex items-center gap-1.5 text-xs text-slate-400">
                   <span className="inline-block w-3 h-3 rounded-full bg-emerald-500" />
@@ -266,11 +331,6 @@ const RouteMap = ({
                   <span className="inline-block w-3 h-3 rounded-full bg-indigo-500" />
                   <span className="truncate max-w-40">{destination.address?.split(',')[0] || 'Destination'}</span>
                 </div>
-              )}
-              {!routeInfo && !loading && hasPickup && hasDest && (
-                <span className="text-slate-500 text-xs ml-auto">
-                  Confirm both locations to see route
-                </span>
               )}
             </div>
           )}

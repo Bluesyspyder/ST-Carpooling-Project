@@ -1,16 +1,26 @@
 import {
   findPincodeLocation,
   getAddressRouteLocations,
-  getMapConfig,
   autocompleteAddress,
   reverseGeocode,
+  geocodeAddress,
 } from './location.service.js';
 
 export const getMapConfigHandler = (req, res, next) => {
   try {
-    res.status(200).json({ status: 'success', data: getMapConfig() });
+    // Return config info about map provider (Ola Maps, India-only)
+    const configured = Boolean(process.env.OLA_MAPS_API_KEY);
+    res.status(200).json({
+      status: 'success',
+      data: {
+        provider: 'Ola Maps',
+        region: 'India',
+        configured,
+      },
+    });
   } catch (error) { next(error); }
 };
+
 
 export const getPincodeLocationHandler = async (req, res, next) => {
   try {
@@ -41,6 +51,17 @@ export const reverseGeocodeHandler = async (req, res, next) => {
   try {
     const { lat, lng } = req.query;
     const location = await reverseGeocode(lat, lng);
+    res.status(200).json({ status: 'success', data: { location } });
+  } catch (error) { next(error); }
+};
+
+export const geocodeAddressHandler = async (req, res, next) => {
+  try {
+    const { address } = req.query;
+    if (!address) {
+      return res.status(400).json({ status: 'error', message: 'Address is required' });
+    }
+    const location = await geocodeAddress(address);
     res.status(200).json({ status: 'success', data: { location } });
   } catch (error) { next(error); }
 };

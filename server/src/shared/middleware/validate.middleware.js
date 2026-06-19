@@ -9,12 +9,20 @@ export const validate = (schema) => (req, res, next) => {
       query: req.query,
       params: req.params,
     });
-    
+
     // Assign validated/sanitized data back to request
-    if (parsed.body) req.body = parsed.body;
-    if (parsed.query) req.query = parsed.query;
-    if (parsed.params) req.params = parsed.params;
-    
+    if (parsed.body) {
+      req.body = parsed.body; // Usually req.body is settable
+    }
+    if (parsed.query) {
+      Object.keys(req.query).forEach(k => delete req.query[k]);
+      Object.assign(req.query, parsed.query);
+    }
+    if (parsed.params) {
+      Object.keys(req.params).forEach(k => delete req.params[k]);
+      Object.assign(req.params, parsed.params);
+    }
+
     next();
   } catch (error) {
     // Forward error to error middleware (which will format Zod errors properly)

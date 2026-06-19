@@ -6,6 +6,11 @@ const locationSchema = z.object({
     .min(-90).max(90),
   longitude: z.number({ required_error: 'Longitude is required' })
     .min(-180).max(180),
+  coordinates: z.array(z.number())
+    .length(2, 'Coordinates must be exactly two numbers [longitude, latitude]')
+    .refine((coords) => coords[0] >= -180 && coords[0] <= 180, 'Longitude must be between -180 and 180')
+    .refine((coords) => coords[1] >= -90 && coords[1] <= 90, 'Latitude must be between -90 and 90')
+    .optional(),
   verified: z.boolean({ required_error: 'verified flag is required' }),
   provider: z.string().optional(),
   providerPlaceId: z.string().optional(),

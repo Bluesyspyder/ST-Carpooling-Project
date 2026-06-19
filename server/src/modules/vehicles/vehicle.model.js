@@ -22,6 +22,14 @@ const vehicleSchema = new mongoose.Schema(
       unique: true,
       uppercase: true,
     },
+    // Kept for compatibility with older databases that still have a unique
+    // registrationNumber index. The app uses vehiclePlateNumber as the public field.
+    registrationNumber: {
+      type: String,
+      trim: true,
+      unique: true,
+      uppercase: true,
+    },
     seatCount: {
       type: Number,
       required: [true, 'Seat count is required'],
@@ -46,6 +54,12 @@ const vehicleSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+vehicleSchema.pre('validate', function () {
+  if (!this.registrationNumber && this.vehiclePlateNumber) {
+    this.registrationNumber = this.vehiclePlateNumber;
+  }
+});
 
 const Vehicle = mongoose.model('Vehicle', vehicleSchema);
 

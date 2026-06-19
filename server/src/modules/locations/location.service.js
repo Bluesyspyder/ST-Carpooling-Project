@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import ApiError from '../../shared/utils/api-error.js';
-import { autocompleteWithMapbox, reverseGeocodeWithMapbox } from './map-providers.js';
+import { autocompleteWithOla, reverseGeocodeWithOla, geocodeWithOla, isIndiaCoordinate } from './map-providers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,11 +32,7 @@ const ST_DESTINATION_FALLBACK = {
 };
 
 const PINCODE_PATTERN = /\b\d{6}\b/;
-
-const getMapboxToken = () => {
-  const candidates = [process.env.MAPBOX_TOKEN, process.env.VITE_MAPBOX_TOKEN, process.env.MAP_API_KEY];
-  return candidates.find((token) => token?.trim().startsWith('pk.'))?.trim();
-};
+const INDIA_PINCODE_PATTERN = /^[1-9][0-9]{5}$/;
 
 const normalizeAddress = (address) => String(address || '').replace(/\s+/g, ' ').trim();
 const getAddressPincode = (address) => address.match(PINCODE_PATTERN)?.[0] || '';
@@ -68,7 +64,12 @@ const loadPincodeCache = async () => {
   if (pincodeCache) return pincodeCache;
   let csvContent = null;
   for (const candidate of csvCandidates) {
-    try { csvContent = await fs.readFile(candidate, 'utf8'); break; } catch { /* try next */ }
+    try {
+      csvContent = await fs.readFile(candidate, 'utf8');
+      break;
+    } catch (error) {
+      console.warn(`[PINCODE] Candidate file not found at ${candidate}. Trying next...`, error.message);
+    }
   }
   if (!csvContent) throw new ApiError(500, 'Pincode CSV file not found.');
 
@@ -105,8 +106,8 @@ const loadPincodeCache = async () => {
 };
 
 export const getMapConfig = () => {
-  const apiKey = process.env.MAP_API_KEY;
-  if (!apiKey) throw new ApiError(500, 'MAP_API_KEY is not configured on the server.');
+  const apiKey = process.env.OLA_MAPS_API_KEY;
+  if (!apiKey) throw new ApiError(500, 'OLA_MAPS_API_KEY is not configured on the server.');
   return { apiKey };
 };
 
@@ -124,16 +125,19 @@ export const geocodeAddress = async (address) => {
     { level: 5, name: 'Pincode Only', query: pincode },
   ].filter(a => a.query);
 
-  const { geocodeWithMapbox } = await import('./map-providers.js');
-
   for (const attempt of attempts) {
     console.log(`[GEOCODING] Attempting Level ${attempt.level} (${attempt.name}): "${attempt.query}"`);
     try {
-      const mapboxLocation = await geocodeWithMapbox(attempt.query);
-      if (mapboxLocation) {
+      const result = await geocodeWithOla(attempt.query);
+      if (result) {
+        // India-only guard
+        if (!isIndiaCoordinate(result.latitude, result.longitude)) {
+          console.warn(`[GEOCODING] Result outside India bounds, skipping.`);
+          continue;
+        }
         console.log(`[GEOCODING] Success at Level ${attempt.level} (${attempt.name})`);
         return {
-          ...mapboxLocation,
+          ...result,
           label: getAddressFallbackLabel(normalizedAddress),
           address: normalizedAddress,
           fallbackLevel: attempt.level,
@@ -177,25 +181,22 @@ export const getAddressRouteLocations = async (homeAddress) => {
 
 export const findPincodeLocation = async (pincode) => {
   const normalizedPincode = String(pincode || '').trim();
-  if (!/^\d{6}$/.test(normalizedPincode)) throw new ApiError(400, 'Please enter a valid 6-digit pincode.');
+  if (!INDIA_PINCODE_PATTERN.test(normalizedPincode)) throw new ApiError(400, 'Please enter a valid 6-digit Indian pincode.');
   const cache = await loadPincodeCache();
   const location = supplementalPincodeLocations.get(normalizedPincode) || cache.get(normalizedPincode);
   if (!location) throw new ApiError(404, `No location found for pincode ${normalizedPincode}.`);
   return location;
 };
 
-// ─── NEW: Autocomplete ───────────────────────────────────────────────────────
+// ─── Autocomplete ───────────────────────────────────────────────────────────
 
 export const autocompleteAddress = async (query) => {
   if (!query || query.trim().length < 3) return [];
-  const token = getMapboxToken();
-  if (!token) throw new ApiError(503, 'Mapbox token not configured. Please set MAPBOX_TOKEN in server .env.');
-  const results = await autocompleteWithMapbox(query.trim());
-  if (!results) throw new ApiError(503, 'Autocomplete service unavailable. Please try again.');
-  return results;
+  const results = await autocompleteWithOla(query.trim());
+  return results || [];
 };
 
-// ─── NEW: Reverse Geocode ────────────────────────────────────────────────────
+// ─── Reverse Geocode ────────────────────────────────────────────────────────
 
 export const reverseGeocode = async (lat, lng) => {
   const latitude = Number(lat);
@@ -203,9 +204,13 @@ export const reverseGeocode = async (lat, lng) => {
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
     throw new ApiError(400, 'Invalid coordinates provided.');
   }
-  const token = getMapboxToken();
-  if (!token) throw new ApiError(503, 'Mapbox token not configured. Please set MAPBOX_TOKEN in server .env.');
-  const result = await reverseGeocodeWithMapbox(latitude, longitude);
+
+  // India-only guard
+  if (!isIndiaCoordinate(latitude, longitude)) {
+    throw new ApiError(400, 'This service is currently available only in India.');
+  }
+
+  const result = await reverseGeocodeWithOla(latitude, longitude);
   if (!result) throw new ApiError(404, 'Could not resolve address for these coordinates.');
   return result;
 };

@@ -78,3 +78,35 @@ export const resetPassword = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Handle email verification via token from link
+ */
+export const verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+    const result = await authService.verifyEmail(token);
+    return res.status(200).json({
+      status: 'success',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Handle resend verification email
+ */
+export const resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.resendVerification(email);
+    return res.status(200).json({
+      status: 'success',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

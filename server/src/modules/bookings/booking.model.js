@@ -8,6 +8,7 @@ const locationSchema = new mongoose.Schema(
     address:         { type: String, required: true },
     latitude:        { type: Number, required: true },
     longitude:       { type: Number, required: true },
+    coordinates:     { type: [Number], default: [] }, // [longitude, latitude]
     verified:        { type: Boolean, default: false },
     verifiedAt:      { type: Date, default: null },
     provider:        { type: String, default: null },
@@ -43,13 +44,18 @@ const bookingSchema = new mongoose.Schema(
     },
     bookingStatus: {
       type: String,
-      enum: ['pending', 'confirmed', 'cancelled'],
+      enum: ['pending', 'confirmed', 'cancelled', 'rejected'],
       default: 'pending',
     },
     pickupLocation: {
       type: locationSchema,
       required: [true, 'Pickup location with coordinates is required'],
     },
+
+    // ── Rating fields (Phase 13) ─────────────────────────────────────────────────
+    rated:           { type: Boolean, default: false },
+    rating:          { type: Number, min: 1, max: 5, default: null },
+    ratingComment:   { type: String, default: '' },
   },
   {
     timestamps: true,

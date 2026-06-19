@@ -30,13 +30,15 @@ const MapPreview = ({
   markerColor = '#7c3aed',
   markerLabel = '●',
 }) => {
-  const mapRef              = useRef(null);
-  const leafletMapRef       = useRef(null);
-  const markerRef           = useRef(null);
+  const mapRef = useRef(null);
+  const leafletMapRef = useRef(null);
+  const markerRef = useRef(null);
   const reverseGeocodeTimer = useRef(null);
-  const isMountedRef        = useRef(true);
+  const isMountedRef = useRef(true);
+  const interactiveRef = useRef(interactive);
+  const confirmedRef = useRef(confirmed);
   // Track the "clean" coordinates last set by autocomplete/GPS (for Reset)
-  const baseLocationRef     = useRef(null);
+  const baseLocationRef = useRef(null);
 
   const [reverseLoading, setReverseLoading] = useState(false);
 
@@ -49,6 +51,11 @@ const MapPreview = ({
       clearTimeout(reverseGeocodeTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    interactiveRef.current = interactive;
+    confirmedRef.current = confirmed;
+  }, [interactive, confirmed]);
 
   // Keep baseLocationRef in sync when location changes from the outside (autocomplete / GPS)
   useEffect(() => {
@@ -103,10 +110,20 @@ const MapPreview = ({
     onLocationChange?.({ ...loc });
   }, [getCurrentLocation, onLocationChange]);
 
+  const moveMarkerTo = useCallback(
+    (lat, lng) => {
+      if (markerRef.current) markerRef.current.setLatLng([lat, lng]);
+      handleDragEnd(lat, lng);
+    },
+    [handleDragEnd]
+  );
+
   // ── Build custom pin icon ───────────────────────────────────────────────
   const buildIcon = useCallback((L, color) =>
     L.divIcon({
       className: '',
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
       html: `<div style="
         display:flex;align-items:center;justify-content:center;
         width:32px;height:32px;
@@ -116,11 +133,11 @@ const MapPreview = ({
         color:#fff;border:2px solid rgba(255,255,255,0.9);
         font-weight:700;font-size:11px;
         box-shadow:0 4px 10px rgba(0,0,0,0.45);
-        transition:transform 0.15s ease
+        transition:transform 0.15s ease;
+        cursor:${interactive && !confirmed ? 'grab' : 'default'};
       "><span style="transform:rotate(45deg);line-height:1">${confirmed ? '✓' : markerLabel}</span></div>`,
-      iconAnchor: [16, 32],
     }),
-    [confirmed, markerLabel]
+    [confirmed, interactive, markerLabel]
   );
 
   // ── Initialise / update map ─────────────────────────────────────────────
@@ -134,33 +151,66 @@ const MapPreview = ({
       const lat = location.latitude;
       const lng = location.longitude;
       const icon = buildIcon(L, confirmed ? '#10b981' : markerColor);
+      const handleMapClick = (e) => {
+        if (!interactiveRef.current || confirmedRef.current) return;
+        moveMarkerTo(e.latlng.lat, e.latlng.lng);
+      };
+      const canEditMarker = interactive && !confirmed;
 
       if (!leafletMapRef.current) {
         leafletMapRef.current = L
           .map(mapRef.current, { zoomControl: true, scrollWheelZoom: false })
           .setView([lat, lng], 15);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+        L.tileLayer(`https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/{z}/{x}/{y}.png?api_key=${import.meta.env.VITE_OLA_MAPS_API_KEY}`, {
+          attribution: '© Ola Maps',
         }).addTo(leafletMapRef.current);
       } else {
         leafletMapRef.current.setView([lat, lng], 15);
       }
 
+      leafletMapRef.current.doubleClickZoom.disable();
+      leafletMapRef.current.off('click');
+      leafletMapRef.current.off('dblclick');
+      if (canEditMarker) {
+        leafletMapRef.current.on('click', handleMapClick);
+        leafletMapRef.current.on('dblclick', handleMapClick);
+      }
+
       if (markerRef.current) {
         markerRef.current.setLatLng([lat, lng]);
         markerRef.current.setIcon(icon);
+        if (canEditMarker) markerRef.current.dragging?.enable();
+        else markerRef.current.dragging?.disable();
       } else {
-        markerRef.current = L.marker([lat, lng], { draggable: interactive, icon })
+        markerRef.current = L.marker([lat, lng], {
+          autoPan: true,
+          draggable: canEditMarker,
+          icon,
+          riseOnHover: true,
+          zIndexOffset: 1000,
+        })
           .addTo(leafletMapRef.current);
 
-        if (interactive) {
+        if (canEditMarker) {
+          markerRef.current.on('dragstart', () => {
+            leafletMapRef.current?.dragging.disable();
+          });
           markerRef.current.on('dragend', (e) => {
+            leafletMapRef.current?.dragging.enable();
             const { lat: nLat, lng: nLng } = e.target.getLatLng();
             handleDragEnd(nLat, nLng);
           });
         }
       }
+
+      // Invalidate size after a short delay to fix rendering inside modals
+      // and dynamically-sized containers where the DOM may not be fully laid out.
+      setTimeout(() => {
+        if (isMountedRef.current && leafletMapRef.current) {
+          leafletMapRef.current.invalidateSize();
+        }
+      }, 150);
     };
 
     init();
@@ -172,8 +222,8 @@ const MapPreview = ({
         markerRef.current = null;
       }
     };
-  // Re-init only when coordinates change; confirmed changes only update icon colour
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Re-init only when coordinates change; confirmed changes only update icon colour
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.latitude, location?.longitude]);
 
   // Update icon color when confirmed state changes (without re-initing the map)
@@ -182,9 +232,11 @@ const MapPreview = ({
     const updateIcon = async () => {
       const L = (await import('leaflet')).default;
       markerRef.current.setIcon(buildIcon(L, confirmed ? '#10b981' : markerColor));
+      if (interactive && !confirmed) markerRef.current.dragging?.enable();
+      else markerRef.current.dragging?.disable();
     };
     updateIcon();
-  }, [confirmed, buildIcon, markerColor]);
+  }, [confirmed, buildIcon, interactive, markerColor]);
 
   // ── Empty state ─────────────────────────────────────────────────────────
   if (!location?.latitude) {
@@ -218,9 +270,6 @@ const MapPreview = ({
                   location.address || 'Unknown address'
                 )}
               </p>
-              <p className="text-slate-500 text-xs mt-0.5 font-mono">
-                {location.latitude?.toFixed(6)}, {location.longitude?.toFixed(6)}
-              </p>
             </div>
             {reverseLoading && (
               <div className="w-3.5 h-3.5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin flex-shrink-0 mt-1" />
@@ -240,7 +289,7 @@ const MapPreview = ({
               {onUnconfirm && (
                 <button
                   onClick={onUnconfirm}
-                  className="text-xs text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
+                  className="text-xs text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
                 >
                   ✏ Edit
                 </button>
@@ -253,7 +302,7 @@ const MapPreview = ({
               <button
                 onClick={handleCurrentLocation}
                 disabled={gpsLoading}
-                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/50 hover:border-emerald-500/50 text-slate-300 hover:text-emerald-300 transition-all disabled:opacity-50"
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/50 hover:border-emerald-500/50 text-slate-300 hover:text-emerald-300 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] disabled:opacity-50 disabled:scale-100 cursor-pointer"
               >
                 {gpsLoading ? (
                   <div className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
@@ -266,7 +315,7 @@ const MapPreview = ({
               {/* Reset Marker */}
               <button
                 onClick={handleReset}
-                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/50 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 transition-all"
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/50 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
               >
                 <span>↺</span>
                 Reset Marker
@@ -276,7 +325,7 @@ const MapPreview = ({
               {onConfirm && (
                 <button
                   onClick={onConfirm}
-                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors ml-auto"
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] ml-auto cursor-pointer"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
@@ -290,7 +339,7 @@ const MapPreview = ({
           {/* Drag hint */}
           {!confirmed && (
             <p className="text-xs text-slate-500 text-center border-t border-slate-700/40 pt-2">
-              Drag the pin to fine-tune · Confirm when the position is correct
+              Drag the pin or click the map to fine-tune · Confirm when correct
             </p>
           )}
         </div>

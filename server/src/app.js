@@ -10,9 +10,10 @@ const app = express();
 // Enable Cross-Origin Resource Sharing
 app.use(cors());
 
-// Parse incoming JSON and url-encoded payloads
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Parse incoming JSON and url-encoded payloads.
+// Registration can include base64 profile/vehicle photos, so the default 100kb limit is too small.
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // HTTP logging in development environment
 if (process.env.NODE_ENV !== 'production') {

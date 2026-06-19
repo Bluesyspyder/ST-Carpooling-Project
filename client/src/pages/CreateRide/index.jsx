@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api.js';
 import AddressAutocomplete from '../../components/AddressAutocomplete.jsx';
 import MapPreview from '../../components/MapPreview.jsx';
-import RouteMap from '../../components/RouteMap.jsx';
 import QuickLocationChips from '../../components/QuickLocationChips.jsx';
 import useCurrentLocation from '../../hooks/useCurrentLocation.js';
 import {
@@ -14,40 +13,53 @@ import {
 
 const emptyLoc = () => ({ address: '', latitude: null, longitude: null, verified: false });
 
-const CreateRide = () => {
-  const [formData, setFormData] = useState({
-    vehicle: '',
-    departureTime: '',
-    availableSeats: 3,
-    pricePerSeat: 10,
-  });
-  const [vehicles, setVehicles]       = useState([]);
-  const [pickupLoc, setPickupLoc]     = useState(emptyLoc());
-  const [destLoc, setDestLoc]         = useState(emptyLoc());
-  const [error, setError]             = useState('');
-  const [success, setSuccess]         = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const STEPS = ['Route & Map', 'Schedule & Details', 'Review & Post'];
 
-  // 'pickup' | 'destination' — tracks which field quick-chips populate
-  const [chipTarget, setChipTarget] = useState('pickup');
+const ST_OFFICE = {
+  address: 'STMicroelectronics Private Limited, Plot No. 1, Knowledge Park III, Greater Noida',
+  latitude: 28.4725,
+  longitude: 77.48889,
+  verified: true
+};
+
+const CreateRide = () => {
+  const [step, setStep]           = useState(0);
+  const [formData, setFormData]   = useState({
+    driverVehicle: '',
+    journeyDate: '',
+    journeyTime: '',
+    flexibilityMinutes: 0,
+    availableSeats: 3,
+    notes: '',
+  });
+
+  const [vehicles, setVehicles]         = useState([]);
+  const [pickupLoc, setPickupLoc]       = useState(emptyLoc());
+  const [destLoc, setDestLoc]           = useState(ST_OFFICE);
+  const [activeMapField, setActiveMapField] = useState(null); // 'pickup' | 'destination'
+  const [error, setError]               = useState('');
+  const [success, setSuccess]           = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [savedAddresses,   setSavedAddresses]   = useState([]);
   const [recentAddresses,  setRecentAddresses]  = useState([]);
   const [frequentAddresses, setFrequentAddresses] = useState([]);
 
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
   const { getCurrentLocation } = useCurrentLocation();
 
+  // Load vehicles and address lists on mount
   useEffect(() => {
-    const fetchVehicles = async () => {
+    const init = async () => {
       try {
         const res = await api.get('/vehicles');
         const v = res.data.data.vehicles;
         setVehicles(v);
-        if (v.length > 0) setFormData((p) => ({ ...p, vehicle: v[0]._id }));
-      } catch { /* silent */ }
-    };
-    const loadAddressLists = async () => {
+        if (v.length > 0) setFormData((p) => ({ ...p, driverVehicle: v[0]._id }));
+      } catch (err) {
+        console.error('[CreateRide] Failed to fetch vehicles:', err);
+      }
+
       try {
         const [saved, recent, frequent] = await Promise.all([
           fetchSavedAddresses(),
@@ -57,268 +69,409 @@ const CreateRide = () => {
         setSavedAddresses(saved || []);
         setRecentAddresses(recent || []);
         setFrequentAddresses(frequent || []);
-      } catch { /* not logged in or network – silent */ }
+
+        // Try to set Home address as default pickup if available
+        const homeLoc = saved?.find(s => s.label?.toLowerCase() === 'home');
+        if (homeLoc) {
+          setPickupLoc({
+            address: homeLoc.address,
+            latitude: homeLoc.latitude,
+            longitude: homeLoc.longitude,
+            verified: true
+          });
+        }
+      } catch (err) {
+        console.warn('[CreateRide] Failed to load address lists:', err);
+      }
     };
-    fetchVehicles();
-    loadAddressLists();
+    init();
   }, []);
 
-  const handleChange = (e) => {
-    const val = ['availableSeats', 'pricePerSeat'].includes(e.target.name)
-      ? Number(e.target.value) : e.target.value;
-    setFormData((p) => ({ ...p, [e.target.name]: val }));
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  // Address quick-select from chips
+  const handleQuickSelect = (loc, field) => {
+    const loc2 = { ...loc, latitude: loc.lat ?? loc.latitude, longitude: loc.lng ?? loc.longitude, verified: true };
+    if (field === 'pickup') setPickupLoc(loc2);
+    else setDestLoc(loc2);
   };
 
-  // Location handlers
-  const handlePickupSelect  = (loc) => setPickupLoc({ ...loc, verified: false });
-  const handleDestSelect    = (loc) => setDestLoc({ ...loc, verified: false });
-  const handlePickupMapChange = (loc) =>
-    setPickupLoc((p) => ({ ...p, ...loc, verified: false }));
-  const handleDestMapChange = (loc) =>
-    setDestLoc((p) => ({ ...p, ...loc, verified: false }));
-  const handlePickupConfirm   = () => setPickupLoc((p) => ({ ...p, verified: true }));
-  const handleDestConfirm     = () => setDestLoc((p) => ({ ...p, verified: true }));
-  const handlePickupUnconfirm = () => setPickupLoc((p) => ({ ...p, verified: false }));
-  const handleDestUnconfirm   = () => setDestLoc((p) => ({ ...p, verified: false }));
-
-  const handleCurrentForPickup = async () => {
-    const loc = await getCurrentLocation();
-    if (loc) setPickupLoc({ ...loc, verified: false });
-  };
-  const handleCurrentForDest = async () => {
-    const loc = await getCurrentLocation();
-    if (loc) setDestLoc({ ...loc, verified: false });
+  // GPS for pickup
+  const handleGPS = async () => {
+    try {
+      const pos = await getCurrentLocation();
+      setPickupLoc({ address: 'Current Location', latitude: pos.lat, longitude: pos.lng, verified: true });
+    } catch (err) {
+      console.error('[CreateRide] GPS error:', err);
+      setError('Could not get current location. Please allow location access and try again.');
+    }
   };
 
-  // Chips wire to whichever field is currently "active"
-  const handleChipSelect = (loc) => {
-    if (chipTarget === 'pickup') handlePickupSelect(loc);
-    else handleDestSelect(loc);
-  };
-  const handleChipCurrentLocation = async () => {
-    if (chipTarget === 'pickup') await handleCurrentForPickup();
-    else await handleCurrentForDest();
-  };
+  const canGoToStep2 =
+    pickupLoc.verified && pickupLoc.latitude &&
+    destLoc.verified && destLoc.latitude &&
+    pickupLoc.address !== destLoc.address;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const canGoToStep3 =
+    formData.driverVehicle &&
+    formData.journeyDate &&
+    formData.journeyTime &&
+    formData.availableSeats > 0;
+
+  const handleSubmit = async () => {
     setError('');
-    setSuccess(false);
-
-    if (!formData.vehicle) {
-      setError('Please add a vehicle first in your profile before offering a ride.');
-      return;
-    }
-    if (!pickupLoc.latitude) {
-      setError('Please select a pickup location using the autocomplete search.');
-      return;
-    }
-    if (!pickupLoc.verified) {
-      setError('Please confirm your pickup location by clicking "Confirm Location" on the map.');
-      return;
-    }
-    if (!destLoc.latitude) {
-      setError('Please select a destination location using the autocomplete search.');
-      return;
-    }
-    if (!destLoc.verified) {
-      setError('Please confirm your destination by clicking "Confirm Location" on the map.');
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const payload = {
-        ...formData,
-        source:      pickupLoc.address,
-        destination: destLoc.address,
-        departureTime: new Date(formData.departureTime).toISOString(),
+        driverVehicle: formData.driverVehicle,
+        journeyDate: new Date(formData.journeyDate).toISOString(),
+        journeyTime: formData.journeyTime,
+        flexibilityMinutes: Number(formData.flexibilityMinutes),
+        availableSeats: Number(formData.availableSeats),
+        notes: formData.notes || undefined,
         pickupLocation: {
-          address:   pickupLoc.address,
-          latitude:  pickupLoc.latitude,
+          address: pickupLoc.address,
+          latitude: pickupLoc.latitude,
           longitude: pickupLoc.longitude,
-          verified:  pickupLoc.verified,
+          verified: true,
         },
         destinationLocation: {
-          address:   destLoc.address,
-          latitude:  destLoc.latitude,
+          address: destLoc.address,
+          latitude: destLoc.latitude,
           longitude: destLoc.longitude,
-          verified:  destLoc.verified,
+          verified: true,
         },
       };
-      await api.post('/rides', payload);
+
+      const res = await api.post('/rides', payload);
       setSuccess(true);
-      setTimeout(() => navigate('/'), 2000);
+      setTimeout(() => navigate(`/rides/${res.data.data.ride._id}`), 1500);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to list ride offer.');
+      console.error('[CreateRide] Submit failed:', err);
+      setError(err.response?.data?.message || 'Failed to create ride. Please check your inputs.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const bothVerified = pickupLoc.verified && destLoc.verified;
+  const inputClass = 'mt-1 block w-full px-3 py-2.5 border border-slate-800 rounded-xl bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 sm:text-sm transition-all duration-200';
+  const labelClass = 'block text-sm font-medium text-slate-300 mb-1';
+
+  if (success) {
+    return (
+      <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center px-4">
+        <div className="glass-panel rounded-2xl p-12 text-center border border-emerald-500/20 max-w-md w-full">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+            <svg className="w-10 h-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-extrabold text-slate-100 mb-2">Ride Posted!</h2>
+          <p className="text-slate-400 text-sm">Redirecting to your ride details...</p>
+          <div className="mt-4 flex justify-center">
+            <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8 relative">
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-green-500/5 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-[calc(100vh-73px)] bg-slate-950 text-slate-100 py-10 px-4 sm:px-6 lg:px-8 relative">
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/5 blur-[140px] rounded-full pointer-events-none" />
 
-      <div className="w-full max-w-4xl mx-auto">
-        <h2 className="text-3xl font-extrabold text-slate-100 mb-8 text-center">Offer a Ride</h2>
+      <div className="max-w-3xl mx-auto relative">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-extrabold text-slate-100 mb-1">Offer a Ride</h1>
+          <p className="text-slate-400 text-sm">Share your commute with fellow ST colleagues</p>
+        </div>
 
-        <div className="glass-panel py-8 px-6 shadow-2xl rounded-2xl sm:px-10">
-          {error && (
-            <div className="mb-4 bg-red-950/40 border border-red-500/20 text-red-400 p-3.5 rounded-xl text-sm">{error}</div>
-          )}
-          {success && (
-            <div className="mb-4 bg-green-950/40 border border-green-500/20 text-green-400 p-3.5 rounded-xl text-sm font-semibold">
-              Ride registered successfully! Redirecting…
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Vehicle */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Select Vehicle</label>
-              {vehicles.length === 0 ? (
-                <div className="text-sm text-yellow-400 bg-yellow-950/20 border border-yellow-500/10 p-2.5 rounded-lg">
-                  No vehicles registered. Add a vehicle in your profile first.
+        {/* Stepper */}
+        <div className="flex items-center justify-center gap-0 mb-8">
+          {STEPS.map((label, i) => (
+            <div key={i} className="flex items-center">
+              <div className="flex flex-col items-center">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 ${
+                  i < step ? 'bg-emerald-500 border-emerald-500 text-slate-950' :
+                  i === step ? 'border-emerald-400 text-emerald-400 bg-emerald-500/10' :
+                  'border-slate-700 text-slate-600'
+                }`}>
+                  {i < step ? (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : i + 1}
                 </div>
-              ) : (
-                <select name="vehicle" value={formData.vehicle} onChange={handleChange}
-                  className="w-full pl-3 pr-10 py-2.5 border border-slate-800 rounded-lg bg-slate-900 text-slate-100 focus:outline-none focus:ring-emerald-500 sm:text-sm">
-                  {vehicles.map((v) => (
-                    <option key={v._id} value={v._id}>{v.vehicleName} ({v.vehiclePlateNumber})</option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Quick chips — toggle which field they target */}
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setChipTarget('pickup')}
-                  className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                    chipTarget === 'pickup'
-                      ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
-                      : 'border-slate-600/40 text-slate-400 hover:border-slate-500'
-                  }`}
-                >
-                  Quick-fill: Pickup
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setChipTarget('destination')}
-                  className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                    chipTarget === 'destination'
-                      ? 'bg-indigo-500/20 border-indigo-500/60 text-indigo-300'
-                      : 'border-slate-600/40 text-slate-400 hover:border-slate-500'
-                  }`}
-                >
-                  Quick-fill: Destination
-                </button>
+                <span className={`text-[10px] mt-1.5 font-medium whitespace-nowrap ${i === step ? 'text-emerald-400' : i < step ? 'text-emerald-600' : 'text-slate-600'}`}>
+                  {label}
+                </span>
               </div>
-              <QuickLocationChips
-                savedAddresses={savedAddresses}
-                recentAddresses={recentAddresses}
-                frequentAddresses={frequentAddresses}
-                onSelect={handleChipSelect}
-                showCurrentLocation
-                onCurrentLocation={handleChipCurrentLocation}
-              />
-            </div>
-
-            {/* Pickup */}
-            <div>
-              <AddressAutocomplete
-                value={pickupLoc.address}
-                onChange={handlePickupSelect}
-                placeholder="Search pickup / starting point…"
-                label="Pickup Location"
-                showCurrentLocation
-              />
-              {pickupLoc.latitude && (
-                <div className="mt-3">
-                  <MapPreview
-                    location={pickupLoc}
-                    onLocationChange={handlePickupMapChange}
-                    height="220px"
-                    interactive
-                    onConfirm={handlePickupConfirm}
-                    onUnconfirm={handlePickupUnconfirm}
-                    confirmed={pickupLoc.verified}
-                    markerColor="#10b981"
-                    markerLabel="A"
-                  />
-                </div>
+              {i < STEPS.length - 1 && (
+                <div className={`h-0.5 w-16 sm:w-24 mx-2 mb-4 transition-all duration-300 ${i < step ? 'bg-emerald-500' : 'bg-slate-800'}`} />
               )}
             </div>
+          ))}
+        </div>
 
-            {/* Destination */}
-            <div>
-              <AddressAutocomplete
-                value={destLoc.address}
-                onChange={handleDestSelect}
-                placeholder="Search destination…"
-                label="Destination"
-                showCurrentLocation
-              />
-              {destLoc.latitude && (
-                <div className="mt-3">
-                  <MapPreview
-                    location={destLoc}
-                    onLocationChange={handleDestMapChange}
-                    height="220px"
-                    interactive
-                    onConfirm={handleDestConfirm}
-                    onUnconfirm={handleDestUnconfirm}
-                    confirmed={destLoc.verified}
-                    markerColor="#6366f1"
-                    markerLabel="B"
-                  />
-                </div>
-              )}
-            </div>
+        {/* Card */}
+        <div className="glass-panel rounded-2xl border border-slate-800/80 overflow-hidden">
 
-            {/* Route preview — shown once both locations are confirmed */}
-            {bothVerified && (
+          {/* ── STEP 0: Route & Map ── */}
+          {step === 0 && (
+            <div className="p-6 sm:p-8 space-y-6">
               <div>
-                <h3 className="text-sm font-medium text-slate-300 mb-2">Route Preview</h3>
-                <RouteMap
-                  pickup={pickupLoc}
-                  destination={destLoc}
-                  height="280px"
-                  autoFetch
-                  showPanel
+                <h2 className="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs font-bold">1</span>
+                  Set Your Route
+                </h2>
+
+                {/* Quick location chips */}
+                {(savedAddresses.length > 0 || recentAddresses.length > 0) && (
+                  <div className="mb-5">
+                    <QuickLocationChips
+                      saved={savedAddresses}
+                      recent={recentAddresses}
+                      frequent={frequentAddresses}
+                      onSelect={(loc) => handleQuickSelect(loc, activeMapField || 'pickup')}
+                    />
+                  </div>
+                )}
+
+                {/* Pickup */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={labelClass}>Pickup Location</label>
+                    <button
+                      type="button"
+                      onClick={handleGPS}
+                      className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 transition"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Use my location
+                    </button>
+                  </div>
+                  <AddressAutocomplete
+                    value={pickupLoc.address}
+                    onChange={(loc) => { setPickupLoc({ ...loc, verified: false }); setActiveMapField('pickup'); }}
+                    placeholder="Start typing your pickup address…"
+                    showCurrentLocation
+                  />
+                  {pickupLoc.latitude && (
+                    <div className="mt-2">
+                      <MapPreview
+                        location={pickupLoc}
+                        onLocationChange={(loc) => setPickupLoc((p) => ({ ...p, ...loc, verified: false }))}
+                        height="220px"
+                        interactive
+                        onConfirm={() => setPickupLoc((p) => ({ ...p, verified: true }))}
+                        onUnconfirm={() => setPickupLoc((p) => ({ ...p, verified: false }))}
+                        confirmed={pickupLoc.verified}
+                        markerColor="#10b981"
+                        markerLabel="A"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Destination */}
+                <div>
+                  <label className={labelClass}>Destination</label>
+                  <AddressAutocomplete
+                    value={destLoc.address}
+                    onChange={(loc) => { setDestLoc({ ...loc, verified: false }); setActiveMapField('destination'); }}
+                    placeholder="Where are you heading? (e.g. ST Office)"
+                    showCurrentLocation
+                  />
+                  {destLoc.latitude && (
+                    <div className="mt-2">
+                      <MapPreview
+                        location={destLoc}
+                        onLocationChange={(loc) => setDestLoc((p) => ({ ...p, ...loc, verified: false }))}
+                        height="220px"
+                        interactive
+                        onConfirm={() => setDestLoc((p) => ({ ...p, verified: true }))}
+                        onUnconfirm={() => setDestLoc((p) => ({ ...p, verified: false }))}
+                        confirmed={destLoc.verified}
+                        markerColor="#6366f1"
+                        markerLabel="B"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {!canGoToStep2 && (pickupLoc.address || destLoc.address) && (
+                <p className="text-xs text-amber-400 bg-amber-950/30 border border-amber-500/20 px-3 py-2 rounded-lg">
+                  ⚠ Please confirm both pickup and destination on the map before continuing.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* ── STEP 1: Schedule & Details ── */}
+          {step === 1 && (
+            <div className="p-6 sm:p-8 space-y-6">
+              <h2 className="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs font-bold">2</span>
+                Schedule & Details
+              </h2>
+
+              {/* Vehicle */}
+              <div>
+                <label htmlFor="driverVehicle" className={labelClass}>Your Vehicle</label>
+                {vehicles.length === 0 ? (
+                  <div className="mt-1 p-4 bg-amber-950/30 border border-amber-500/20 rounded-xl text-sm text-amber-400">
+                    ⚠ No vehicles found. Please add a vehicle in your{' '}
+                    <button onClick={() => navigate('/profile')} className="underline font-semibold">Profile</button> first.
+                  </div>
+                ) : (
+                  <select
+                    id="driverVehicle" name="driverVehicle"
+                    value={formData.driverVehicle} onChange={handleChange}
+                    className="mt-1 block w-full pl-3 pr-10 py-2.5 text-sm rounded-xl border border-slate-800 bg-slate-900 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                  >
+                    {vehicles.map((v) => (
+                      <option key={v._id} value={v._id}>
+                        {v.vehicleName} · {v.vehiclePlateNumber} ({v.seatCount} seats)
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Journey Date & Time */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="journeyDate" className={labelClass}>Journey Date</label>
+                  <input
+                    id="journeyDate" name="journeyDate" type="date" required
+                    value={formData.journeyDate} onChange={handleChange}
+                    min={new Date().toISOString().split('T')[0]}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="journeyTime" className={labelClass}>Journey Time</label>
+                  <input
+                    id="journeyTime" name="journeyTime" type="time" required
+                    value={formData.journeyTime} onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              {/* Flexibility & Seats */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="flexibilityMinutes" className={labelClass}>Flexible Waiting Time</label>
+                  <select
+                    id="flexibilityMinutes" name="flexibilityMinutes"
+                    value={formData.flexibilityMinutes} onChange={handleChange}
+                    className={inputClass}
+                  >
+                    <option value={0}>On Time (No wait)</option>
+                    <option value={10}>Up to 10 mins</option>
+                    <option value={20}>Up to 20 mins</option>
+                    <option value={30}>Up to 30 mins</option>
+                    <option value={40}>Up to 40 mins</option>
+                    <option value={60}>Up to 1 hour</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="availableSeats" className={labelClass}>Available Seats</label>
+                  <input
+                    id="availableSeats" name="availableSeats" type="number" min="1" max={vehicles.find(v => v._id === formData.driverVehicle)?.seatCount || 8} required
+                    value={formData.availableSeats} onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              {/* Optional notes */}
+              <div>
+                <label htmlFor="notes" className={labelClass}>Notes for Co-Riders <span className="text-slate-500 text-xs">(Optional)</span></label>
+                <textarea
+                  id="notes" name="notes" rows="2"
+                  value={formData.notes} onChange={handleChange}
+                  className={inputClass} placeholder="e.g. 'Meet at gate 2', 'No smoking please'…"
                 />
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Time & Seats */}
-            <div className="grid sm:grid-cols-3 gap-4">
-              <div className="sm:col-span-1">
-                <label className="block text-sm font-medium text-slate-300 mb-1">Departure Date & Time</label>
-                <input type="datetime-local" name="departureTime" required value={formData.departureTime} onChange={handleChange}
-                  className="w-full px-3 py-2.5 border border-slate-800 rounded-lg bg-slate-900/50 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 sm:text-sm" />
+          {/* ── STEP 2: Review & Post ── */}
+          {step === 2 && (
+            <div className="p-6 sm:p-8 space-y-5">
+              <h2 className="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs font-bold">3</span>
+                Review & Post
+              </h2>
+
+              <div className="space-y-3 text-sm">
+                {[
+                  { label: 'From', value: pickupLoc.address },
+                  { label: 'To', value: destLoc.address },
+                  { label: 'Vehicle', value: vehicles.find(v => v._id === formData.driverVehicle)?.vehicleName || '—' },
+                  { label: 'Journey', value: formData.journeyDate && formData.journeyTime ? `${formData.journeyDate} at ${formData.journeyTime}` : '—' },
+                  { label: 'Flexibility', value: formData.flexibilityMinutes === 0 ? 'On Time' : `Up to ${formData.flexibilityMinutes} mins` },
+                  { label: 'Seats Available', value: formData.availableSeats },
+                  ...(formData.notes ? [{ label: 'Notes', value: formData.notes }] : []),
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-start gap-3 p-4 bg-slate-900/40 rounded-xl border border-slate-800/60">
+                    <span className="text-slate-500 text-xs font-semibold w-24 flex-shrink-0 pt-0.5">{label}</span>
+                    <span className="text-slate-200 font-medium flex-1">{value}</span>
+                  </div>
+                ))}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Available Seats</label>
-                <input type="number" name="availableSeats" min="1" max="8" required value={formData.availableSeats} onChange={handleChange}
-                  className="w-full px-3 py-2.5 border border-slate-800 rounded-lg bg-slate-900/50 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 sm:text-sm" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Price Per Seat (₹)</label>
-                <input type="number" name="pricePerSeat" min="0" required value={formData.pricePerSeat} onChange={handleChange}
-                  className="w-full px-3 py-2.5 border border-slate-800 rounded-lg bg-slate-900/50 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 sm:text-sm" />
+
+              {error && (
+                <div className="bg-red-950/40 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm flex items-start gap-2">
+                  <span>⚠</span> {error}
+                </div>
+              )}
+
+              <div className="bg-emerald-950/20 border border-emerald-500/15 rounded-xl p-4 text-xs text-emerald-400/80">
+                📋 By posting this ride, you agree to pick up confirmed Co-Riders from their specified locations.
               </div>
             </div>
+          )}
 
-            <button type="submit" disabled={isSubmitting || !bothVerified}
-              className="w-full py-3 px-4 rounded-lg text-sm font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-500 transition-colors disabled:opacity-50">
-              {isSubmitting ? 'Publishing…' : !bothVerified ? 'Confirm Both Locations First' : 'Publish Ride'}
+          {/* ── Navigation Buttons ── */}
+          <div className="px-6 sm:px-8 pb-6 flex items-center justify-between border-t border-slate-800/60 pt-5">
+            <button
+              onClick={() => step > 0 ? setStep(s => s - 1) : navigate('/')}
+              className="px-5 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-slate-100 hover:bg-slate-800 text-sm font-semibold transition-all duration-200"
+            >
+              {step === 0 ? 'Cancel' : '← Back'}
             </button>
-          </form>
+
+            {step < 2 ? (
+              <button
+                onClick={() => setStep(s => s + 1)}
+                disabled={step === 0 ? !canGoToStep2 : !canGoToStep3 || vehicles.length === 0}
+                className="px-6 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-500 text-slate-950 font-bold text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20"
+              >
+                Continue →
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="px-6 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-500 text-slate-950 font-bold text-sm transition-all duration-200 disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    Posting…
+                  </span>
+                ) : '🚗 Post Ride'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

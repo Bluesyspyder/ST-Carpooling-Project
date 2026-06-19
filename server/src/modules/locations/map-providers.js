@@ -1,124 +1,166 @@
 import ApiError from '../../shared/utils/api-error.js';
 
-const getMapboxToken = () => {
-  const candidates = [
-    process.env.MAPBOX_TOKEN,
-    process.env.VITE_MAPBOX_TOKEN,
-    process.env.MAP_API_KEY,
-  ];
-  return candidates.find((token) => token?.trim().startsWith('pk.'))?.trim();
+// ─── Ola Maps — all geocoding/autocomplete for the Indian market ─────────────
+// Docs: https://api.olamaps.io
+// Auth: api_key query param
+// Coverage: India only
+
+const OLA_BASE = 'https://api.olamaps.io';
+
+const getOlaApiKey = () => {
+  return (
+    process.env.OLA_MAPS_API_KEY ||
+    process.env.VITE_OLA_MAPS_API_KEY ||
+    null
+  );
 };
 
 /**
- * Perform geocoding query using Mapbox API
+ * India bounding-box guard.
+ * Returns true when the coordinate falls within rough India bounds.
+ * Lat: 6.5 – 35.7   Lng: 68.1 – 97.4
  */
-export const geocodeWithMapbox = async (address) => {
-  const token = getMapboxToken();
-  if (!token) {
-    console.warn('[MAPBOX] No Mapbox token found.');
-    return null;
-  }
-
-  const query = new URLSearchParams({
-    access_token: token,
-    country: 'in',
-    limit: '1',
-  });
-
-  try {
-    const response = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?${query}`
-    );
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      console.warn(`[MAPBOX] API Request failed: ${data?.message || response.statusText}`);
-      return null;
-    }
-
-    const feature = data?.features?.[0];
-    if (!feature) return null;
-
-    const [longitude, latitude] = feature.center || [];
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-
-    return {
-      label: feature.text || address,
-      address: feature.place_name || address,
-      latitude,
-      longitude,
-      provider: 'Mapbox',
-      providerPlaceId: feature.id || null,
-    };
-  } catch (err) {
-    console.error('[MAPBOX] Request error:', err.message);
-    return null;
-  }
+export const isIndiaCoordinate = (lat, lng) => {
+  const la = Number(lat);
+  const lo = Number(lng);
+  return la >= 6.5 && la <= 35.7 && lo >= 68.1 && lo <= 97.4;
 };
 
+// ─── Autocomplete ──────────────────────────────────────────────────────────────
+
 /**
- * Mapbox autocomplete — returns up to 5 suggestions for a partial query
+ * Autocomplete — Ola Maps Places API.
+ * Returns up to 5 suggestions (India only).
+ * Never throws: returns empty array on failure.
  */
-export const autocompleteWithMapbox = async (query) => {
-  const token = getMapboxToken();
-  if (!token) return null;
+export const autocompleteWithOla = async (query) => {
+  const apiKey = getOlaApiKey();
+  if (!apiKey) {
+    console.warn('[OLA_AUTOCOMPLETE] OLA_MAPS_API_KEY not set.');
+    return [];
+  }
 
   const params = new URLSearchParams({
-    access_token: token,
-    country: 'in',
-    limit: '5',
-    autocomplete: 'true',
-    language: 'en',
+    input: query,
+    api_key: apiKey,
   });
 
   try {
-    const response = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params}`
-    );
-    const data = await response.json().catch(() => null);
-    if (!response.ok || !data?.features) return null;
+    const res = await fetch(`${OLA_BASE}/places/v1/autocomplete?${params}`);
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch (e) { data = null; }
 
-    return data.features.map((f) => {
-      const [lng, lat] = f.center || [];
-      return {
-        address: f.place_name || f.text,
-        latitude: lat,
-        longitude: lng,
-        provider: 'Mapbox',
-        providerPlaceId: f.id || null,
-      };
-    });
+    if (!res.ok || (data && data.status && data.status !== 'ok' && data.status !== 'zero_results')) {
+      const msg = data?.error_message || data?.message || text.substring(0, 100) || `HTTP ${res.status}`;
+      throw new ApiError(res.status === 200 ? 500 : res.status, `Ola Maps Autocomplete Error: ${msg}`);
+    }
+
+    if (!data?.predictions?.length) return [];
+
+    return data.predictions.map((p) => ({
+      address: p.description || p.structured_formatting?.main_text || p.name,
+      latitude: p.geometry?.location?.lat ?? null,
+      longitude: p.geometry?.location?.lng ?? null,
+      provider: 'Ola Maps',
+      providerPlaceId: p.place_id || null,
+    }));
   } catch (err) {
-    console.error('[MAPBOX_AUTOCOMPLETE] Error:', err.message);
-    return null;
+    console.error('[OLA_AUTOCOMPLETE] Request error:', err.message);
+    throw err;
   }
 };
 
-/**
- * Mapbox reverse geocoding — lat/lng → address
- */
-export const reverseGeocodeWithMapbox = async (lat, lng) => {
-  const token = getMapboxToken();
-  if (!token) return null;
+// ─── Forward geocode ───────────────────────────────────────────────────────────
 
-  const params = new URLSearchParams({ access_token: token, language: 'en' });
+/**
+ * Forward geocode via Ola Maps.
+ * Returns { label, address, latitude, longitude, provider, providerPlaceId } or null.
+ */
+export const geocodeWithOla = async (address) => {
+  const apiKey = getOlaApiKey();
+  if (!apiKey) {
+    console.warn('[OLA_GEOCODE] OLA_MAPS_API_KEY not set.');
+    return null;
+  }
+
+  const params = new URLSearchParams({
+    address,
+    api_key: apiKey,
+  });
 
   try {
-    const response = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?${params}`
-    );
-    const data = await response.json().catch(() => null);
-    if (!response.ok || !data?.features?.length) return null;
+    const res = await fetch(`${OLA_BASE}/places/v1/geocode?${params}`);
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch (e) { data = null; }
 
-    const f = data.features[0];
+    if (!res.ok || (data && data.status && data.status !== 'ok' && data.status !== 'zero_results')) {
+      const msg = data?.error_message || data?.message || text.substring(0, 100) || `HTTP ${res.status}`;
+      throw new ApiError(res.status === 200 ? 500 : res.status, `Ola Maps Geocode Error: ${msg}`);
+    }
+
+    if (!data?.geocodingResults?.length) return null;
+
+    const r = data.geocodingResults[0];
+    const lat = r.geometry?.location?.lat;
+    const lng = r.geometry?.location?.lng;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
     return {
-      address: f.place_name || f.text,
+      label: r.name || address,
+      address: r.formatted_address || address,
       latitude: lat,
       longitude: lng,
-      provider: 'Mapbox',
+      provider: 'Ola Maps',
+      providerPlaceId: r.place_id || null,
     };
   } catch (err) {
-    console.error('[MAPBOX_REVERSE] Error:', err.message);
+    console.error('[OLA_GEOCODE] Request error:', err.message);
+    throw err;
+  }
+};
+
+// ─── Reverse geocode ───────────────────────────────────────────────────────────
+
+/**
+ * Reverse geocode via Ola Maps.
+ * Returns { address, latitude, longitude, provider } or null.
+ */
+export const reverseGeocodeWithOla = async (lat, lng) => {
+  const apiKey = getOlaApiKey();
+  if (!apiKey) {
+    console.warn('[OLA_REVERSE] OLA_MAPS_API_KEY not set.');
     return null;
+  }
+
+  const params = new URLSearchParams({
+    latlng: `${lat},${lng}`,
+    api_key: apiKey,
+  });
+
+  try {
+    const res = await fetch(`${OLA_BASE}/places/v1/reverse-geocode?${params}`);
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch (e) { data = null; }
+
+    if (!res.ok || (data && data.status && data.status !== 'ok' && data.status !== 'zero_results')) {
+      const msg = data?.error_message || data?.message || text.substring(0, 100) || `HTTP ${res.status}`;
+      throw new ApiError(res.status === 200 ? 500 : res.status, `Ola Maps Reverse Geocode Error: ${msg}`);
+    }
+
+    if (!data?.results?.length) return null;
+
+    const r = data.results[0];
+    return {
+      address: r.formatted_address || `${lat}, ${lng}`,
+      latitude: lat,
+      longitude: lng,
+      provider: 'Ola Maps',
+    };
+  } catch (err) {
+    console.error('[OLA_REVERSE] Request error:', err.message);
+    throw err;
   }
 };

@@ -14,6 +14,9 @@ router.get('/profile', userController.getProfile);
 router.patch('/profile', validate(updateProfileSchema), userController.updateProfile);
 router.post('/profile/upload-image', handleImageUpload('profileImage'), userController.uploadProfileImage);
 
+// Dashboard stats
+router.get('/me/stats', userController.getDashboardStats);
+
 // Saved Addresses
 router.get('/saved-addresses', userController.getSavedAddresses);
 router.post('/saved-addresses', validate(addSavedAddressSchema), userController.addSavedAddress);
