@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ST Carpool</string>
+    <string name="title_activity_main">ST Carpool</string>
+    <string name="package_name">com.stcarpool.app</string>
+    <string name="custom_url_scheme">com.stcarpool.app</string>
+</resources>

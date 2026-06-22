@@ -1,2 +1,6 @@
-server/node_modules
-client/node_modules
+node_modules/
+.env
+.env.*
+
+# Ignore Markdown files
+*.md
