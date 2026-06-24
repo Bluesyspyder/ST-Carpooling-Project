@@ -244,7 +244,7 @@ const MapPreview = ({
     return (
       <div
         style={{ height }}
-        className="bg-slate-800/60 rounded-xl border border-dashed border-slate-600/50 flex flex-col items-center justify-center gap-2 text-slate-500 text-sm"
+        className="bg-[var(--bg-surface)] rounded-xl border border-dashed border-[var(--border-subtle)] flex flex-col items-center justify-center gap-2 text-[var(--text-muted)] text-sm"
       >
         <span className="text-3xl opacity-40">🗺️</span>
         <span>Map preview appears after selecting an address</span>
@@ -253,27 +253,27 @@ const MapPreview = ({
   }
 
   return (
-    <div className="relative z-0 rounded-xl overflow-hidden border border-slate-600/50 shadow-lg">
+    <div className="relative z-0 rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-lg shadow-[var(--border-glow)]">
       {/* Map tile */}
       <div ref={mapRef} style={{ height }} className="w-full" />
 
       {/* Footer — address + action buttons */}
       {interactive && (
-        <div className="bg-slate-900/95 border-t border-slate-700/60 px-4 py-3 space-y-2.5">
+        <div className="bg-[var(--bg-card)] border-t border-[var(--border-subtle)] px-4 py-3 space-y-2.5">
           {/* Address row */}
           <div className="flex items-start gap-2">
-            <span className="text-slate-500 text-sm mt-0.5 flex-shrink-0">📍</span>
+            <span className="text-[var(--text-muted)] text-sm mt-0.5 flex-shrink-0">📍</span>
             <div className="min-w-0 flex-1">
-              <p className="text-slate-200 text-sm leading-snug truncate">
+              <p className="text-[var(--text-primary)] font-medium text-sm leading-snug truncate">
                 {reverseLoading ? (
-                  <span className="text-slate-400 italic text-xs">Resolving address…</span>
+                  <span className="text-[var(--text-muted)] italic text-xs">Resolving address…</span>
                 ) : (
                   location.address || 'Unknown address'
                 )}
               </p>
             </div>
             {reverseLoading && (
-              <div className="w-3.5 h-3.5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin flex-shrink-0 mt-1" />
+              <div className="w-3.5 h-3.5 border-2 border-[var(--primary-base)] border-t-transparent rounded-full animate-spin flex-shrink-0 mt-1" />
             )}
           </div>
 
@@ -281,7 +281,7 @@ const MapPreview = ({
           {confirmed ? (
             /* ── Confirmed state ── */
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-emerald-400 text-sm font-semibold">
+              <div className="flex items-center gap-1.5 text-green-500 text-sm font-bold">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                 </svg>
@@ -290,7 +290,7 @@ const MapPreview = ({
               {onUnconfirm && (
                 <button
                   onClick={onUnconfirm}
-                  className="text-xs text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
+                  className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] hover:border-[var(--primary-base)] px-3 py-1.5 rounded-lg transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
                 >
                   ✏ Edit
                 </button>
@@ -303,10 +303,10 @@ const MapPreview = ({
               <button
                 onClick={handleCurrentLocation}
                 disabled={gpsLoading}
-                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/50 hover:border-emerald-500/50 text-slate-300 hover:text-emerald-300 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] disabled:opacity-50 disabled:scale-100 cursor-pointer"
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--primary-base)] text-[var(--text-secondary)] hover:text-[var(--primary-base)] transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] disabled:opacity-50 disabled:scale-100 cursor-pointer"
               >
                 {gpsLoading ? (
-                  <div className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-3 h-3 border-2 border-[var(--primary-base)] border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <span>📍</span>
                 )}
@@ -316,7 +316,7 @@ const MapPreview = ({
               {/* Reset Marker */}
               <button
                 onClick={handleReset}
-                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/50 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--secondary-base)] text-[var(--text-secondary)] hover:text-[var(--secondary-base)] transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
               >
                 <span>↺</span>
                 Reset Marker
@@ -326,7 +326,7 @@ const MapPreview = ({
               {onConfirm && (
                 <button
                   onClick={onConfirm}
-                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] ml-auto cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-[var(--primary-base)] hover:bg-[var(--primary-hover)] text-white font-semibold transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] shadow-lg shadow-[var(--border-glow)] ml-auto cursor-pointer"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
@@ -339,7 +339,7 @@ const MapPreview = ({
 
           {/* Drag hint */}
           {!confirmed && (
-            <p className="text-xs text-slate-500 text-center border-t border-slate-700/40 pt-2">
+            <p className="text-xs text-[var(--text-muted)] text-center border-t border-[var(--border-subtle)] pt-2">
               Drag the pin or click the map to fine-tune · Confirm when correct
             </p>
           )}

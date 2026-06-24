@@ -451,7 +451,7 @@ const RideDetails = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100vh-73px)] relative pt-8 pb-24 md:pb-8 px-4 sm:px-6 lg:px-8">
 
       <div className="w-full max-w-[1500px] mx-auto space-y-6">
 
@@ -467,8 +467,8 @@ const RideDetails = () => {
 
         {/* ── DRIVER VIEW: Optimised multi-stop route ────────────────────── */}
         {isDriver ? (
-          <div className="transit-panel p-6 space-y-4">
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+          <div className="glass-panel p-6 space-y-4">
+            <h3 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
               Driver Route Overview
             </h3>
@@ -477,8 +477,8 @@ const RideDetails = () => {
         ) : (
           /* ── PASSENGER VIEW: dynamic preview route ── */
           <>
-            <div className="transit-panel p-6 space-y-4">
-              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+            <div className="glass-panel p-6 space-y-4">
+              <h3 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-indigo-400 inline-block"></span>
                 Ride Route Preview
               </h3>
@@ -495,23 +495,23 @@ const RideDetails = () => {
         <div className="grid md:grid-cols-[1fr_380px] gap-6">
 
           {/* ── Ride details panel ──────────────────────────────────────── */}
-          <div className="transit-panel p-6 sm:p-8 space-y-6">
+          <div className="glass-panel p-6 sm:p-8 space-y-6">
             <div className="flex justify-between items-start">
               <div>
                 <span className={`px-2.5 py-1 text-xs font-semibold border rounded-full capitalize ${statusBadge(ride.rideStatus?.toLowerCase())}`}>
                   {ride.rideStatus}
                 </span>
-                <h3 className="text-2xl font-bold font-['Space_Grotesk'] text-white uppercase tracking-widest mt-3">
+                <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight mt-3">
                   {ride.pickupLocation?.address?.split(',')[0]} → {ride.destinationLocation?.address?.split(',')[0]}
                 </h3>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold font-['Space_Grotesk'] text-[var(--color-transit-accent)] tracking-widest uppercase">Free</p>
-                <p className="text-xs text-slate-400 mt-1">per seat</p>
+                <p className="text-2xl font-bold text-[var(--primary-base)] tracking-widest uppercase">Free</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">per seat</p>
               </div>
             </div>
 
-            <div className="space-y-4 pt-6 border-t border-slate-800 text-sm">
+            <div className="space-y-4 pt-6 border-t border-[var(--border-subtle)] text-sm">
               {[
                 { label: 'Journey Date',  value: new Date(ride.journeyDate).toLocaleDateString() },
                 { label: 'Journey Time',  value: ride.journeyTime },
@@ -521,33 +521,33 @@ const RideDetails = () => {
                 ...(ride.destinationLocation?.address ? [{ label: 'Drop-off', value: ride.destinationLocation.address }] : []),
               ].map(({ label, value }) => (
                 <div key={label} className="grid grid-cols-3 gap-2">
-                  <span className="text-slate-400 font-medium">{label}</span>
-                  <span className="col-span-2 text-slate-200 text-xs">{value}</span>
+                  <span className="text-[var(--text-secondary)] font-medium">{label}</span>
+                  <span className="col-span-2 text-[var(--text-primary)] text-xs">{value}</span>
                 </div>
               ))}
             </div>
 
             {ride.driverVehicle && (
-              <div className="pt-6 border-t border-slate-800 space-y-3">
-                <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Vehicle</h4>
-                <div className="grid sm:grid-cols-2 gap-4 text-sm bg-[var(--color-transit-bg)] p-4 rounded-sm border border-[var(--color-transit-border)]">
-                  <div><p className="text-xs text-slate-400">Name</p><p className="text-slate-200 font-medium mt-0.5">{ride.driverVehicle.vehicleName}</p></div>
-                  <div><p className="text-xs text-slate-400">Plate</p><p className="text-slate-200 font-medium mt-0.5">{ride.driverVehicle.vehiclePlateNumber}</p></div>
-                  <div><p className="text-xs text-slate-400">Fuel</p><p className="text-slate-200 font-medium mt-0.5 capitalize">{ride.driverVehicle.vehicleType}</p></div>
-                  <div><p className="text-xs text-slate-400">Mileage</p><p className="text-slate-200 font-medium mt-0.5">{ride.driverVehicle.mileage} km/l</p></div>
+              <div className="pt-6 border-t border-[var(--border-subtle)] space-y-3">
+                <h4 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Vehicle</h4>
+                <div className="grid sm:grid-cols-2 gap-4 text-sm bg-[var(--bg-surface)] p-4 rounded-sm border border-[var(--border-subtle)]">
+                  <div><p className="text-xs text-[var(--text-secondary)]">Name</p><p className="text-[var(--text-primary)] font-medium mt-0.5">{ride.driverVehicle.vehicleName}</p></div>
+                  <div><p className="text-xs text-[var(--text-secondary)]">Plate</p><p className="text-[var(--text-primary)] font-medium mt-0.5">{ride.driverVehicle.vehiclePlateNumber}</p></div>
+                  <div><p className="text-xs text-[var(--text-secondary)]">Fuel</p><p className="text-[var(--text-primary)] font-medium mt-0.5 capitalize">{ride.driverVehicle.vehicleType}</p></div>
+                  <div><p className="text-xs text-[var(--text-secondary)]">Mileage</p><p className="text-[var(--text-primary)] font-medium mt-0.5">{ride.driverVehicle.mileage} km/l</p></div>
                 </div>
               </div>
             )}
 
             {ride.driver && (
-              <div className="pt-6 border-t border-slate-800 space-y-3">
-                <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Rider (Driver)</h4>
+              <div className="pt-6 border-t border-[var(--border-subtle)] space-y-3">
+                <h4 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Rider (Driver)</h4>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-full flex items-center justify-center text-lg font-bold text-indigo-400">
                     {ride.driver.firstName[0]}{ride.driver.lastName[0]}
                   </div>
                   <div>
-                    <p className="text-slate-200 font-semibold">{ride.driver.firstName} {ride.driver.lastName}</p>
+                    <p className="text-[var(--text-primary)] font-semibold">{ride.driver.firstName} {ride.driver.lastName}</p>
                     <div className="flex items-center gap-1 mt-0.5 text-xs text-amber-400 font-bold">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -561,22 +561,22 @@ const RideDetails = () => {
 
             {/* ── Booked Passengers (driver-visible or all) ─────────────── */}
             {bookings && bookings.length > 0 && (
-              <div className="pt-6 border-t border-slate-800 space-y-4">
-                <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+              <div className="pt-6 border-t border-[var(--border-subtle)] space-y-4">
+                <h4 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                   Booked Passengers & Pickups
                 </h4>
                 <div className="space-y-3">
                   {bookings.map((booking, idx) => (
-                    <div key={booking._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-sm bg-[var(--color-transit-bg)] border border-[var(--color-transit-border)] gap-3">
+                    <div key={booking._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-sm bg-[var(--bg-surface)] border border-[var(--border-subtle)] gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center text-sm font-bold text-emerald-400 flex-shrink-0">
                           {booking.passenger?.firstName?.[0] || 'P'}{booking.passenger?.lastName?.[0] || ''}
                         </div>
                         <div>
-                          <p className="text-slate-200 font-semibold text-sm">
+                          <p className="text-[var(--text-primary)] font-semibold text-sm">
                             {booking.passenger?.firstName} {booking.passenger?.lastName}
                           </p>
-                          <p className="text-xs text-slate-500">{booking.passenger?.phone || booking.passenger?.email}</p>
+                          <p className="text-xs text-[var(--text-secondary)]">{booking.passenger?.phone || booking.passenger?.email}</p>
                         </div>
                       </div>
                       <div className="text-left sm:text-right space-y-1">
@@ -586,11 +586,11 @@ const RideDetails = () => {
                             booking.bookingStatus === 'pending'   ? 'bg-amber-950 text-amber-400 border-amber-500/20' :
                             'bg-red-950 text-red-400 border-red-500/20'
                           }`}>{booking.bookingStatus}</span>
-                          <span className="text-xs text-slate-400">{booking.seatsBooked} seat{booking.seatsBooked > 1 ? 's' : ''}</span>
+                          <span className="text-xs text-[var(--text-secondary)]">{booking.seatsBooked} seat{booking.seatsBooked > 1 ? 's' : ''}</span>
                         </div>
-                        <p className="text-xs text-slate-400 max-w-xs truncate">{booking.pickupLocation?.address}</p>
+                        <p className="text-xs text-[var(--text-secondary)] max-w-xs truncate">{booking.pickupLocation?.address}</p>
                         {isDriver && (
-                          <p className="text-[10px] text-slate-600 font-mono">
+                          <p className="text-[10px] text-[var(--text-secondary)] font-mono">
                             Stop #{idx + 1} · {booking.pickupLocation?.latitude?.toFixed(4)}, {booking.pickupLocation?.longitude?.toFixed(4)}
                           </p>
                         )}
@@ -603,11 +603,11 @@ const RideDetails = () => {
           </div>
 
           {/* ── Booking sidebar (passenger-only; drivers see their own panel) ── */}
-          <div className="transit-panel p-6 h-fit">
+          <div className="glass-panel p-6 h-fit">
             {isDriver ? (
               /* Driver sidebar: ride stats */
               <div className="space-y-4">
-                <h4 className="text-lg font-bold text-slate-100">Ride Statistics</h4>
+                <h4 className="text-lg font-bold text-[var(--text-primary)]">Ride Statistics</h4>
                 <div className="space-y-3 text-sm">
                   {[
                     { label: 'Total Seats',      value: (ride.availableSeats || 0) + (bookings.filter(b => b.bookingStatus === 'confirmed').reduce((s, b) => s + b.seatsBooked, 0)) },
@@ -616,9 +616,9 @@ const RideDetails = () => {
                     { label: 'Pending Requests', value: bookings.filter(b => b.bookingStatus === 'pending').length },
                     { label: 'Price / Seat',     value: `Free` },
                   ].map(({ label, value }) => (
-                    <div key={label} className="flex items-center justify-between py-2 border-b border-slate-800/60">
-                      <span className="text-slate-400">{label}</span>
-                      <span className="text-slate-100 font-semibold">{value}</span>
+                    <div key={label} className="flex items-center justify-between py-2 border-b border-[var(--border-subtle)]">
+                      <span className="text-[var(--text-secondary)]">{label}</span>
+                      <span className="text-[var(--text-primary)] font-semibold">{value}</span>
                     </div>
                   ))}
                 </div>
@@ -627,7 +627,7 @@ const RideDetails = () => {
                 {bookings.filter(b => b.bookingStatus === 'confirmed').length > 0 && (
                   <Link
                     href={`/drive?id=${ride._id}`}
-                    className="transit-button-primary flex items-center justify-center gap-2 w-full py-3 px-4"
+                    className="btn-primary flex items-center justify-center gap-2 w-full py-3 px-4"
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -636,14 +636,14 @@ const RideDetails = () => {
                   </Link>
                 )}
 
-                <Link href="/bookings" className="transit-button-secondary block w-full text-center py-2.5 px-4">
+                <Link href="/bookings" className="btn-secondary block w-full text-center py-2.5 px-4">
                   Manage Requests →
                 </Link>
               </div>
             ) : (
               /* Passenger booking form */
               <>
-                <h4 className="text-lg font-bold text-slate-100 mb-4">Book this Ride</h4>
+                <h4 className="text-lg font-bold text-[var(--text-primary)] mb-4">Book this Ride</h4>
 
                 {bookingSuccess ? (
                   <div className="bg-green-950/40 border border-green-500/20 text-green-400 p-4 rounded-xl text-sm space-y-2">
@@ -680,26 +680,26 @@ const RideDetails = () => {
                     )}
 
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Seats to Reserve</label>
+                      <label className="block text-xs text-[var(--text-secondary)] mb-1">Seats to Reserve</label>
                       <input
                         type="number"
                         min="1"
                         max={Math.min(8, ride.availableSeats)}
                         value={bookingSeats}
                         onChange={(e) => setBookingSeats(e.target.value)}
-                        className="transit-input block w-full px-3 py-2 text-sm"
+                        className="form-input block w-full px-3 py-2 text-sm"
                       />
                     </div>
 
                     <div className="flex justify-between items-center text-sm pt-2">
-                      <span className="text-slate-400">Total Price</span>
-                      <span className="text-slate-100 font-extrabold text-lg">Free</span>
+                      <span className="text-[var(--text-secondary)]">Total Price</span>
+                      <span className="text-[var(--text-primary)] font-extrabold text-lg">Free</span>
                     </div>
 
                     <button
                       type="submit"
                       disabled={isBooking || ride.availableSeats <= 0 || ride.rideStatus !== 'ACTIVE' || !pickupLoc.verified}
-                      className="transit-button-primary w-full py-2.5 px-4 disabled:opacity-50"
+                      className="btn-primary w-full py-2.5 px-4 disabled:opacity-50"
                     >
                       {isBooking
                         ? 'Processing…'

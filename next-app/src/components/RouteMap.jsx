@@ -59,7 +59,8 @@ const RouteMap = ({
     try {
       let res;
       if (wps && wps.length >= 2) {
-        res = await api.post('/routes/calculate', {
+        // Fix #1: Use the correct multi-point endpoint
+        res = await api.post('/routes/calculate-multipoint', {
           waypoints: wps.map(w => ({ latitude: w.latitude, longitude: w.longitude }))
         });
       } else {
@@ -198,12 +199,30 @@ const RouteMap = ({
           leafletMapRef.current.fitBounds(bounds, { padding: [50, 50], animate: false });
         }
       }
+
+      // Fix #2: Race condition guard — if externalRouteData is already available
+      // when the map finishes initialising, draw the polyline immediately here.
+      // This prevents Effect B from firing into a null leafletMapRef.
+      if (externalRouteData?.routePath?.length) {
+        const { routePath, isFallback } = externalRouteData;
+        if (polylineRef.current) polylineRef.current.remove();
+        const latlngs = routePath.map(({ lat, lng }) => [lat, lng]);
+        polylineRef.current = L.polyline(latlngs, {
+          color:     isFallback ? '#f59e0b' : '#818cf8',
+          weight:    4,
+          opacity:   0.85,
+          dashArray: isFallback ? '6 8' : null,
+        }).addTo(leafletMapRef.current);
+        if (latlngs.length > 1) {
+          leafletMapRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [40, 40], animate: false });
+        }
+      }
     };
 
     initMap();
     
     return () => { isMounted.current = false; };
-  }, [pickup, destination, waypoints, createIcon]);
+  }, [pickup, destination, waypoints, externalRouteData, createIcon]);
 
   // ── Live Driver Location Update ───────────────────────────────────────────
   useEffect(() => {

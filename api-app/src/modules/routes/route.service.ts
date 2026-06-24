@@ -114,14 +114,30 @@ const routeWithOla = async (origin, destination, waypointsList = []) => {
     // Decode the overview_polyline for the route path
     let routePath = [];
     if (route.overview_polyline) {
-      routePath = decodePolyline(route.overview_polyline);
-    } else if (route.legs?.[0]) {
-      // Fallback: build from leg start/end
+      try {
+        routePath = decodePolyline(route.overview_polyline);
+      } catch (e) {
+        console.error('[OLA_DIRECTIONS] Polyline decode failed:', e);
+      }
+    }
+    
+    if (!routePath.length && route.legs?.[0]) {
+      // Fallback: build from leg steps
       for (const leg of route.legs) {
-        if (leg.start_location) routePath.push({ lat: leg.start_location.lat, lng: leg.start_location.lng });
+        if (leg.steps && leg.steps.length > 0) {
+          for (const step of leg.steps) {
+            if (step.start_location) {
+              routePath.push({ lat: step.start_location.lat, lng: step.start_location.lng });
+            }
+          }
+        } else if (leg.start_location) {
+          routePath.push({ lat: leg.start_location.lat, lng: leg.start_location.lng });
+        }
       }
       const lastLeg = route.legs[route.legs.length - 1];
-      if (lastLeg?.end_location) routePath.push({ lat: lastLeg.end_location.lat, lng: lastLeg.end_location.lng });
+      if (lastLeg?.end_location) {
+        routePath.push({ lat: lastLeg.end_location.lat, lng: lastLeg.end_location.lng });
+      }
     }
 
     if (!routePath.length) return null;

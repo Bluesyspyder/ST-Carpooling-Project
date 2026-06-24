@@ -27,8 +27,6 @@ const SavedLocationsManager = () => {
   const [error, setError] = useState('');
   const [viewLocation, setViewLocation] = useState(null);
 
-  useEffect(() => { load(); }, []);
-
   const load = async () => {
     try {
       const data = await fetchSavedAddresses();
@@ -38,6 +36,8 @@ const SavedLocationsManager = () => {
     }
     finally { setLoading(false); }
   };
+
+  useEffect(() => { load(); }, []);
 
   const openAdd = () => {
     setForm(defaultForm());

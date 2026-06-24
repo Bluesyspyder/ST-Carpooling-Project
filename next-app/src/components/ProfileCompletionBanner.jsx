@@ -74,15 +74,15 @@ const ProfileCompletionBanner = ({ compact = false }) => {
 
   if (compact) {
     return (
-      <div className="bg-indigo-950/40 border border-indigo-500/20 rounded-xl px-4 py-3 flex items-center gap-4">
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 flex items-center gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-indigo-300 font-semibold">Profile {percentage}% complete</span>
-            <Link href="/profile" className="text-indigo-400 hover:text-indigo-200 font-bold transition">Complete →</Link>
+            <span className="text-[var(--text-secondary)] font-semibold">Profile {percentage}% complete</span>
+            <Link href="/profile" className="text-[var(--primary-base)] hover:text-[var(--primary-hover)] font-bold transition">Complete →</Link>
           </div>
           <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full transition-all duration-500"
+              className="h-full bg-gradient-to-r from-[var(--primary-hover)] to-[var(--primary-base)] rounded-full transition-all duration-500"
               style={{ width: `${percentage}%` }}
             />
           </div>
@@ -92,25 +92,25 @@ const ProfileCompletionBanner = ({ compact = false }) => {
   }
 
   return (
-    <div className="bg-indigo-950/30 border border-indigo-500/20 rounded-2xl p-5 space-y-4">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-4 shadow-lg shadow-[var(--border-glow)]/10">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-sm font-bold text-indigo-300 flex items-center gap-2">
-            <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse" />
+          <h3 className="text-sm font-bold text-[var(--primary-base)] flex items-center gap-2">
+            <span className="w-2 h-2 bg-[var(--primary-base)] rounded-full animate-pulse" />
             Complete Your Profile
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
             {completedCount}/{totalCount} steps done — {missing.length} remaining
           </p>
         </div>
-        <span className="text-lg font-extrabold text-indigo-300">{percentage}%</span>
+        <span className="text-lg font-extrabold text-[var(--primary-base)]">{percentage}%</span>
       </div>
 
       {/* Progress bar */}
       <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full transition-all duration-700"
+          className="h-full bg-gradient-to-r from-[var(--primary-hover)] to-[var(--primary-base)] rounded-full transition-all duration-700"
           style={{ width: `${percentage}%` }}
         />
       </div>
@@ -142,7 +142,7 @@ const ProfileCompletionBanner = ({ compact = false }) => {
 
       <Link
         href="/profile"
-        className="inline-flex items-center gap-2 text-xs font-bold text-indigo-400 hover:text-indigo-200 transition"
+        className="inline-flex items-center gap-2 text-xs font-bold text-[var(--primary-base)] hover:text-[var(--primary-hover)] transition"
       >
         Go to Profile →
       </Link>

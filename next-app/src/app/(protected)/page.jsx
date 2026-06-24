@@ -46,10 +46,22 @@ const Dashboard = () => {
   };
 
   // Format departure time nicely
-  const fmtTime = (iso) => {
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) +
-      ' · ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const fmtTime = (ride) => {
+    if (!ride) return 'Time TBD';
+    if (ride.journeyDate && ride.journeyTime) {
+      const d = new Date(ride.journeyDate);
+      if (!isNaN(d.getTime())) {
+        return `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${ride.journeyTime}`;
+      }
+    }
+    if (ride.departureTime) {
+      const d = new Date(ride.departureTime);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) +
+          ' · ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      }
+    }
+    return 'Time TBD';
   };
 
   // Relative time helper
@@ -131,19 +143,20 @@ const Dashboard = () => {
   };
 
   const roleBadge = isRider
-    ? <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/25">🚗 Rider</span>
+    ? <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/25">🚗 Rider</span>
     : <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">🧑‍💼 Co-Rider</span>;
 
   // Custom Stat Card Component
   const StatCard = ({ title, value, icon, colorClass, glowClass }) => (
-    <div className="transit-panel p-6 transit-panel-hover group relative overflow-hidden">
+    <div className="glass-panel p-6 border border-[var(--border-subtle)] hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden flex flex-col justify-between">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-transit-muted)]">{title}</span>
-        <div className={`w-8 h-8 flex items-center justify-center text-lg ${colorClass}`}>
+        <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">{title}</span>
+        <div className={`w-8 h-8 flex items-center justify-center rounded-lg ${colorClass}`}>
           {icon}
         </div>
       </div>
-      <div className="text-3xl font-['Space_Grotesk'] font-bold text-white tracking-widest">{value}</div>
+      <div className="w-full h-px bg-[var(--border-subtle)] mb-4"></div>
+      <div className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">{value}</div>
     </div>
   );
 
@@ -177,13 +190,13 @@ const Dashboard = () => {
     return (
       <Link
         href={to}
-        className={`group transit-panel p-6 transit-panel-hover ${t.border}`}
+        className={`group glass-panel p-6 hover:-translate-y-1 transition-all duration-300 ${t.border}`}
       >
         <div className={`w-10 h-10 rounded-sm border flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 ${t.iconBg}`}>
           {icon}
         </div>
-        <h3 className="text-base font-['Space_Grotesk'] font-bold text-white uppercase tracking-wider mb-2 transition">{title}</h3>
-        <p className="text-[var(--color-transit-muted)] text-xs leading-relaxed">{description}</p>
+        <h3 className="text-base font-bold text-[var(--text-primary)] uppercase tracking-wider mb-2 transition">{title}</h3>
+        <p className="text-[var(--text-secondary)] text-xs leading-relaxed">{description}</p>
         <div className={`mt-6 flex items-center gap-1.5 ${t.text} text-[10px] uppercase font-bold tracking-widest`}>
           Execute <span className="group-hover:translate-x-1 transition-transform">→</span>
         </div>
@@ -215,13 +228,16 @@ const Dashboard = () => {
     <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8 relative">
         
-        {/* ── SECTION 1: Welcome Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--color-transit-border)] pb-6">
-          <div>
-            <p className="text-[var(--color-transit-muted)] font-bold uppercase tracking-widest text-[10px] mb-2">SYS. MSG // {getGreeting()}</p>
-            <h1 className="text-3xl sm:text-4xl font-['Space_Grotesk'] font-bold text-white tracking-wider uppercase">
-              {user?.firstName} {user?.lastName}
+        {/* ── SECTION 1: Welcome Header (Ref 3 Mobile Style) ── */}
+        <div className="glass-panel p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b-0 rounded-[2rem] shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-[var(--primary-base)]/10 rounded-full blur-3xl"></div>
+          <div className="relative z-10">
+            <h1 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)] tracking-tight mb-1">
+              Hey {user?.firstName},
             </h1>
+            <p className="text-[var(--text-secondary)] font-medium text-sm sm:text-base">
+              {getGreeting()} — Here is your transit overview.
+            </p>
           </div>
           <div className="flex items-center gap-3">
             {roleBadge}
@@ -268,7 +284,7 @@ const Dashboard = () => {
 
         {/* ── SECTION 2: Quick Actions Grid ── */}
         <div>
-          <h2 className="text-xl font-bold text-slate-100 mb-4 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
             <span className="w-1.5 h-6 rounded bg-emerald-400 block" />
             Quick Actions
           </h2>
@@ -339,13 +355,13 @@ const Dashboard = () => {
           <div className="lg:col-span-2 space-y-8">
             
             {/* Upcoming Activities */}
-            <div className="transit-panel overflow-hidden">
-              <div className="px-6 py-4 border-b border-[var(--color-transit-border)] flex items-center justify-between">
-                <h2 className="font-bold text-white flex items-center gap-2 font-['Space_Grotesk'] uppercase tracking-widest text-sm">
-                  <span className="w-2 h-2 bg-[var(--color-transit-accent)] rounded-sm animate-pulse" />
+            <div className="glass-panel overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
+                <h2 className="font-bold text-[var(--text-primary)] flex items-center gap-2 uppercase tracking-widest text-sm">
+                  <span className="w-2 h-2 bg-[var(--primary-base)] rounded-sm animate-pulse" />
                   Upcoming Activity
                 </h2>
-                <Link href="/bookings" className="text-[10px] text-[var(--color-transit-accent)] hover:text-white uppercase font-bold tracking-widest transition">
+                <Link href="/bookings" className="text-[10px] text-[var(--primary-base)] hover:text-[var(--primary-hover)] uppercase font-bold tracking-widest transition">
                   View all →
                 </Link>
               </div>
@@ -370,20 +386,20 @@ const Dashboard = () => {
                         <Link
                           key={ride._id}
                           href={`/ride-details?id=${ride._id}`}
-                          className="flex items-center justify-between p-4 bg-slate-900/40 rounded-xl border border-slate-800/60 hover:border-slate-700 transition group"
+                          className="flex items-center justify-between p-4 bg-[var(--primary-base)]/10 rounded-xl border border-[var(--primary-base)]/20 hover:border-[var(--primary-base)]/40 transition group"
                         >
-                          <div>
-                            <p className="text-sm font-semibold text-slate-200 group-hover:text-emerald-400 transition">
-                              {ride.source} → {ride.destination}
+                          <div className="flex-1 min-w-0 pr-4 overflow-hidden">
+                            <p className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--primary-base)] transition truncate">
+                              {ride.pickupLocation?.address || ride.source} → {ride.destinationLocation?.address || ride.destination}
                             </p>
-                            <p className="text-xs text-slate-500 mt-0.5">{fmtTime(ride.departureTime)}</p>
+                            <p className="text-xs text-[var(--text-secondary)] mt-0.5 truncate">{fmtTime(ride)}</p>
                           </div>
-                          <div className="text-right">
-                            <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">
+                          <div className="text-right flex-shrink-0 ml-2">
+                            <span className="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full whitespace-nowrap">
                               {ride.availableSeats} seats left
                             </span>
                             {ride.pendingRequests > 0 && (
-                              <p className="text-xs text-amber-400 mt-1 font-semibold">
+                              <p className="text-xs text-amber-400 mt-1 font-semibold whitespace-nowrap">
                                 {ride.pendingRequests} pending request{ride.pendingRequests > 1 ? 's' : ''}
                               </p>
                             )}
@@ -408,15 +424,15 @@ const Dashboard = () => {
                         <Link
                           key={booking._id}
                           href={`/ride-details?id=${booking.ride?._id}`}
-                          className="flex items-center justify-between p-4 bg-slate-900/40 rounded-xl border border-slate-800/60 hover:border-slate-700 transition group"
+                          className="flex items-center justify-between p-4 bg-[var(--primary-base)]/10 rounded-xl border border-[var(--primary-base)]/20 hover:border-[var(--primary-base)]/40 transition group"
                         >
-                          <div>
-                            <p className="text-sm font-semibold text-slate-200 group-hover:text-emerald-400 transition">
-                              {booking.ride?.source} → {booking.ride?.destination}
+                          <div className="flex-1 min-w-0 pr-4 overflow-hidden">
+                            <p className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--primary-base)] transition truncate">
+                              {booking.ride?.pickupLocation?.address || booking.ride?.source} → {booking.ride?.destinationLocation?.address || booking.ride?.destination}
                             </p>
-                            <p className="text-xs text-slate-500 mt-0.5">{fmtTime(booking.ride?.departureTime)}</p>
+                            <p className="text-xs text-[var(--text-secondary)] mt-0.5 truncate">{fmtTime(booking.ride)}</p>
                           </div>
-                          <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-full border flex-shrink-0 ml-2 whitespace-nowrap ${
                             booking.bookingStatus === 'confirmed'
                               ? 'bg-emerald-950 text-emerald-400 border-emerald-500/20'
                               : 'bg-amber-950 text-amber-400 border-amber-500/20'
@@ -435,7 +451,7 @@ const Dashboard = () => {
             {!isRider && (
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
                     <span className="w-1.5 h-6 rounded bg-emerald-400 block" />
                     {user?.homeLocation?.latitude ? 'Rides Near You' : 'Available Rides'}
                   </h2>
@@ -451,9 +467,9 @@ const Dashboard = () => {
                     ))}
                   </div>
                 ) : nearbyRides.length === 0 ? (
-                  <div className="transit-panel py-16 text-center text-[var(--color-transit-muted)]">
+                  <div className="glass-panel py-16 text-center text-[var(--text-muted)]">
                     <span className="text-3xl block mb-2 opacity-50">📡</span>
-                    <p className="text-sm font-['Space_Grotesk'] uppercase tracking-wider">No active rides found nearby.</p>
+                    <p className="text-sm font-bold uppercase tracking-wider">No active rides found nearby.</p>
                     <p className="text-xs mt-1">Check back later or set your home location in Profile settings.</p>
                   </div>
                 ) : (
@@ -462,15 +478,15 @@ const Dashboard = () => {
                       <Link
                         key={ride._id}
                         href={`/ride-details?id=${ride._id}`}
-                        className="group transit-panel p-5 transit-panel-hover"
+                        className="group glass-panel p-5 hover:-translate-y-1 transition-all duration-300"
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 min-w-0 pr-2">
                             <p className="text-sm font-bold text-slate-100 truncate group-hover:text-emerald-400 transition">
-                              {ride.source}
+                              {ride.pickupLocation?.address || ride.source}
                             </p>
-                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                              <span>↓</span> {ride.destination}
+                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 truncate">
+                              <span>↓</span> {ride.destinationLocation?.address || ride.destination}
                             </p>
                           </div>
                           <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full whitespace-nowrap">
@@ -479,7 +495,7 @@ const Dashboard = () => {
                         </div>
 
                         <div className="flex items-center justify-between text-xs text-slate-500">
-                          <span>{fmtTime(ride.departureTime)}</span>
+                          <span>{fmtTime(ride)}</span>
                           <span className={`font-semibold ${ride.availableSeats <= 1 ? 'text-red-400' : 'text-slate-400'}`}>
                             {ride.availableSeats} seat{ride.availableSeats !== 1 ? 's' : ''} left
                           </span>
@@ -509,7 +525,7 @@ const Dashboard = () => {
             
             {/* Statistics */}
             <div>
-              <h2 className="font-bold text-white mb-6 font-['Space_Grotesk'] uppercase tracking-widest text-sm flex items-center gap-2">
+              <h2 className="font-bold text-[var(--text-primary)] mb-6 uppercase tracking-widest text-sm flex items-center gap-2">
                 <span className="w-1.5 h-6 rounded bg-indigo-400 block" />
                 Your Statistics
               </h2>
@@ -590,8 +606,8 @@ const Dashboard = () => {
             </div>
 
             {/* Recent Activity Timeline Feed */}
-            <div className="transit-panel p-6 relative overflow-hidden">
-              <h2 className="font-bold text-white mb-6 font-['Space_Grotesk'] uppercase tracking-widest text-sm flex items-center gap-2">
+            <div className="glass-panel p-6 relative overflow-hidden">
+              <h2 className="font-bold text-[var(--text-primary)] mb-6 uppercase tracking-widest text-sm flex items-center gap-2">
                 <span className="text-lg">⚡</span> Telemetry Log
               </h2>
               
@@ -608,27 +624,30 @@ const Dashboard = () => {
                   ))}
                 </div>
               ) : stats.recentActivity.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 text-sm">
+                <div className="text-center py-8 text-[var(--text-secondary)] text-sm">
                   No recent activities recorded.
                 </div>
               ) : (
-                <div className="relative border-l border-slate-800/80 ml-4 pl-6 space-y-6">
+                <div className="relative border-l-2 border-[var(--border-subtle)] ml-5 pl-8 space-y-8 mt-4">
                   {stats.recentActivity.map((activity, idx) => {
                     const iconConfig = getActivityIcon(activity.type);
                     return (
                       <div key={idx} className="relative group">
                         {/* Timeline node */}
-                        <div className={`absolute -left-[37px] top-1.5 w-6 h-6 rounded-full border-2 border-slate-950 flex items-center justify-center text-[10px] ${iconConfig.bg}`}>
+                        <div className={`absolute -left-[45px] top-0 w-8 h-8 rounded-full shadow-lg border-4 border-[var(--bg-surface)] flex items-center justify-center text-xs ${iconConfig.bg} z-10 transition-transform duration-300 group-hover:scale-110`}>
                           {iconConfig.emoji}
                         </div>
                         
-                        <div>
-                          <p className="text-xs font-semibold text-slate-300 group-hover:text-slate-100 transition">
+                        <div className="bg-[var(--bg-surface)]/50 p-4 rounded-2xl border border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-surface)]">
+                          <p className="text-sm font-semibold text-[var(--text-primary)] transition">
                             {activity.message}
                           </p>
-                          <span className="text-[10px] text-slate-500 block mt-1">
-                            {getRelativeTime(activity.timestamp)}
-                          </span>
+                          <div className="flex items-center gap-2 mt-2">
+                             <span className="text-xs text-[var(--text-secondary)] font-medium flex items-center gap-1">
+                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                               {getRelativeTime(activity.timestamp)}
+                             </span>
+                          </div>
                         </div>
                       </div>
                     );

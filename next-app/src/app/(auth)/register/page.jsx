@@ -128,28 +128,33 @@ const Register = () => {
     }
   };
 
-  const inputClass = 'transit-input';
-  const labelClass = 'block text-xs font-bold text-[var(--color-transit-muted)] uppercase tracking-widest mb-2';
+  const inputClass = 'form-input';
+  const labelClass = 'block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2';
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-10 px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
+    <div className="min-h-[calc(100vh-73px)] relative py-12 px-4 sm:px-6 lg:px-8 flex flex-col justify-center overflow-hidden">
+      {/* Background elements */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--primary-base)]/5 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-2xl">
-        <p className="text-[var(--color-transit-muted)] font-bold uppercase tracking-widest text-[10px] mb-2 text-center">SYS. MSG // REGISTRATION</p>
-        <h1 className="text-center text-3xl font-['Space_Grotesk'] font-bold text-white uppercase tracking-widest mb-1">
+      <div className="sm:mx-auto sm:w-full sm:max-w-2xl relative z-10">
+        <p className="text-[var(--primary-base)] font-bold uppercase tracking-widest text-[10px] mb-3 text-center">Registration</p>
+        <h1 className="text-center text-3xl font-bold text-[var(--text-primary)] tracking-tight mb-2">
           Create your account
         </h1>
-        <p className="text-center text-sm text-[var(--color-transit-muted)] mb-8">
+        <p className="text-center text-sm text-[var(--text-secondary)] font-medium mb-8">
           Already have an account?{' '}
-          <Link href="/login" className="font-bold text-[var(--color-transit-accent)] hover:text-white transition-colors uppercase tracking-wide">
+          <Link href="/login" className="font-semibold text-[var(--primary-base)] hover:text-[var(--primary-hover)] transition-colors">
             Sign in
           </Link>
         </p>
 
-        <div className="transit-panel">
+        <div className="glass-panel p-8 sm:p-10 shadow-xl shadow-[var(--border-glow)] relative z-10">
           {error && (
-            <div className="mb-6 border border-red-500/50 bg-red-500/10 text-red-500 p-4 text-sm font-bold uppercase tracking-wide flex items-start gap-2">
-              <span>⚠</span> {error}
+            <div className="mb-6 rounded-xl border border-red-500/50 bg-red-500/10 text-red-500 p-4 text-sm font-semibold flex items-start gap-2">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>{error}</span>
             </div>
           )}
 
@@ -177,7 +182,7 @@ const Register = () => {
             {/* Email */}
             <div ref={emailRef}>
               <label htmlFor="email" className={labelClass}>
-                Work Email <span className="text-slate-500 text-xs">(must be @st.com)</span>
+                Work Email <span className="text-[var(--text-muted)] text-xs font-medium lowercase">(must be @st.com)</span>
               </label>
               <input
                 id="email" name="email" type="email" required
@@ -198,7 +203,7 @@ const Register = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200 cursor-pointer"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                 >
                   {showPassword ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,7 +254,7 @@ const Register = () => {
                     onConfirm={() => setAddressLoc((prev) => ({ ...prev, verified: true }))}
                     onUnconfirm={() => setAddressLoc((prev) => ({ ...prev, verified: false }))}
                     confirmed={addressLoc.verified}
-                    markerColor="#7c3aed"
+                    markerColor="var(--primary-base)"
                   />
                 </div>
               )}
@@ -258,15 +263,15 @@ const Register = () => {
             {/* Profile Photo */}
             <div ref={profileImageRef}>
               <label className={labelClass}>
-                Profile Photo <span className="text-slate-500 text-xs">(Optional)</span>
+                Profile Photo <span className="text-[var(--text-muted)] text-xs font-medium lowercase">(Optional)</span>
               </label>
               <div className="flex items-center gap-4">
                 <div className="flex-shrink-0">
                   {profileImagePreview ? (
-                    <img src={profileImagePreview} alt="Profile preview" className="h-20 w-20 object-cover rounded-full border-2 border-emerald-500/30" />
+                    <img src={profileImagePreview} alt="Profile preview" className="h-20 w-20 object-cover rounded-full border-2 border-[var(--primary-base)]/30" />
                   ) : (
-                    <div className="h-20 w-20 bg-slate-800/50 rounded-full flex items-center justify-center border-2 border-dashed border-slate-700">
-                      <svg className="h-7 w-7 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="h-20 w-20 bg-[var(--bg-surface)] rounded-full flex items-center justify-center border-2 border-dashed border-[var(--border-subtle)]">
+                      <svg className="h-7 w-7 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     </div>
@@ -275,7 +280,7 @@ const Register = () => {
                 <input
                   id="profileImage" name="profileImage" type="file" accept="image/*"
                   onChange={(e) => handleImageChange(e, 'profile')}
-                  className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-500/10 file:text-emerald-400 hover:file:bg-emerald-500/20 transition-all"
+                  className="block w-full text-sm text-[var(--text-secondary)] file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-[var(--primary-base)]/10 file:text-[var(--primary-base)] hover:file:bg-[var(--primary-base)]/20 transition-all cursor-pointer"
                 />
               </div>
             </div>
@@ -285,12 +290,12 @@ const Register = () => {
               <label htmlFor="role" className={labelClass}>Account Type</label>
               <select
                 id="role" name="role" value={formData.role} onChange={handleChange}
-                className="transit-input"
+                className="form-input"
               >
                 <option value="passenger">Co-Rider — I need a ride</option>
                 <option value="hybrid">Rider — I can drive &amp; take rides</option>
               </select>
-              <p className="text-xs text-slate-500 mt-1.5">
+              <p className="text-xs text-[var(--text-muted)] mt-2 font-medium">
                 {formData.role === 'hybrid'
                   ? '🚗 As a Rider, you can both offer rides and book seats in other cars.'
                   : '🧑‍💼 As a Co-Rider, you can search and book available rides.'}
@@ -299,8 +304,8 @@ const Register = () => {
 
             {/* Vehicle Details — Riders only */}
             {formData.role === 'hybrid' && (
-              <div className="space-y-4 border border-[var(--color-transit-border)] p-5 bg-[var(--color-transit-surface)]">
-                <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+              <div className="space-y-4 border border-[var(--border-subtle)] rounded-xl p-6 bg-[var(--bg-surface)] mt-6">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
                   <span>🚗</span> Vehicle Details
                 </h3>
 
@@ -328,7 +333,7 @@ const Register = () => {
                     <label htmlFor="vehicleType" className={labelClass}>Fuel Type</label>
                     <select
                       id="vehicleType" name="vehicleType" value={formData.vehicleType} onChange={handleChange}
-                      className="transit-input"
+                      className="form-input"
                     >
                       <option value="diesel">Diesel</option>
                       <option value="petrol">Petrol</option>
@@ -356,15 +361,15 @@ const Register = () => {
                 {/* Vehicle Photo */}
                 <div ref={vehicleImageRef}>
                   <label className={labelClass}>
-                    Vehicle Photo <span className="text-red-400 text-xs">(Required)</span>
+                    Vehicle Photo <span className="text-red-500 text-xs font-medium lowercase">(Required)</span>
                   </label>
                   <div className="flex items-center gap-4">
                     <div className="flex-shrink-0">
                       {vehicleImagePreview ? (
-                        <img src={vehicleImagePreview} alt="Vehicle preview" className="h-20 w-32 object-cover rounded-xl border-2 border-emerald-500/20" />
+                        <img src={vehicleImagePreview} alt="Vehicle preview" className="h-20 w-32 object-cover rounded-xl border-2 border-[var(--primary-base)]/20" />
                       ) : (
-                        <div className="h-20 w-32 bg-slate-800/50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700">
-                          <svg className="h-7 w-7 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="h-20 w-32 bg-[var(--bg-base)] rounded-xl flex items-center justify-center border-2 border-dashed border-[var(--border-subtle)]">
+                          <svg className="h-7 w-7 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
                         </div>
@@ -373,7 +378,7 @@ const Register = () => {
                     <input
                       id="vehicleImage" name="vehicleImage" type="file" accept="image/*" required
                       onChange={(e) => handleImageChange(e, 'vehicle')}
-                      className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-500/10 file:text-emerald-400 hover:file:bg-emerald-500/20"
+                      className="block w-full text-sm text-[var(--text-secondary)] file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-[var(--primary-base)]/10 file:text-[var(--primary-base)] hover:file:bg-[var(--primary-base)]/20 transition-all cursor-pointer"
                     />
                   </div>
                 </div>
@@ -381,8 +386,8 @@ const Register = () => {
             )}
 
             {/* Optional fields */}
-            <div className="border border-[var(--color-transit-border)] p-5 bg-[var(--color-transit-surface)] space-y-4">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Additional Info (Optional)</h3>
+            <div className="space-y-4 border border-[var(--border-subtle)] rounded-xl p-6 bg-[var(--bg-surface)] mt-6">
+              <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Additional Info (Optional)</h3>
               <div>
                 <label htmlFor="emergencyContact" className={labelClass}>Emergency Contact Phone</label>
                 <input
@@ -402,18 +407,20 @@ const Register = () => {
             </div>
 
             {/* Submit */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-[var(--color-transit-accent)] text-black font-bold uppercase tracking-widest py-3 hover:bg-white transition-colors disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span className="flex justify-center items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                  CREATING ACCOUNT...
-                </span>
-              ) : 'CREATE ACCOUNT'}
-            </button>
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-primary w-full py-4 text-sm font-bold uppercase tracking-widest"
+              >
+                {isSubmitting ? (
+                  <span className="flex justify-center items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    CREATING ACCOUNT...
+                  </span>
+                ) : 'CREATE ACCOUNT'}
+              </button>
+            </div>
           </form>
         </div>
       </div>

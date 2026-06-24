@@ -174,15 +174,15 @@ const CreateRide = () => {
     }
   };
 
-  const inputClass = 'transit-input block w-full px-3 py-2.5 text-sm';
-  const labelClass = 'block text-[10px] uppercase font-bold text-[var(--color-transit-muted)] tracking-widest mb-1';
+  const inputClass = 'form-input block w-full px-4 py-2.5 text-sm';
+  const labelClass = 'block text-xs uppercase font-semibold text-[var(--text-secondary)] tracking-wider mb-2';
 
   if (success) {
     return (
       <div className="min-h-[calc(100vh-73px)] relative flex items-center justify-center px-4">
-        <div className="transit-panel p-12 text-center border-l-4 border-l-[var(--color-transit-accent)] max-w-md w-full">
+        <div className="glass-panel p-12 text-center border-l-4 border-l-[var(--primary-base)] max-w-md w-full shadow-2xl shadow-[var(--border-glow)]">
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-            <svg className="w-10 h-10 text-[var(--color-transit-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-10 h-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
@@ -200,10 +200,11 @@ const CreateRide = () => {
     <div className="min-h-[calc(100vh-73px)] relative py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto relative">
         {/* Header */}
-        <div className="mb-8 text-center">
-          <p className="text-[var(--color-transit-muted)] font-bold uppercase tracking-widest text-[10px] mb-2">SYS. MSG // CREATE</p>
-          <h1 className="text-3xl font-['Space_Grotesk'] font-bold text-white uppercase tracking-widest mb-1">Offer a Ride</h1>
-          <p className="text-[10px] uppercase font-bold tracking-widest text-[var(--color-transit-muted)]">Share your commute with fellow ST colleagues</p>
+        <div className="glass-panel p-6 sm:p-8 rounded-[2rem] shadow-2xl relative overflow-hidden mb-8 border-none bg-gradient-to-br from-[var(--bg-surface)] to-[var(--bg-base)] text-center sm:text-left">
+          <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-[var(--primary-base)] to-[var(--secondary-base)]"></div>
+          <p className="text-[var(--primary-base)] font-bold uppercase tracking-widest text-[10px] mb-1">Create Module</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)] tracking-tight mb-2">Offer a Ride</h1>
+          <p className="text-xs uppercase font-bold tracking-widest text-[var(--text-secondary)]">Share your commute with fellow ST colleagues</p>
         </div>
 
         {/* Stepper */}
@@ -234,7 +235,8 @@ const CreateRide = () => {
         </div>
 
         {/* Card */}
-        <div className="transit-panel border-l-4 border-l-[var(--color-transit-accent)] overflow-hidden">
+        <div className="glass-panel rounded-[2rem] overflow-hidden shadow-2xl bg-[var(--bg-surface)] border-none relative z-10">
+          <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[var(--primary-base)] to-[var(--secondary-base)]"></div>
 
           {/* ── STEP 0: Route & Map ── */}
           {step === 0 && (
@@ -343,7 +345,7 @@ const CreateRide = () => {
                   <select
                     id="driverVehicle" name="driverVehicle"
                     value={formData.driverVehicle} onChange={handleChange}
-                    className="transit-input block w-full pl-3 pr-10 py-2.5 text-sm"
+                    className="form-input block w-full pl-3 pr-10 py-2.5 text-sm"
                   >
                     {vehicles.map((v) => (
                       <option key={v._id} value={v._id}>
@@ -432,8 +434,8 @@ const CreateRide = () => {
                   { label: 'Seats Available', value: formData.availableSeats },
                   ...(formData.notes ? [{ label: 'Notes', value: formData.notes }] : []),
                 ].map(({ label, value }) => (
-                  <div key={label} className="flex items-start gap-3 p-4 bg-[var(--color-transit-bg)] rounded-sm border border-[var(--color-transit-border)]">
-                    <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--color-transit-muted)] w-24 flex-shrink-0 pt-0.5">{label}</span>
+                  <div key={label} className="flex items-start gap-3 p-4 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-subtle)]">
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--text-secondary)] w-24 flex-shrink-0 pt-0.5">{label}</span>
                     <span className="text-slate-200 font-medium flex-1">{value}</span>
                   </div>
                 ))}
@@ -452,10 +454,10 @@ const CreateRide = () => {
           )}
 
           {/* ── Navigation Buttons ── */}
-          <div className="px-6 sm:px-8 pb-6 flex items-center justify-between border-t border-[var(--color-transit-border)] pt-5">
+          <div className="px-6 sm:px-8 pb-6 flex items-center justify-between border-t border-[var(--border-subtle)] pt-6">
             <button
               onClick={() => step > 0 ? setStep(s => s - 1) : router.push('/')}
-              className="transit-button-secondary px-5 py-2.5"
+              className="btn-secondary px-5 py-2.5"
             >
               {step === 0 ? 'CANCEL' : '← BACK'}
             </button>
@@ -467,7 +469,7 @@ const CreateRide = () => {
                   setStep(s => s + 1);
                 }}
                 disabled={step === 0 ? !canGoToStep2 : !canGoToStep3 || vehicles.length === 0}
-                className="transit-button-primary px-6 py-2.5 disabled:opacity-40"
+                className="btn-primary px-6 py-2.5 disabled:opacity-40"
               >
                 CONTINUE →
               </button>
@@ -475,13 +477,13 @@ const CreateRide = () => {
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="transit-button-primary px-6 py-2.5 disabled:opacity-50"
+                className="btn-primary px-6 py-2.5 disabled:opacity-50 flex items-center gap-2"
               >
                 {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-[var(--color-transit-bg)] border-t-transparent rounded-full animate-spin" />
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     POSTING...
-                  </span>
+                  </>
                 ) : '🚗 POST RIDE'}
               </button>
             )}

@@ -203,23 +203,23 @@ const Bookings = () => {
     <>
     <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-5xl mx-auto space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-[var(--color-transit-border)] pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-[var(--border-subtle)] pb-4">
           <div>
-            <p className="text-[var(--color-transit-muted)] font-bold uppercase tracking-widest text-[10px] mb-2">SYS. MSG // BOOKINGS</p>
-            <h2 className="text-3xl font-['Space_Grotesk'] font-bold text-white uppercase tracking-widest">Your Bookings</h2>
+            <p className="text-[var(--primary-base)] font-bold uppercase tracking-widest text-[10px] mb-2">SYS. MSG // BOOKINGS</p>
+            <h2 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">Your Bookings</h2>
           </div>
 
           {user?.role === 'hybrid' && (
-            <div className="flex bg-[var(--color-transit-surface)] p-1 rounded-sm border border-[var(--color-transit-border)] mt-4 sm:mt-0">
+            <div className="flex bg-[var(--bg-surface)] p-1 rounded-sm border border-[var(--border-subtle)] mt-4 sm:mt-0">
               <button
                 onClick={() => { setRoleMode('passenger'); setPage(1); }}
-                className={`px-4 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm transition-all ${roleMode === 'passenger' ? 'bg-[var(--color-transit-accent)] text-black' : 'text-[var(--color-transit-muted)] hover:text-white'}`}
+                className={`px-4 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm transition-all ${roleMode === 'passenger' ? 'bg-[var(--primary-base)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
               >
                 Co-Rider Mode
               </button>
               <button
                 onClick={() => { setRoleMode('driver'); setPage(1); }}
-                className={`px-4 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm transition-all ${roleMode === 'driver' ? 'bg-[var(--color-transit-accent)] text-black' : 'text-[var(--color-transit-muted)] hover:text-white'}`}
+                className={`px-4 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm transition-all ${roleMode === 'driver' ? 'bg-[var(--primary-base)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
               >
                 Rider Mode
               </button>
@@ -234,7 +234,7 @@ const Bookings = () => {
               <button
                 key={tab}
                 onClick={() => { setPassengerTab(tab); setPage(1); }}
-                className={`px-4 py-1.5 rounded-sm text-[10px] uppercase tracking-widest font-bold border transition ${passengerTab === tab ? 'bg-white text-black border-white' : 'bg-transparent text-[var(--color-transit-muted)] border-[var(--color-transit-border)] hover:text-white hover:border-white'}`}
+                className={`px-4 py-1.5 rounded-sm text-[10px] uppercase tracking-widest font-bold border transition ${passengerTab === tab ? 'bg-[var(--primary-base)] text-white border-[var(--primary-base)]' : 'bg-transparent text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-white hover:border-white'}`}
               >
                 {tab}
               </button>
@@ -254,7 +254,7 @@ const Bookings = () => {
               <button
                 key={tab.id}
                 onClick={() => { setDriverTab(tab.id); setPage(1); }}
-                className={`px-4 py-1.5 rounded-sm text-[10px] uppercase tracking-widest font-bold border transition ${driverTab === tab.id ? 'bg-white text-black border-white' : 'bg-transparent text-[var(--color-transit-muted)] border-[var(--color-transit-border)] hover:text-white hover:border-white'}`}
+                className={`px-4 py-1.5 rounded-sm text-[10px] uppercase tracking-widest font-bold border transition ${driverTab === tab.id ? 'bg-[var(--primary-base)] text-white border-[var(--primary-base)]' : 'bg-transparent text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-white hover:border-white'}`}
               >
                 {tab.label}
               </button>
@@ -271,62 +271,62 @@ const Bookings = () => {
             {error}
           </div>
         ) : bookings.length === 0 ? (
-          <div className="transit-panel py-20 text-center text-[var(--color-transit-muted)]">
+          <div className="glass-panel py-20 text-center text-[var(--text-secondary)]">
             <span className="text-3xl mb-3 block opacity-50">🗄️</span>
-            <span className="font-['Space_Grotesk'] uppercase tracking-widest text-sm font-bold">No bookings found in this category.</span>
+            <span className="font-bold tracking-widest text-sm uppercase">No bookings found in this category.</span>
           </div>
         ) : (
           <div className="space-y-4">
             {bookings.map((booking) => (
-              <div key={booking._id} className="transit-panel p-6 border-l-4 border-l-[var(--color-transit-accent)] space-y-4 transit-panel-hover">
-                <div className="flex justify-between items-start border-b border-[var(--color-transit-border)] pb-4">
+              <div key={booking._id} className="glass-panel p-6 border-l-4 border-l-[var(--primary-base)] space-y-4 hover:-translate-y-1 transition-all duration-300">
+                <div className="flex justify-between items-start border-b border-[var(--border-subtle)] pb-4">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[10px] font-bold text-[var(--color-transit-muted)] uppercase tracking-widest border border-[var(--color-transit-border)] px-2 py-0.5 rounded-sm bg-[var(--color-transit-bg)]">
+                      <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest border border-[var(--border-subtle)] px-2 py-0.5 rounded-sm bg-[var(--bg-surface)]">
                         TKT-{booking._id.slice(-6).toUpperCase()}
                       </span>
                     </div>
-                    <h3 className="text-xl font-bold text-white font-['Space_Grotesk'] uppercase tracking-widest">
-                      {booking.ride?.source} <span className="text-[var(--color-transit-muted)] mx-1">→</span> {booking.ride?.destination}
+                    <h3 className="text-xl font-bold text-[var(--text-primary)] tracking-wide">
+                      {booking.ride?.source} <span className="text-[var(--text-secondary)] mx-1">→</span> {booking.ride?.destination}
                     </h3>
-                    <p className="text-[10px] text-[var(--color-transit-accent)] font-bold tracking-widest uppercase mt-2">
-                      DEP: {new Date(booking.ride?.departureTime).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}
+                    <p className="text-[10px] text-[var(--primary-base)] font-bold tracking-widest uppercase mt-2">
+                      DEP: {booking.ride?.journeyDate ? `${new Date(booking.ride.journeyDate).toLocaleDateString('en-US', { dateStyle: 'short' })} ${booking.ride.journeyTime}` : booking.ride?.departureTime ? new Date(booking.ride.departureTime).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }) : 'TBD'}
                     </p>
                   </div>
                   <div className="text-right">
                     <span className={`px-2 py-0.5 text-[10px] font-bold rounded-sm uppercase tracking-widest border ${
-                      booking.bookingStatus === 'confirmed' ? 'bg-[var(--color-transit-bg)] text-white border-[var(--color-transit-accent)]' :
-                      booking.bookingStatus === 'pending' ? 'bg-[var(--color-transit-bg)] text-amber-400 border-amber-500/50' :
-                      booking.bookingStatus === 'waitlisted' ? 'bg-[var(--color-transit-bg)] text-violet-400 border-violet-500/50' :
-                      'bg-[var(--color-transit-bg)] text-[var(--color-transit-alert)] border-[var(--color-transit-alert)]/50'
+                      booking.bookingStatus === 'confirmed' ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border-[var(--primary-base)]' :
+                      booking.bookingStatus === 'pending' ? 'bg-[var(--bg-surface)] text-amber-400 border-amber-500/50' :
+                      booking.bookingStatus === 'waitlisted' ? 'bg-[var(--bg-surface)] text-violet-400 border-violet-500/50' :
+                      'bg-[var(--bg-surface)] text-red-500 border-red-500/50'
                     }`}>
                       {booking.bookingStatus}
                     </span>
-                    <p className="text-xs text-[var(--color-transit-text)] font-['Space_Grotesk'] font-bold mt-2 text-right">₹{booking.bookingAmount} / {booking.seatsBooked} PAX</p>
+                    <p className="text-xs text-[var(--text-secondary)] font-bold mt-2 text-right">₹{booking.bookingAmount} / {booking.seatsBooked} PAX</p>
                   </div>
                 </div>
 
                 <div className="pt-2 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   {roleMode === 'passenger' ? (
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[var(--color-transit-bg)] border border-[var(--color-transit-border)] rounded-sm flex items-center justify-center text-[10px] font-bold text-white uppercase">
+                      <div className="w-8 h-8 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm flex items-center justify-center text-[10px] font-bold text-white uppercase">
                         {booking.ride?.driver?.firstName?.[0]}{booking.ride?.driver?.lastName?.[0]}
                       </div>
                       <div>
-                        <p className="text-white font-bold text-[10px] uppercase tracking-widest">Rider: {booking.ride?.driver?.firstName} {booking.ride?.driver?.lastName}</p>
-                        <p className="text-[10px] text-[var(--color-transit-muted)]">COMMS: {booking.ride?.driver?.phone || 'N/A'}</p>
+                        <p className="text-[var(--text-primary)] font-bold text-[10px] uppercase tracking-widest">Rider: {booking.ride?.driver?.firstName} {booking.ride?.driver?.lastName}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">COMMS: {booking.ride?.driver?.phone || 'N/A'}</p>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[var(--color-transit-bg)] border border-[var(--color-transit-border)] rounded-sm flex items-center justify-center text-[10px] font-bold text-white uppercase">
+                      <div className="w-8 h-8 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm flex items-center justify-center text-[10px] font-bold text-white uppercase">
                         {booking.passenger?.firstName?.[0]}{booking.passenger?.lastName?.[0]}
                       </div>
                       <div>
-                        <p className="text-white font-bold text-[10px] flex items-center gap-2 uppercase tracking-widest">
+                        <p className="text-[var(--text-primary)] font-bold text-[10px] flex items-center gap-2 uppercase tracking-widest">
                           Co-Rider: {booking.passenger?.firstName} {booking.passenger?.lastName}
                         </p>
-                        <p className="text-[10px] text-[var(--color-transit-muted)] mb-1 uppercase">LOC: {booking.pickupLocation?.address}</p>
+                        <p className="text-[10px] text-[var(--text-muted)] mb-1 uppercase">LOC: {booking.pickupLocation?.address}</p>
                         
                         {/* Cancellation Metrics */}
                         {booking.bookingStatus === 'pending' && (
@@ -351,7 +351,7 @@ const Bookings = () => {
                     const depTime = new Date(booking.ride?.departureTime);
                     const hoursLeft = (depTime - new Date()) / (1000 * 60 * 60);
                     if (hoursLeft < 6 && hoursLeft > 0 && booking.bookingStatus !== 'cancelled') {
-                      return <span className="text-[10px] font-bold text-[var(--color-transit-alert)] uppercase tracking-widest border border-[var(--color-transit-alert)]/50 px-2 py-0.5 rounded-sm">⚠ &lt;6H — CANCEL WINDOW CLOSED</span>;
+                      return <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest border border-red-500/50 px-2 py-0.5 rounded-sm">⚠ &lt;6H — CANCEL WINDOW CLOSED</span>;
                     }
                     if (hoursLeft < 12 && hoursLeft > 0 && booking.bookingStatus !== 'cancelled') {
                       return <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest border border-amber-500/50 px-2 py-0.5 rounded-sm">⚠ &lt;12H TO DEP — CANNOT CANCEL</span>;
@@ -371,7 +371,7 @@ const Bookings = () => {
                             onClick={() => handleCancelBooking(booking._id)}
                             disabled={!canCancel}
                             title={!canCancel ? 'Cannot cancel within 12h of departure' : ''}
-                            className="transit-button-secondary border-[var(--color-transit-alert)] text-[var(--color-transit-alert)] hover:bg-[var(--color-transit-alert)]/10 px-3 py-1.5 text-[10px] disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="btn-secondary border-red-500 text-red-500 hover:bg-red-500/10 px-3 py-1.5 text-[10px] disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             Cancel {booking.bookingStatus === 'pending' ? 'Request' : 'Booking'}
                           </button>
@@ -384,13 +384,13 @@ const Bookings = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
-                          className="transit-button-primary px-3 py-1.5 text-[10px]"
+                          className="btn-primary px-3 py-1.5 text-[10px]"
                         >
                           Accept
                         </button>
                         <button
                           onClick={() => handleStatusUpdate(booking._id, 'rejected')}
-                          className="transit-button-secondary border-[var(--color-transit-alert)] text-[var(--color-transit-alert)] hover:bg-[var(--color-transit-alert)]/10 px-3 py-1.5 text-[10px]"
+                          className="btn-secondary border-red-500 text-red-500 hover:bg-red-500/10 px-3 py-1.5 text-[10px]"
                         >
                           Reject
                         </button>
@@ -407,7 +407,7 @@ const Bookings = () => {
                             bookingId: booking._id,
                             driverName: `${booking.ride?.driver?.firstName || ''} ${booking.ride?.driver?.lastName || ''}`.trim() || 'Rider',
                           })}
-                          className="transit-button-primary bg-amber-400 hover:bg-amber-300 text-black px-3 py-1.5 text-[10px]"
+                          className="btn-primary bg-amber-400 hover:bg-amber-300 text-black px-3 py-1.5 text-[10px]"
                         >
                           ⭐ Rate Rider
                         </button>
@@ -423,29 +423,29 @@ const Bookings = () => {
 
                 {/* Pickup Impact Analysis (Driver Incoming requests only) */}
                 {roleMode === 'driver' && booking.bookingStatus === 'pending' && (
-                  <div className="border-t border-[var(--color-transit-border)] pt-4 mt-2">
-                    <h4 className="text-[10px] font-bold text-[var(--color-transit-muted)] mb-3 flex items-center gap-1.5 uppercase tracking-widest">
+                  <div className="border-t border-[var(--border-subtle)] pt-4 mt-2">
+                    <h4 className="text-[10px] font-bold text-[var(--text-secondary)] mb-3 flex items-center gap-1.5 uppercase tracking-widest">
                       <span>⚡</span> Pickup Impact Analysis
                     </h4>
 
                     {impactLoading[booking._id] ? (
-                      <p className="text-[10px] uppercase font-bold text-[var(--color-transit-muted)] animate-pulse tracking-widest">Calculating optimal detour impact...</p>
+                      <p className="text-[10px] uppercase font-bold text-[var(--text-muted)] animate-pulse tracking-widest">Calculating optimal detour impact...</p>
                     ) : impacts[booking._id] ? (
-                      <div className="grid grid-cols-3 gap-4 bg-[var(--color-transit-bg)] p-4 rounded-sm border border-[var(--color-transit-border)] text-xs">
+                      <div className="grid grid-cols-3 gap-4 bg-[var(--bg-surface)] p-4 rounded-sm border border-[var(--border-subtle)] text-xs">
                         <div className="space-y-1">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-transit-muted)]">Original Route</p>
-                          <p className="text-white font-['Space_Grotesk'] font-bold text-sm tracking-wide">{impacts[booking._id].origDist} km</p>
-                          <p className="text-[var(--color-transit-muted)] font-['Space_Grotesk'] font-bold text-xs">{impacts[booking._id].origDur} min</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Original Route</p>
+                          <p className="text-[var(--text-primary)] font-bold text-sm tracking-wide">{impacts[booking._id].origDist} km</p>
+                          <p className="text-[var(--text-secondary)] font-bold text-xs">{impacts[booking._id].origDur} min</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-transit-muted)]">With Detour</p>
-                          <p className="text-[var(--color-transit-accent)] font-['Space_Grotesk'] font-bold text-sm tracking-wide">{impacts[booking._id].newDist} km</p>
-                          <p className="text-[var(--color-transit-accent)] font-['Space_Grotesk'] font-bold text-xs">{impacts[booking._id].newDur} min</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">With Detour</p>
+                          <p className="text-[var(--primary-base)] font-bold text-sm tracking-wide">{impacts[booking._id].newDist} km</p>
+                          <p className="text-[var(--primary-base)] font-bold text-xs">{impacts[booking._id].newDur} min</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-transit-muted)]">Net Overhead</p>
-                          <p className="text-[#3B82F6] font-['Space_Grotesk'] font-bold text-sm tracking-wide">+{impacts[booking._id].extraDist} km</p>
-                          <p className="text-[#3B82F6] font-['Space_Grotesk'] font-bold text-xs">+{impacts[booking._id].extraDur} min</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Net Overhead</p>
+                          <p className="text-[#3B82F6] font-bold text-sm tracking-wide">+{impacts[booking._id].extraDist} km</p>
+                          <p className="text-[#3B82F6] font-bold text-xs">+{impacts[booking._id].extraDur} min</p>
                         </div>
                       </div>
                     ) : (
@@ -462,15 +462,15 @@ const Bookings = () => {
                 <button
                   disabled={page === 1}
                   onClick={() => setPage(p => Math.max(1, p - 1))}
-                  className="transit-button-secondary px-3 py-1.5 text-[10px] disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="btn-secondary px-3 py-1.5 text-[10px] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
-                <span className="text-[10px] text-[var(--color-transit-muted)] uppercase tracking-widest font-bold">Page {page} of {totalPages}</span>
+                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-bold">Page {page} of {totalPages}</span>
                 <button
                   disabled={page === totalPages}
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  className="transit-button-secondary px-3 py-1.5 text-[10px] disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="btn-secondary px-3 py-1.5 text-[10px] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>

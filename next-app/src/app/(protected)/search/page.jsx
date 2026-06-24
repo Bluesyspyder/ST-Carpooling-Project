@@ -50,20 +50,21 @@ const SearchRide = () => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
-  const inputClass = "transit-input block w-full px-4 py-2.5 text-sm";
+  const inputClass = "form-input block w-full px-4 py-2.5 text-sm";
 
   return (
     <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-[1500px] mx-auto space-y-8">
-        <div>
-          <p className="text-[var(--color-transit-muted)] font-bold uppercase tracking-widest text-[10px] mb-2">SYS. MSG // SEARCH</p>
-          <h2 className="text-3xl font-['Space_Grotesk'] font-bold text-white uppercase tracking-widest mb-8">
-            Search Rides
+        <div className="glass-panel p-6 sm:p-8 rounded-[2rem] shadow-2xl relative overflow-hidden mb-8 border-none bg-gradient-to-br from-[var(--bg-surface)] to-[var(--bg-base)]">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--primary-base)] to-[var(--secondary-base)]"></div>
+          <p className="text-[var(--primary-base)] font-bold uppercase tracking-widest text-[10px] mb-1">Search Module</p>
+          <h2 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">
+            Find a Ride
           </h2>
         </div>
 
         {/* Search filter form */}
-        <div className="transit-panel p-6 relative z-20">
+        <div className="glass-panel p-6 relative z-20 shadow-2xl rounded-3xl mb-8">
           <form className="space-y-4" onSubmit={handleSearch}>
             <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
               <div>
@@ -117,7 +118,7 @@ const SearchRide = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="transit-button-primary w-full flex justify-center py-2.5 px-4 disabled:opacity-50"
+                className="btn-primary w-full flex justify-center py-2.5 px-4 disabled:opacity-50"
               >
                 {loading ? 'SEARCHING...' : 'SEARCH'}
               </button>
@@ -128,19 +129,22 @@ const SearchRide = () => {
         {/* Results grid */}
         <div className="space-y-4 relative z-10">
           {loading ? (
-            <div className="text-center py-12 text-[var(--color-transit-muted)] transit-panel uppercase tracking-widest font-bold">
-              <div className="w-5 h-5 border-2 border-[var(--color-transit-accent)] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="text-center py-12 text-[var(--text-secondary)] glass-panel font-bold">
+              <div className="w-5 h-5 border-2 border-[var(--primary-base)] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
               Scanning transit grids...
             </div>
           ) : error ? (
-            <div className="text-center py-12 text-[var(--color-transit-alert)] transit-panel border-[var(--color-transit-alert)]/50 uppercase tracking-widest font-bold">
+            <div className="text-center py-12 text-red-500 glass-panel border-red-500/50 uppercase tracking-widest font-bold">
               ⚠ Unable to fetch telemetry. Connection failure.
             </div>
           ) : rides.length > 0 ? (
             <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {rides.map((ride) => (
-                <div key={ride._id} className="transit-panel p-6 border-l-4 border-l-[var(--color-transit-accent)] flex flex-col justify-between transit-panel-hover">
-                  <div>
+                <div key={ride._id} className="glass-panel p-6 rounded-3xl border border-[var(--border-subtle)] shadow-xl flex flex-col justify-between hover:-translate-y-2 transition-all duration-300 bg-[var(--bg-surface)]/80 backdrop-blur-xl relative overflow-hidden">
+                  {/* Decorative accent */}
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--primary-base)]/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                  
+                  <div className="relative z-10">
                     {/* Header: Driver + Status */}
                     <div className="flex justify-between items-start mb-5">
                       <div className="flex items-center gap-3">
@@ -155,14 +159,14 @@ const SearchRide = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="px-2 py-0.5 text-[10px] font-bold tracking-widest bg-[var(--color-transit-bg)] text-white border border-[var(--color-transit-accent)] rounded-sm uppercase">
+                        <span className="px-2 py-0.5 text-[10px] font-bold tracking-widest bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] rounded-sm uppercase">
                           {ride.rideStatus}
                         </span>
                       </div>
                     </div>
 
                     {/* Time & Vehicle */}
-                    <div className="grid grid-cols-2 gap-4 mb-5 p-3 rounded-sm bg-[var(--color-transit-bg)] border border-[var(--color-transit-border)]">
+                    <div className="grid grid-cols-2 gap-4 mb-5 p-3 rounded-sm bg-[var(--bg-surface)] border border-[var(--border-subtle)]">
                       <div>
                         <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-0.5">Journey Time</p>
                         <p className="text-sm text-slate-200 font-bold">{new Date(ride.journeyDate).toLocaleDateString()} at {ride.journeyTime}</p>
@@ -200,16 +204,16 @@ const SearchRide = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="pt-4 border-t border-[var(--color-transit-border)] flex items-center justify-between mt-4">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-transit-muted)] flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between mt-4 relative z-10">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] flex items-center gap-1.5 bg-[var(--bg-base)] px-3 py-1 rounded-full">
+                      <svg className="w-4 h-4 text-[var(--primary-base)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       {ride.routeDistance ? `${ride.routeDistance.toFixed(1)} KM` : 'ROUTE N/A'}
                     </p>
                     <Link
                       href={`/ride-details?id=${ride._id}`}
-                      className="transit-button-secondary px-4 py-1.5 text-[10px]"
+                      className="btn-primary px-5 py-2 text-xs rounded-full shadow-lg shadow-[var(--primary-base)]/20 hover:shadow-[var(--primary-base)]/40"
                     >
                       DETAILS →
                     </Link>
@@ -218,9 +222,9 @@ const SearchRide = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-16 text-[var(--color-transit-muted)] transit-panel flex flex-col items-center">
+            <div className="text-center py-16 text-[var(--text-secondary)] glass-panel flex flex-col items-center shadow-md shadow-[var(--border-glow)]">
               <span className="text-4xl mb-3 opacity-50">📡</span>
-              <p className="text-sm font-['Space_Grotesk'] font-bold uppercase tracking-widest text-white">No active telemetry found</p>
+              <p className="text-sm font-bold uppercase tracking-widest text-[var(--text-primary)]">No active telemetry found</p>
               <p className="text-[10px] mt-1 max-w-md uppercase tracking-wider font-bold">Adjust sensors or check back later.</p>
             </div>
           )}

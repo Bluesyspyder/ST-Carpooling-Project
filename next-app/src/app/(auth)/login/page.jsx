@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 
 import { useAuth } from '@/hooks/useAuth';
 
@@ -33,31 +34,47 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <p className="text-[var(--color-transit-muted)] font-bold uppercase tracking-widest text-[10px] mb-2 text-center">SYS. MSG // AUTHENTICATION</p>
-        <h2 className="mt-2 text-center text-3xl font-['Space_Grotesk'] font-bold text-white uppercase tracking-widest">
+    <div className="min-h-[calc(100vh-73px)] relative py-12 px-4 sm:px-6 lg:px-8 flex flex-col justify-center overflow-hidden">
+      {/* Background elements */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--primary-base)]/5 blur-[120px] rounded-full pointer-events-none" />
+      
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="sm:mx-auto sm:w-full sm:max-w-md relative z-10"
+      >
+        <p className="text-[var(--primary-base)] font-bold uppercase tracking-widest text-[10px] mb-3 text-center">Authentication</p>
+        <h2 className="mt-2 text-center text-3xl font-bold text-[var(--text-primary)] tracking-tight">
           Welcome back
         </h2>
-        <p className="mt-2 text-center text-sm text-[var(--color-transit-muted)]">
+        <p className="mt-3 text-center text-sm text-[var(--text-secondary)] font-medium">
           Or{' '}
-          <Link href="/register" className="font-bold text-[var(--color-transit-accent)] hover:text-white transition-colors uppercase tracking-wide">
+          <Link href="/register" className="font-semibold text-[var(--primary-base)] hover:text-[var(--primary-hover)] transition-colors">
             register for a new account
           </Link>
         </p>
-      </div>
+      </motion.div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="transit-panel">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10"
+      >
+        <div className="glass-panel p-8 sm:p-10 shadow-xl shadow-[var(--border-glow)]">
           {error && (
-            <div className="mb-6 border border-red-500/50 bg-red-500/10 text-red-500 p-4 text-sm font-bold uppercase tracking-wide">
-              ⚠ {error}
+            <div className="mb-6 rounded-xl border border-red-500/50 bg-red-500/10 text-red-500 p-4 text-sm font-semibold flex items-center gap-2">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>{error}</span>
             </div>
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="block text-xs font-bold text-[var(--color-transit-muted)] uppercase tracking-widest mb-2">
+              <label htmlFor="email" className="block text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">
                 Email address
               </label>
               <input
@@ -67,15 +84,15 @@ const Login = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="transit-input"
-                placeholder="NAME@EXAMPLE.COM"
+                className="form-input"
+                placeholder="name@example.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-xs font-bold text-[var(--color-transit-muted)] uppercase tracking-widest mb-2 flex justify-between">
+              <label htmlFor="password" className="block text-xs font-semibold text-[var(--text-secondary)] mb-2 flex justify-between uppercase tracking-wider">
                 <span>Password</span>
-                <Link href="/forgot-password" className="text-[10px] text-[var(--color-transit-accent)] hover:text-white">
+                <Link href="/forgot-password" className="text-[10px] text-[var(--primary-base)] hover:text-[var(--primary-hover)] font-bold transition-colors">
                   FORGOT PASSWORD?
                 </Link>
               </label>
@@ -87,13 +104,13 @@ const Login = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="transit-input pr-10"
+                  className="form-input pr-10"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--color-transit-muted)] hover:text-white cursor-pointer"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                 >
                   {showPassword ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,18 +126,25 @@ const Login = () => {
               </div>
             </div>
 
-            <div>
+            <div className="pt-2">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-[var(--color-transit-accent)] text-black font-bold uppercase tracking-widest py-3 hover:bg-white transition-colors disabled:opacity-50"
+                className="btn-primary w-full py-3.5 text-sm"
               >
-                {isSubmitting ? 'SIGNING IN...' : 'SIGN IN'}
+                {isSubmitting ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Signing in...</span>
+                  </div>
+                ) : (
+                  'Sign In'
+                )}
               </button>
             </div>
           </form>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

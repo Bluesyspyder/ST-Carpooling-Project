@@ -184,13 +184,12 @@ const AddressAutocomplete = ({
   return (
     <div ref={wrapperRef} className="relative w-full">
       {label && (
-        <label className="block text-sm font-medium text-slate-300 mb-1">{label}</label>
+        <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1">{label}</label>
       )}
 
       {/* Input */}
       <div className="relative">
-        {/* Search icon */}
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -205,23 +204,22 @@ const AddressAutocomplete = ({
           placeholder={placeholder}
           disabled={disabled || gpsLoading}
           autoComplete="off"
-          className={`w-full bg-slate-800/60 border rounded-lg pl-10 pr-10 py-3 text-white placeholder-slate-500
-            focus:outline-none focus:ring-1 transition-all disabled:opacity-50 text-sm
+          className={`form-input pl-10 pr-10 py-3 text-sm placeholder-[var(--text-muted)]
             ${selected
-              ? 'border-emerald-500/60 focus:border-emerald-500 focus:ring-emerald-500/30'
-              : 'border-slate-600/50 focus:border-violet-500 focus:ring-violet-500/30'
+              ? 'border-[var(--primary-base)] focus:border-[var(--primary-base)] focus:ring-[var(--border-glow)]'
+              : 'focus:border-[var(--primary-base)] focus:ring-[var(--border-glow)]'
             }`}
         />
 
         {/* Right side: spinner or clear button */}
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
           {(loading || gpsLoading) ? (
-            <div className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-[var(--primary-base)] border-t-transparent rounded-full animate-spin" />
           ) : showClear ? (
             <button
               type="button"
               onClick={handleClear}
-              className="text-slate-500 hover:text-slate-200 transition-colors p-0.5 rounded"
+              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors p-0.5 rounded"
               tabIndex={-1}
               aria-label="Clear"
             >
@@ -230,7 +228,7 @@ const AddressAutocomplete = ({
               </svg>
             </button>
           ) : selected ? (
-            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[var(--primary-base)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
             </svg>
           ) : null}
@@ -239,35 +237,35 @@ const AddressAutocomplete = ({
 
       {/* GPS error */}
       {gpsError && (
-        <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
+        <p className="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">
           <span>⚠</span> {gpsError}
         </p>
       )}
 
       {/* Dropdown */}
       {dropdownVisible && (
-        <ul className="absolute z-[9999] w-full mt-1 bg-slate-800 border border-slate-600/50 rounded-xl shadow-2xl max-h-72 overflow-y-auto">
+        <ul className="absolute z-[9999] w-full mt-2 glass-panel max-h-72 overflow-y-auto overflow-hidden divide-y divide-[var(--border-subtle)]">
           {/* GPS option */}
           {showCurrentLocation && (
             <li
               onMouseDown={(e) => { e.preventDefault(); handleCurrentLocation(); }}
-              className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors border-b border-slate-700/50
+              className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors
                 ${activeIndex === suggestions.length
-                  ? 'bg-violet-600/20 text-violet-300'
-                  : 'text-slate-300 hover:bg-slate-700/50'}`}
+                  ? 'bg-[var(--primary-base)]/10 text-[var(--primary-base)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]'}`}
             >
               <span className="text-lg flex-shrink-0">📍</span>
               <div>
                 <p className="text-sm font-medium">Use Current Location</p>
-                <p className="text-xs text-slate-500">GPS-based · needs browser permission</p>
+                <p className="text-xs text-[var(--text-muted)]">GPS-based · needs browser permission</p>
               </div>
             </li>
           )}
 
           {/* Loading skeleton */}
           {loading && suggestions.length === 0 && (
-            <li className="px-4 py-3 text-slate-400 text-sm flex items-center gap-2">
-              <div className="w-3.5 h-3.5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+            <li className="px-4 py-3 text-[var(--text-muted)] text-sm flex items-center gap-2">
+              <div className="w-3.5 h-3.5 border-2 border-[var(--primary-base)] border-t-transparent rounded-full animate-spin" />
               Searching…
             </li>
           )}
@@ -277,15 +275,15 @@ const AddressAutocomplete = ({
             <li
               key={`saved-${s._id || i}`}
               onMouseDown={(e) => { e.preventDefault(); handleSelect({ address: s.address, latitude: s.latitude, longitude: s.longitude }); }}
-              className={`flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors border-b border-slate-700/30
-                ${(activeIndex === suggestions.length + (showCurrentLocation ? 1 : 0) + i) // simplified focus state handling
-                  ? 'bg-emerald-600/20 text-emerald-300'
-                  : 'text-slate-200 hover:bg-slate-700/50'}`}
+              className={`flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors
+                ${(activeIndex === suggestions.length + (showCurrentLocation ? 1 : 0) + i)
+                  ? 'bg-[var(--secondary-base)]/10 text-[var(--secondary-base)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]'}`}
             >
-              <span className="text-slate-500 mt-0.5 text-sm flex-shrink-0">{s.icon || '⭐'}</span>
+              <span className="text-[var(--text-muted)] mt-0.5 text-sm flex-shrink-0">{s.icon || '⭐'}</span>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-emerald-400 leading-snug">{s.label}</p>
-                <p className="text-xs text-slate-400 mt-0.5 truncate">{s.address}</p>
+                <p className="text-sm font-bold text-[var(--secondary-base)] leading-snug">{s.label}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">{s.address}</p>
               </div>
             </li>
           ))}
@@ -296,21 +294,20 @@ const AddressAutocomplete = ({
               key={s.providerPlaceId || i}
               onMouseDown={(e) => { e.preventDefault(); handleSelect(s); }}
               className={`flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors
-                ${i < suggestions.length - 1 ? 'border-b border-slate-700/30' : ''}
                 ${i === activeIndex
-                  ? 'bg-violet-600/20 text-violet-300'
-                  : 'text-slate-200 hover:bg-slate-700/50'}`}
+                  ? 'bg-[var(--primary-base)]/10 text-[var(--primary-base)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]'}`}
             >
-              <span className="text-slate-500 mt-0.5 text-sm flex-shrink-0">📌</span>
+              <span className="text-[var(--text-muted)] mt-0.5 text-sm flex-shrink-0">📌</span>
               <div className="min-w-0">
                 <p className="text-sm leading-snug">{s.address}</p>
 
                 {s.distance && Number.isFinite(s.distance) && (
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-[var(--text-muted)] mt-1">
                     {s.distance.toFixed(1)} km away
                   </p>
                 )}                {s.provider && (
-                  <p className="text-xs text-slate-500 mt-0.5">{s.provider}</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">{s.provider}</p>
                 )}
               </div>
             </li>
@@ -318,7 +315,7 @@ const AddressAutocomplete = ({
 
           {/* No results */}
           {!loading && suggestions.length === 0 && matchingSaved.length === 0 && !showCurrentLocation && inputText.length >= 2 && (
-            <li className="px-4 py-3 text-slate-400 text-sm text-center">
+            <li className="px-4 py-4 text-[var(--text-muted)] text-sm text-center">
               No results found
             </li>
           )}

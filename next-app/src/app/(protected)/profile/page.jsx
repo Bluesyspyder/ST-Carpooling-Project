@@ -33,9 +33,9 @@ const timeAgo = (date) => {
 
 const EditField = ({ label, value, onChange, type = 'text', readOnly = false, maxLength }) => (
   <div className="space-y-1">
-    <label className="text-[var(--color-transit-muted)] text-[10px] font-bold uppercase tracking-widest">{label}</label>
+    <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest">{label}</label>
     {readOnly ? (
-      <p className="text-white font-['Space_Grotesk'] text-sm font-bold bg-[var(--color-transit-bg)] border border-[var(--color-transit-border)] rounded-sm px-3 py-2.5 select-all">
+      <p className="text-[var(--text-primary)] text-sm font-bold bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm px-3 py-2.5 select-all">
         {value || '—'}
       </p>
     ) : (
@@ -44,7 +44,7 @@ const EditField = ({ label, value, onChange, type = 'text', readOnly = false, ma
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         maxLength={maxLength}
-        className="transit-input w-full px-3 py-2.5 text-sm"
+        className="form-input w-full px-3 py-2.5 text-sm"
       />
     )}
   </div>
@@ -292,9 +292,9 @@ const Profile = () => {
   return (
     <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-[1400px] mx-auto">
-        <h2 className="text-3xl font-['Space_Grotesk'] font-bold text-white uppercase tracking-widest mb-8">User Profile</h2>
+        <h2 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight mb-8">User Profile</h2>
 
-        <div className="transit-panel p-6 sm:p-10 space-y-8">
+        <div className="glass-panel p-6 sm:p-10 space-y-8 shadow-sm shadow-[var(--border-glow)]">
 
           {/* ── Profile Photo ── */}
           <div className="flex flex-col items-center pb-6 border-b border-slate-800">
@@ -317,8 +317,8 @@ const Profile = () => {
               <input ref={profileInputRef} type="file" accept="image/*" onChange={handleProfilePhotoChange} className="hidden" />
             </div>
             <div className="text-center mt-4">
-              <h3 className="text-2xl font-['Space_Grotesk'] font-bold tracking-widest uppercase text-white">{user.firstName} {user.lastName}</h3>
-              <p className="text-[var(--color-transit-accent)] font-bold tracking-widest text-[10px] uppercase mt-1">
+              <h3 className="text-2xl font-bold tracking-widest uppercase text-[var(--text-primary)]">{user.firstName} {user.lastName}</h3>
+              <p className="text-[var(--primary-base)] font-bold tracking-widest text-[10px] uppercase mt-1">
                 {user.role === 'hybrid' ? 'Car Owner' : 'Passenger'} Account
               </p>
               {isUploadingProfile && (
@@ -330,14 +330,14 @@ const Profile = () => {
           {/* ════ PERSONAL INFO SECTION ════ */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold font-['Space_Grotesk'] text-white uppercase tracking-widest flex items-center gap-2">
+              <h3 className="text-lg font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2">
                 <span>👤</span> Personal Information
               </h3>
               {!editMode ? (
                 <button
                   id="edit-profile-btn"
                   onClick={handleStartEdit}
-                  className="transit-button-secondary px-4 py-1.5 text-[10px]"
+                  className="btn-secondary px-4 py-1.5 text-[10px]"
                 >
                   ✏️ EDIT DETAILS
                 </button>
@@ -345,7 +345,7 @@ const Profile = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setEditMode(false)}
-                    className="transit-button-secondary px-4 py-1.5 text-[10px]"
+                    className="btn-secondary px-4 py-1.5 text-[10px]"
                   >
                     CANCEL
                   </button>
@@ -353,7 +353,7 @@ const Profile = () => {
                     id="save-profile-btn"
                     onClick={handleSaveProfile}
                     disabled={saving}
-                    className="transit-button-primary px-4 py-1.5 text-[10px] disabled:opacity-50"
+                    className="btn-primary px-4 py-1.5 text-[10px] disabled:opacity-50"
                   >
                     {saving ? 'SAVING...' : '✓ SAVE CHANGES'}
                   </button>
@@ -362,12 +362,12 @@ const Profile = () => {
             </div>
 
             {saveError && (
-              <div className="bg-[var(--color-transit-bg)] border border-[var(--color-transit-alert)] text-[var(--color-transit-alert)] text-[10px] rounded-sm px-4 py-2.5 font-bold uppercase tracking-widest">
+              <div className="bg-[var(--bg-surface)] border border-red-500 text-red-500 text-[10px] rounded-sm px-4 py-2.5 font-bold uppercase tracking-widest">
                 {saveError}
               </div>
             )}
             {saveSuccess && (
-              <div className="bg-[var(--color-transit-bg)] border border-[var(--color-transit-accent)] text-[var(--color-transit-accent)] text-[10px] rounded-sm px-4 py-2.5 font-bold uppercase tracking-widest">
+              <div className="bg-[var(--bg-surface)] border border-[var(--primary-base)] text-[var(--primary-base)] text-[10px] rounded-sm px-4 py-2.5 font-bold uppercase tracking-widest">
                 ✓ Profile updated successfully!
               </div>
             )}
@@ -381,13 +381,13 @@ const Profile = () => {
                 <EditField label="Emergency Contact" value={editForm.emergencyContact} onChange={(v) => setEditForm(f => ({ ...f, emergencyContact: v }))} type="tel" />
                 <EditField label="Email (read-only)" value={user.email} readOnly />
                 <div className="sm:col-span-2 xl:col-span-3 space-y-1">
-                  <label className="text-[var(--color-transit-muted)] text-[10px] font-bold uppercase tracking-widest">Bio <span className="opacity-70 normal-case">(max 300 chars)</span></label>
+                  <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest">Bio <span className="opacity-70 normal-case">(max 300 chars)</span></label>
                   <textarea
                     value={editForm.bio}
                     onChange={(e) => setEditForm(f => ({ ...f, bio: e.target.value }))}
                     maxLength={300}
                     rows={3}
-                    className="transit-input w-full px-3 py-2.5 text-sm resize-none"
+                    className="form-input w-full px-3 py-2.5 text-sm resize-none"
                     placeholder="Tell others about yourself…"
                   />
                   <p className="text-right text-[10px] text-slate-600">{(editForm.bio || '').length}/300</p>
@@ -402,12 +402,12 @@ const Profile = () => {
                   { label: 'Member Since', value: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' },
                 ].map(({ label, value }) => (
                   <div key={label} className="space-y-1">
-                    <p className="text-[var(--color-transit-muted)] font-bold text-[10px] uppercase tracking-widest">{label}</p>
-                    <p className="text-white text-sm font-['Space_Grotesk'] font-bold tracking-wider">{value}</p>
+                    <p className="text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-widest">{label}</p>
+                    <p className="text-[var(--text-primary)] text-sm font-bold tracking-wider">{value}</p>
                   </div>
                 ))}
                 <div className="space-y-1">
-                  <p className="text-[var(--color-transit-muted)] font-bold text-[10px] uppercase tracking-widest">Average Rating</p>
+                  <p className="text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-widest">Average Rating</p>
                   <div className="flex items-center gap-1.5 text-amber-400 font-bold text-sm">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -417,8 +417,8 @@ const Profile = () => {
                 </div>
                 {user.emergencyContact && (
                   <div className="space-y-1">
-                    <p className="text-[var(--color-transit-muted)] font-bold text-[10px] uppercase tracking-widest">Emergency Contact</p>
-                    <p className="text-white text-sm font-['Space_Grotesk'] font-bold tracking-wider">{user.emergencyContact}</p>
+                    <p className="text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-widest">Emergency Contact</p>
+                    <p className="text-[var(--text-primary)] text-sm font-bold tracking-wider">{user.emergencyContact}</p>
                   </div>
                 )}
               </div>
@@ -426,8 +426,8 @@ const Profile = () => {
 
             {!editMode && user.bio && (
               <div className="pt-2 space-y-1">
-                <p className="text-[var(--color-transit-muted)] font-bold text-[10px] uppercase tracking-widest">Bio</p>
-                <p className="text-white text-sm bg-[var(--color-transit-bg)] p-3 rounded-sm border border-[var(--color-transit-border)] italic">"{user.bio}"</p>
+                <p className="text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-widest">Bio</p>
+                <p className="text-[var(--text-primary)] text-sm bg-[var(--bg-surface)] p-3 rounded-sm border border-[var(--border-subtle)] italic">"{user.bio}"</p>
               </div>
             )}
           </div>
@@ -436,15 +436,15 @@ const Profile = () => {
           {user.role === 'hybrid' && (
             <div className="pt-6 border-t border-slate-800 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold font-['Space_Grotesk'] text-white uppercase tracking-widest flex items-center gap-2">
+                <h3 className="text-lg font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2">
                   <span>🏠</span> Home Location
-                  <span className="text-[10px] text-[var(--color-transit-muted)] uppercase tracking-widest font-bold">(used for pickup analysis)</span>
+                  <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-bold">(used for pickup analysis)</span>
                 </h3>
                 {!homeLocEdit ? (
                   <button
                     id="edit-home-location-btn"
                     onClick={() => { setHomeLocEdit(true); setHomeLocError(''); }}
-                    className="transit-button-secondary px-4 py-1.5 text-[10px]"
+                    className="btn-secondary px-4 py-1.5 text-[10px]"
                   >
                     {user.homeLocation?.verified ? '✏️ CHANGE' : '+ SET LOCATION'}
                   </button>
@@ -452,7 +452,7 @@ const Profile = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setHomeLocEdit(false); setHomeLocError(''); }}
-                      className="transit-button-secondary px-4 py-1.5 text-[10px]"
+                      className="btn-secondary px-4 py-1.5 text-[10px]"
                     >
                       CANCEL
                     </button>
@@ -460,7 +460,7 @@ const Profile = () => {
                       id="save-home-location-btn"
                       onClick={handleSaveHomeLocation}
                       disabled={homeLocSaving || !homeLoc.latitude}
-                      className="transit-button-primary px-4 py-1.5 text-[10px] disabled:opacity-50"
+                      className="btn-primary px-4 py-1.5 text-[10px] disabled:opacity-50"
                     >
                       {homeLocSaving ? 'SAVING...' : '✓ CONFIRM & SAVE'}
                     </button>
@@ -469,38 +469,38 @@ const Profile = () => {
               </div>
 
               {homeLocError && (
-                <div className="bg-[var(--color-transit-bg)] border border-[var(--color-transit-alert)] text-[var(--color-transit-alert)] text-[10px] rounded-sm px-4 py-2.5 font-bold uppercase tracking-widest">
+                <div className="bg-[var(--bg-surface)] border border-red-500 text-red-500 text-[10px] rounded-sm px-4 py-2.5 font-bold uppercase tracking-widest">
                   {homeLocError}
                 </div>
               )}
 
               {!homeLocEdit ? (
                 user.homeLocation?.verified ? (
-                  <div className="bg-[var(--color-transit-bg)] border border-[var(--color-transit-border)] rounded-sm p-4 flex items-start gap-3">
+                  <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm p-4 flex items-start gap-3">
                     <span className="text-2xl">📍</span>
                     <div>
-                      <p className="text-white text-sm font-['Space_Grotesk'] font-bold tracking-wider">{user.homeLocation.address || 'Verified Location'}</p>
-                      <p className="text-[var(--color-transit-muted)] text-[10px] font-bold uppercase tracking-widest mt-0.5">
+                      <p className="text-[var(--text-primary)] text-sm font-bold tracking-wider">{user.homeLocation.address || 'Verified Location'}</p>
+                      <p className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest mt-0.5">
                         {user.homeLocation.latitude?.toFixed(5)}, {user.homeLocation.longitude?.toFixed(5)}
                       </p>
-                      <span className="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-bold bg-[var(--color-transit-bg)] text-white border border-[var(--color-transit-accent)] rounded-sm uppercase">
+                      <span className="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-bold bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--primary-base)] rounded-sm uppercase">
                         ✓ Verified
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-[var(--color-transit-bg)] border border-amber-500/50 rounded-sm p-4 text-[10px] uppercase tracking-widest font-bold text-amber-400">
+                  <div className="bg-[var(--bg-surface)] border border-amber-500/50 rounded-sm p-4 text-[10px] uppercase tracking-widest font-bold text-amber-400">
                     ⚠️ No home location set. Set your home address so drivers and the system can calculate pickup impact accurately.
                   </div>
                 )
               ) : (
-                <div className="space-y-4 bg-[var(--color-transit-bg)] border border-[var(--color-transit-border)] rounded-sm p-4">
+                <div className="space-y-4 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm p-4">
                   {/* GPS Button */}
                   <button
                     id="use-gps-btn"
                     onClick={handleUseGPS}
                     disabled={homeLocGPSLoading}
-                    className="transit-button-secondary flex items-center gap-2 px-4 py-2.5 disabled:opacity-50"
+                    className="btn-secondary flex items-center gap-2 px-4 py-2.5 disabled:opacity-50"
                   >
                     {homeLocGPSLoading ? (
                       <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -549,8 +549,8 @@ const Profile = () => {
           )}
 
           {/* ════ LOCATION MANAGEMENT SECTION ════ */}
-          <div className="pt-6 border-t border-[var(--color-transit-border)] space-y-8">
-            <h3 className="text-xl font-bold font-['Space_Grotesk'] text-white uppercase tracking-widest flex items-center gap-2">
+          <div className="pt-6 border-t border-[var(--border-subtle)] space-y-8">
+            <h3 className="text-xl font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2">
               <span>🗺️</span> Location Management
             </h3>
 
@@ -562,10 +562,10 @@ const Profile = () => {
                 { icon: '🔥', label: 'Frequent',   value: locationStats.frequent },
                 { icon: '🚗', label: 'Total Trips', value: locationStats.totalUses },
               ].map(({ icon, label, value }) => (
-                <div key={label} className="bg-[var(--color-transit-bg)] border border-[var(--color-transit-border)] rounded-sm p-4 text-center">
+                <div key={label} className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm p-4 text-center">
                   <div className="text-2xl mb-1">{icon}</div>
-                  <div className="text-2xl font-bold font-['Space_Grotesk'] tracking-widest text-white">{value}</div>
-                  <div className="text-[10px] uppercase font-bold text-[var(--color-transit-muted)] tracking-widest mt-0.5">{label}</div>
+                  <div className="text-2xl font-bold tracking-widest text-[var(--text-primary)]">{value}</div>
+                  <div className="text-[10px] uppercase font-bold text-[var(--text-secondary)] tracking-widest mt-0.5">{label}</div>
                 </div>
               ))}
             </div>
@@ -573,22 +573,22 @@ const Profile = () => {
             <SavedLocationsManager />
 
             {recentAddresses.length > 0 && (
-              <div className="bg-[var(--color-transit-bg)] border border-[var(--color-transit-border)] rounded-sm p-5">
-                <h4 className="text-white font-['Space_Grotesk'] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+              <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm p-5">
+                <h4 className="text-[var(--text-primary)] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
                   <span>🕐</span> Recently Used
                 </h4>
                 <div className="space-y-2">
                   {recentAddresses.slice(0, 10).map((addr, i) => (
-                    <div key={i} className="flex items-center justify-between bg-[var(--color-transit-bg)] border border-[var(--color-transit-border)] rounded-sm px-4 py-2.5">
+                    <div key={i} className="flex items-center justify-between bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm px-4 py-2.5">
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="text-slate-500 text-sm flex-shrink-0">📍</span>
-                        <p className="text-slate-200 text-sm truncate">{addr.address}</p>
+                        <p className="text-[var(--text-primary)] text-sm truncate">{addr.address}</p>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0 ml-3">
                         {addr.useCount > 1 && (
-                          <span className="text-xs text-slate-500">{addr.useCount}×</span>
+                          <span className="text-xs text-[var(--text-secondary)]">{addr.useCount}×</span>
                         )}
-                        <span className="text-slate-500 text-xs">{timeAgo(addr.lastUsedAt)}</span>
+                        <span className="text-[var(--text-secondary)] text-xs">{timeAgo(addr.lastUsedAt)}</span>
                       </div>
                     </div>
                   ))}
@@ -606,9 +606,9 @@ const Profile = () => {
 
           {/* ── Vehicles (hybrid only) ── */}
           {user.role === 'hybrid' && (
-            <div className="pt-6 border-t border-[var(--color-transit-border)] space-y-4">
-              <h4 className="text-lg font-bold font-['Space_Grotesk'] text-white uppercase tracking-widest flex items-center gap-2">
-                <svg className="w-5 h-5 text-[var(--color-transit-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="pt-6 border-t border-[var(--border-subtle)] space-y-4">
+              <h4 className="text-lg font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2">
+                <svg className="w-5 h-5 text-[var(--primary-base)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10M21 16v-3a4 4 0 00-4-4h-3v7m0 0l-3-3m3 3l3-3" />
                 </svg>
@@ -616,7 +616,7 @@ const Profile = () => {
               </h4>
               <div className="space-y-4">
                 {vehicles.length > 0 ? vehicles.map((vehicle) => (
-                  <div key={vehicle._id} className="border border-[var(--color-transit-border)] p-5 rounded-sm bg-[var(--color-transit-bg)]">
+                  <div key={vehicle._id} className="border border-[var(--border-subtle)] p-5 rounded-sm bg-[var(--bg-surface)]">
                     <div className="grid sm:grid-cols-2 gap-4 mb-4">
                       {[
                         { label: 'Vehicle Name',   value: vehicle.vehicleName },
@@ -626,15 +626,15 @@ const Profile = () => {
                         { label: 'Seats',          value: vehicle.seatCount },
                       ].map(({ label, value, mono, capitalize }) => (
                         <div key={label} className="space-y-1">
-                          <p className="text-[var(--color-transit-muted)] font-bold text-[10px] uppercase tracking-widest">{label}</p>
-                          <p className={`text-white text-base font-['Space_Grotesk'] font-bold ${mono ? 'tracking-wider' : ''} ${capitalize ? 'capitalize' : ''}`}>
+                          <p className="text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-widest">{label}</p>
+                          <p className={`text-[var(--text-primary)] text-base font-bold ${mono ? 'tracking-wider' : ''} ${capitalize ? 'capitalize' : ''}`}>
                             {value || 'N/A'}
                           </p>
                         </div>
                       ))}
                     </div>
-                    <div className="border-t border-[var(--color-transit-border)] pt-4">
-                      <p className="text-[var(--color-transit-muted)] font-bold text-[10px] uppercase tracking-widest mb-3">Vehicle Photo</p>
+                    <div className="border-t border-[var(--border-subtle)] pt-4">
+                      <p className="text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-widest mb-3">Vehicle Photo</p>
                       <div className="relative group">
                         {vehicle.vehicleImage ? (
                           <img src={vehicle.vehicleImage} alt={vehicle.vehicleName}
@@ -664,7 +664,7 @@ const Profile = () => {
                     </div>
                   </div>
                 )) : (
-                  <div className="bg-[var(--color-transit-bg)] border border-[var(--color-transit-border)] p-5 rounded-sm">
+                  <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] p-5 rounded-sm">
                     No vehicle details found.
                   </div>
                 )}
@@ -672,9 +672,9 @@ const Profile = () => {
             </div>
           )}
 
-          <div className="pt-6 border-t border-[var(--color-transit-border)] flex justify-end">
+          <div className="pt-6 border-t border-[var(--border-subtle)] flex justify-end">
             <button onClick={handleLogout}
-              className="transit-button-secondary border-[var(--color-transit-alert)] text-[var(--color-transit-alert)] hover:bg-[var(--color-transit-alert)]/10 px-5 py-2.5 text-[10px]">
+              className="btn-secondary border-red-500 text-red-500 hover:bg-red-500/10 px-5 py-2.5 text-[10px]">
               SIGN OUT
             </button>
           </div>
