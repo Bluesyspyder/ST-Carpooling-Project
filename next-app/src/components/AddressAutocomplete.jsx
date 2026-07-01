@@ -21,6 +21,24 @@ import useCurrentLocation from '@/hooks/useCurrentLocation';
  *   disabled            – bool
  *   showCurrentLocation – bool (adds GPS option in dropdown)
  */
+
+const calculateQualityScore = (address) => {
+  let score = 0;
+  const lower = String(address || '').toLowerCase();
+  
+  // Basic completeness
+  const parts = address.split(',').length;
+  if (parts > 3) score += 30;
+  else if (parts > 1) score += 10;
+
+  // Specific components that suggest quality
+  if (/\b\d{6}\b/.test(address)) score += 20; // Pincode
+  if (/\b(sector|phase|block|pocket|plot|flat|house|apartment|apt)\b/.test(lower)) score += 20;
+  if (/\b(noida|greater noida|delhi|gurugram|faridabad|ghaziabad)\b/.test(lower)) score += 10;
+  
+  return score;
+};
+
 const AddressAutocomplete = ({
   value = '',
   onChange,
@@ -34,6 +52,7 @@ const AddressAutocomplete = ({
   const [suggestions, setSuggestions] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [selected, setSelected] = useState(false); // true once user picks a suggestion
 
@@ -66,6 +85,7 @@ const AddressAutocomplete = ({
     setInputText(text);
     setSelected(false);
     setActiveIndex(-1);
+    setError(null);
 
     clearTimeout(debounceRef.current);
 
@@ -85,17 +105,35 @@ const AddressAutocomplete = ({
 
       debounceRef.current = setTimeout(async () => {
         setLoading(true);
+        setError(null);
 
         try {
           const results = await fetchAutocomplete(text);
           let list = results || [];
+
+          // Sort by completeness, then distance
+          list.sort((a, b) => {
+            const scoreA = calculateQualityScore(a.address);
+            const scoreB = calculateQualityScore(b.address);
+            
+            if (scoreA !== scoreB) {
+              return scoreB - scoreA; // Highest score first
+            }
+            
+            // If scores are equal, sort by distance if available
+            const distA = Number.isFinite(a.distance) ? a.distance : Infinity;
+            const distB = Number.isFinite(b.distance) ? b.distance : Infinity;
+            return distA - distB;
+          });
 
           cacheRef.current[cacheKey] = list;
           setSuggestions(list);
           setOpen(true);
         } catch (err) {
           console.error(err);
+          setError(err.message || 'Failed to fetch suggestions');
           setSuggestions([]);
+          setOpen(true);
         } finally {
           setLoading(false);
         }
@@ -178,7 +216,7 @@ const AddressAutocomplete = ({
     ? savedAddresses
     : savedAddresses.filter(a => a.address.toLowerCase().includes(inputText.toLowerCase()) || (a.label && a.label.toLowerCase().includes(inputText.toLowerCase())));
 
-  const dropdownVisible = open && (suggestions.length > 0 || loading || showCurrentLocation || matchingSaved.length > 0);
+  const dropdownVisible = open && (suggestions.length > 0 || loading || error || showCurrentLocation || matchingSaved.length > 0);
   const showClear = inputText.length > 0 && !loading && !gpsLoading;
 
   return (
@@ -263,10 +301,28 @@ const AddressAutocomplete = ({
           )}
 
           {/* Loading skeleton */}
-          {loading && suggestions.length === 0 && (
+          {loading && suggestions.length === 0 && !error && (
             <li className="px-4 py-3 text-[var(--text-muted)] text-sm flex items-center gap-2">
               <div className="w-3.5 h-3.5 border-2 border-[var(--primary-base)] border-t-transparent rounded-full animate-spin" />
               Searching…
+            </li>
+          )}
+
+          {/* Error / Retry */}
+          {error && !loading && (
+            <li className="px-4 py-3 flex flex-col items-center gap-2">
+              <span className="text-sm text-red-500">⚠ {error}</span>
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  // Re-trigger the input handler using the current text
+                  handleInput({ target: { value: inputText } });
+                }}
+                className="text-xs font-semibold bg-[var(--bg-surface)] border border-[var(--border-subtle)] px-4 py-1.5 rounded-lg text-[var(--text-primary)] hover:border-red-500 hover:text-red-500 transition-colors"
+              >
+                Retry
+              </button>
             </li>
           )}
 
@@ -314,7 +370,7 @@ const AddressAutocomplete = ({
           ))}
 
           {/* No results */}
-          {!loading && suggestions.length === 0 && matchingSaved.length === 0 && !showCurrentLocation && inputText.length >= 2 && (
+          {!loading && !error && suggestions.length === 0 && matchingSaved.length === 0 && !showCurrentLocation && inputText.length >= 2 && (
             <li className="px-4 py-4 text-[var(--text-muted)] text-sm text-center">
               No results found
             </li>

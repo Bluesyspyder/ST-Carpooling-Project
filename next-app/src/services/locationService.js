@@ -1,4 +1,5 @@
 import api from './api.js';
+import { validatePolyline } from './routeValidator';
 
 export const fetchAutocomplete = async (query) => {
   const res = await api.get('/locations/autocomplete', { params: { q: query } });
@@ -148,6 +149,9 @@ export const getDrivingRoute = async (origin, destination) => {
       { latitude: origin.lat, longitude: origin.lng },
       { latitude: destination.lat, longitude: destination.lng }
     );
+    if (result && result.routePath) {
+      result.routePath = validatePolyline(result.routePath);
+    }
     return result;
   } catch (err) {
     console.warn('[ROUTE_SERVICE] Backend route failed, using straight-line estimate:', err.message);
@@ -171,6 +175,9 @@ export const getMultiPointRoute = async (waypoints) => {
     console.log('[locationService] getMultiPointRoute called with waypoints:', JSON.stringify(waypoints));
     const res = await api.post('/routes/calculate-multipoint', { waypoints });
     const result = res.data.data;
+    if (result && result.routePath) {
+      result.routePath = validatePolyline(result.routePath);
+    }
     console.log('[locationService] getMultiPointRoute received result:', {
       distanceKm: result.distanceKm,
       routePathLength: result.routePath?.length,

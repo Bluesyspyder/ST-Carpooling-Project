@@ -92,7 +92,8 @@ export function apiHandler(handler: ApiRouteHandler, options: { protect?: boolea
           throw new ApiError(401, 'Invalid or expired authentication token. Please login again.');
         }
 
-        user = await User.findById(decoded.id);
+        // @ts-ignore
+        user = await (User as any).findById(decoded.id);
         if (!user) {
           throw new ApiError(401, 'The user associated with this credentials no longer exists.');
         }

@@ -68,7 +68,7 @@ export default function DriverModeContent() {
       // Connect to Socket.io (which is running on our backend's port)
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
       // The socket server is on the root of that domain
-      const baseUrl = new URL(apiUrl).origin;
+      const baseUrl = new URL(apiUrl, window.location.origin).origin;
       
       socketRef.current = io(baseUrl);
       

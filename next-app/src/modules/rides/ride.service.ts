@@ -86,7 +86,16 @@ export const getRides = async (filters = {}) => {
     query.journeyDate = { $gte: date, $lt: nextDay };
   }
 
-  if (filters.pickupArea) {
+  if (filters.pickupLat && filters.pickupLng) {
+    const lat = Number(filters.pickupLat);
+    const lng = Number(filters.pickupLng);
+    // ~5km bounding box
+    const latDelta = 0.045;
+    const lngDelta = 0.045 / Math.cos(lat * (Math.PI / 180));
+    
+    query['pickupLocation.latitude'] = { $gte: lat - latDelta, $lte: lat + latDelta };
+    query['pickupLocation.longitude'] = { $gte: lng - lngDelta, $lte: lng + lngDelta };
+  } else if (filters.pickupArea) {
     query['pickupLocation.address'] = { $regex: filters.pickupArea, $options: 'i' };
   }
 

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 import api from '@/services/api';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 
 const SearchRide = () => {
   const [filters, setFilters] = useState({
@@ -11,6 +12,7 @@ const SearchRide = () => {
     journeyDate: '',
     seats: 1,
   });
+  const [pickupLocation, setPickupLocation] = useState(null);
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,7 +23,13 @@ const SearchRide = () => {
     setError('');
     try {
       const params = {};
-      if (filters.pickupArea) params.pickupArea = filters.pickupArea;
+      // Pass coordinates if available, fallback to text
+      if (pickupLocation?.latitude && pickupLocation?.longitude) {
+        params.pickupLat = pickupLocation.latitude;
+        params.pickupLng = pickupLocation.longitude;
+      } else if (filters.pickupArea) {
+        params.pickupArea = filters.pickupArea;
+      }
       if (filters.driverName) params.driverName = filters.driverName;
       if (filters.journeyDate) params.journeyDate = filters.journeyDate;
       if (filters.seats > 1) params.seats = filters.seats;
@@ -69,13 +77,13 @@ const SearchRide = () => {
             <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
               <div>
                 <label className="block text-xs text-slate-400 mb-1.5 font-medium">Pickup Area</label>
-                <input
-                  type="text"
-                  name="pickupArea"
-                  value={filters.pickupArea}
-                  onChange={handleChange}
+                <AddressAutocomplete
+                  value={pickupLocation?.address || filters.pickupArea}
+                  onChange={(loc) => {
+                    setPickupLocation(loc);
+                    setFilters({ ...filters, pickupArea: loc?.address || '' });
+                  }}
                   placeholder="e.g. City Center, Sector 14"
-                  className={inputClass}
                 />
               </div>
 

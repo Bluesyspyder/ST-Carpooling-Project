@@ -9,7 +9,7 @@ async function seedAdmin() {
     console.log('Connected to database.');
     
     const adminEmail = 'vardaan.ad@st.com';
-    const existingAdmin = await User.findOne({ email: adminEmail });
+    const existingAdmin = await (User as any).findOne({ email: adminEmail });
     
     if (existingAdmin) {
       console.log(`Admin user ${adminEmail} already exists. Updating role to admin to ensure idempotency.`);

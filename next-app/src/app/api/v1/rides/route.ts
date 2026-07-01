@@ -10,8 +10,8 @@ export const GET = apiHandler(async (req, { params, user }) => {
   const url = new URL(req.url);
   const query = Object.fromEntries(url.searchParams.entries());
   const queryParams = validate(searchRidesSchema, { query }).query;
-  const { journeyDate, pickupArea, driverName, seats } = queryParams;
-  const rides = await rideService.getRides({ journeyDate, pickupArea, driverName, seats });
+  const { journeyDate, pickupArea, pickupLat, pickupLng, driverName, seats } = queryParams;
+  const rides = await rideService.getRides({ journeyDate, pickupArea, pickupLat, pickupLng, driverName, seats });
   return NextResponse.json({ status: 'success', results: rides.length, data: { rides } }, { status: 200 });
 }, {});
 

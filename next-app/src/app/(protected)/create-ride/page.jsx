@@ -22,8 +22,8 @@ const STEPS = ['Route & Map', 'Schedule & Details', 'Review & Post'];
 
 const ST_OFFICE = {
   address: 'STMicroelectronics Private Limited, Plot No. 1, Knowledge Park III, Greater Noida',
-  latitude: 28.4725,
-  longitude: 77.48889,
+  latitude: 28.481200,
+  longitude: 77.481500,
   verified: true
 };
 
@@ -57,7 +57,16 @@ const CreateRide = () => {
 
   const savedAddresses = React.useMemo(() => {
     const list = [...dbSavedAddresses];
-    if (user?.address) {
+    if (user?.homeLocation?.address) {
+      list.unshift({
+        _id: 'profile-home',
+        label: 'Home Location',
+        icon: '🏠',
+        address: user.homeLocation.address,
+        latitude: user.homeLocation.latitude,
+        longitude: user.homeLocation.longitude,
+      });
+    } else if (user?.address) {
       list.unshift({
         _id: 'profile-home',
         label: 'Home Location',
@@ -66,7 +75,7 @@ const CreateRide = () => {
       });
     }
     return list;
-  }, [dbSavedAddresses, user?.address]);
+  }, [dbSavedAddresses, user?.address, user?.homeLocation]);
 
   // Load vehicles and address lists on mount
   useEffect(() => {

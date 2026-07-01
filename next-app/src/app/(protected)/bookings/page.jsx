@@ -7,7 +7,7 @@ import api from '@/services/api';
 import { getDrivingRoute, getMultiPointRoute } from '@/services/locationService';
 import RatingModal from '@/components/RatingModal';
 
-const ST_OFFICE_COORDS = { lat: 28.4725, lng: 77.48889 };
+const ST_OFFICE_COORDS = { lat: 28.481200, lng: 77.481500 };
 
 const Bookings = () => {
   const { user } = useAuth();

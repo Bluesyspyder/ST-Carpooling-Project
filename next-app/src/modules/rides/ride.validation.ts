@@ -5,11 +5,13 @@ import { z } from 'zod';
 const locationSchema = z.object({
   address: z.string().min(1, 'Location address is required'),
   latitude: z.number({ required_error: 'Latitude is required' })
-    .min(-90, 'Latitude must be >= -90')
-    .max(90, 'Latitude must be <= 90'),
+    .min(6.5, 'Latitude must be >= 6.5 (India bounds)')
+    .max(35.7, 'Latitude must be <= 35.7 (India bounds)')
+    .refine(val => val !== 0, 'Latitude cannot be exactly 0'),
   longitude: z.number({ required_error: 'Longitude is required' })
-    .min(-180, 'Longitude must be >= -180')
-    .max(180, 'Longitude must be <= 180'),
+    .min(68.1, 'Longitude must be >= 68.1 (India bounds)')
+    .max(97.4, 'Longitude must be <= 97.4 (India bounds)')
+    .refine(val => val !== 0, 'Longitude cannot be exactly 0'),
   verified: z.boolean({ required_error: 'verified flag is required' }),
   provider: z.string().optional(),
   providerPlaceId: z.string().optional(),
@@ -41,6 +43,8 @@ export const searchRidesSchema = z.object({
   query: z.object({
     journeyDate: z.string().optional(),
     pickupArea: z.string().optional(),
+    pickupLat: z.union([z.string(), z.number()]).optional(),
+    pickupLng: z.union([z.string(), z.number()]).optional(),
     driverName: z.string().optional(),
     seats: z.string().or(z.number()).optional(),
   }),

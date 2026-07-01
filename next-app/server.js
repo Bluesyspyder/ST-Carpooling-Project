@@ -78,6 +78,11 @@ app.prepare().then(() => {
   });
 
   server.listen(port, () => {
-    console.log(`> Ready on http://${hostname}:${port} with Socket.io attached!`);
+    console.log(`\n======================================================`);
+    console.log(`> App is ready and running!`);
+    console.log(`> Please open: http://localhost:${port}`);
+    console.log(`> Network IP:  http://${hostname}:${port}`);
+    console.log(`> (Socket.io is attached and ready)`);
+    console.log(`======================================================\n`);
   });
 });

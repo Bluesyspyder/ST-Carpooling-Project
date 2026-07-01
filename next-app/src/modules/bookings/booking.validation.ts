@@ -4,13 +4,17 @@ import { z } from 'zod';
 const locationSchema = z.object({
   address: z.string().min(1, 'Pickup address is required'),
   latitude: z.number({ required_error: 'Latitude is required' })
-    .min(-90).max(90),
+    .min(6.5, 'Latitude must be >= 6.5 (India bounds)')
+    .max(35.7, 'Latitude must be <= 35.7 (India bounds)')
+    .refine(val => val !== 0, 'Latitude cannot be exactly 0'),
   longitude: z.number({ required_error: 'Longitude is required' })
-    .min(-180).max(180),
+    .min(68.1, 'Longitude must be >= 68.1 (India bounds)')
+    .max(97.4, 'Longitude must be <= 97.4 (India bounds)')
+    .refine(val => val !== 0, 'Longitude cannot be exactly 0'),
   coordinates: z.array(z.number())
     .length(2, 'Coordinates must be exactly two numbers [longitude, latitude]')
-    .refine((coords) => coords[0] >= -180 && coords[0] <= 180, 'Longitude must be between -180 and 180')
-    .refine((coords) => coords[1] >= -90 && coords[1] <= 90, 'Latitude must be between -90 and 90')
+    .refine((coords) => coords[0] >= 68.1 && coords[0] <= 97.4 && coords[0] !== 0, 'Longitude must be within India bounds (68.1 to 97.4)')
+    .refine((coords) => coords[1] >= 6.5 && coords[1] <= 35.7 && coords[1] !== 0, 'Latitude must be within India bounds (6.5 to 35.7)')
     .optional(),
   verified: z.boolean({ required_error: 'verified flag is required' }),
   provider: z.string().optional(),

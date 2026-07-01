@@ -28,12 +28,12 @@ const useCurrentLocation = () => {
             }
           }
           const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
-          const { latitude, longitude } = position.coords;
+          const { latitude, longitude, accuracy } = position.coords;
           try {
             const location = await fetchReverseGeocode(latitude, longitude);
-            resolve({ address: location.address, latitude, longitude });
+            resolve({ address: location.address, latitude, longitude, accuracy });
           } catch {
-            resolve({ address: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`, latitude, longitude });
+            resolve({ address: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`, latitude, longitude, accuracy });
           }
         } catch (err) {
           setError(err.message || 'Could not get your current location natively.');
@@ -53,12 +53,12 @@ const useCurrentLocation = () => {
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
-          const { latitude, longitude } = position.coords;
+          const { latitude, longitude, accuracy } = position.coords;
           try {
             const location = await fetchReverseGeocode(latitude, longitude);
-            resolve({ address: location.address, latitude, longitude });
+            resolve({ address: location.address, latitude, longitude, accuracy });
           } catch {
-            resolve({ address: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`, latitude, longitude });
+            resolve({ address: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`, latitude, longitude, accuracy });
           } finally {
             setLoading(false);
           }

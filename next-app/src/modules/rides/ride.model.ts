@@ -14,6 +14,7 @@ const locationSchema = new mongoose.Schema(
     verifiedAt:      { type: Date, default: null },
     provider:        { type: String, default: null },
     providerPlaceId: { type: String, default: null },
+    confidenceScore: { type: Number, default: 1.0 },
   },
   { _id: false }
 );

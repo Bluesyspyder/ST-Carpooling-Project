@@ -19,7 +19,7 @@ import {
 import { useProfileGuard } from '@/hooks/useProfileGuard';
 
 /* ─── ST Office fixed destination ─────────────────────────────────────────── */
-const ST_OFFICE = { lat: 28.4725, lng: 77.48889, address: 'ST Office, Gurugram' };
+const ST_OFFICE = { lat: 28.481200, lng: 77.481500, address: 'STMicroelectronics, Greater Noida' };
 
 /* ─── small helpers ────────────────────────────────────────────────────────── */
 const fmtDist = (km) => (km >= 1 ? `${km.toFixed(1)} km` : `${Math.round(km * 1000)} m`);
@@ -70,6 +70,14 @@ const DriverRoutePanel = ({ ride, bookings, liveDriverLocation, pendingPickup = 
     return ST_OFFICE;
   }, [ride]);
 
+  /* driver destination: ride.destinationLocation or ST Office as fallback */
+  const driverDestination = useMemo(() => {
+    if (ride?.destinationLocation?.latitude) {
+      return { lat: ride.destinationLocation.latitude, lng: ride.destinationLocation.longitude, address: ride.destinationLocation.address };
+    }
+    return ST_OFFICE;
+  }, [ride]);
+
   useEffect(() => {
     if (confirmedPickups.length === 0) {
       setOptimResult(null);
@@ -82,7 +90,7 @@ const DriverRoutePanel = ({ ride, bookings, liveDriverLocation, pendingPickup = 
       setError('');
       try {
         /* 1. optimise pickup order with Haversine permutations (pure-JS, no API) */
-        const opt = optimizePickupOrder(driverOrigin, confirmedPickups, ST_OFFICE);
+        const opt = optimizePickupOrder(driverOrigin, confirmedPickups, driverDestination);
         setOptimResult(opt);
 
         /* 2. fetch a real road-following polyline for the optimised waypoints */
@@ -104,7 +112,7 @@ const DriverRoutePanel = ({ ride, bookings, liveDriverLocation, pendingPickup = 
     ? optimResult.optimizedWaypoints.map((w, i) => ({
         latitude:  w.lat,
         longitude: w.lng,
-        address:   w.address || (i === 0 ? 'Your Start' : i === optimResult.optimizedWaypoints.length - 1 ? 'ST Office' : `Stop ${i}`),
+        address:   w.address || (i === 0 ? 'Your Start' : i === optimResult.optimizedWaypoints.length - 1 ? 'Destination' : `Stop ${i}`),
         label:     i === 0 ? 'D' : i === optimResult.optimizedWaypoints.length - 1 ? 'O' : `P${i}`,
       }))
     : null;
@@ -212,12 +220,12 @@ const DriverRoutePanel = ({ ride, bookings, liveDriverLocation, pendingPickup = 
               />
             ))}
 
-            {/* ST Office */}
+            {/* Destination */}
             <StopRow
               badge="🏢"
               badgeColor="bg-slate-600"
-              label="ST Office"
-              address="Gurugram, Haryana"
+              label="Destination"
+              address={driverDestination.address || ST_OFFICE.address}
               isLast
             />
           </div>
@@ -282,16 +290,30 @@ const RideDetails = () => {
   const { getCurrentLocation } = useCurrentLocation();
   const { canBookRide } = useProfileGuard();
 
-  const isDriver = user && ride && ride.driver?._id === user._id;
+  const userId = user?._id || user?.id;
+  const driverId = ride?.driver?._id || ride?.driver?.id || ride?.driver;
+  const isDriver = Boolean(userId && driverId && String(userId) === String(driverId));
 
   const [liveDriverLocation, setLiveDriverLocation] = useState(null);
   const [sosAlert, setSosAlert] = useState(null);
 
-  const activeBooking = bookings?.find((b) => b.passenger?._id === user?._id);
+  const activeBooking = bookings?.find((b) => {
+    const passengerId = b.passenger?._id || b.passenger?.id || b.passenger;
+    return userId && passengerId && String(userId) === String(passengerId);
+  });
 
   const savedAddresses = useMemo(() => {
     const list = [...dbSavedAddresses];
-    if (user?.address) {
+    if (user?.homeLocation?.address) {
+      list.unshift({
+        _id: 'profile-home',
+        label: 'Home Location',
+        icon: '🏠',
+        address: user.homeLocation.address,
+        latitude: user.homeLocation.latitude,
+        longitude: user.homeLocation.longitude,
+      });
+    } else if (user?.address) {
       list.unshift({
         _id: 'profile-home',
         label: 'Home Location',
@@ -300,14 +322,14 @@ const RideDetails = () => {
       });
     }
     return list;
-  }, [dbSavedAddresses, user?.address]);
+  }, [dbSavedAddresses, user?.address, user?.homeLocation]);
 
   useEffect(() => {
     let socket = null;
     if (id && typeof window !== 'undefined') {
       const { io } = require('socket.io-client');
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
-      const baseUrl = new URL(apiUrl).origin;
+      const baseUrl = new URL(apiUrl, window.location.origin).origin;
       socket = io(baseUrl);
 
       socket.on('connect', () => {
@@ -409,9 +431,19 @@ const RideDetails = () => {
       console.error('[RideDetails] Booking request failed:', err);
       console.error('[RideDetails] Error data:', err.response?.data);
       
-      const errMsg = err.response?.data?.message || 'Failed to book seats.';
       setBookingError(errMsg);
       setIsBooking(false);
+    }
+  };
+
+  const handleStatusUpdate = async (bookingId, status) => {
+    try {
+      await api.patch(`/bookings/${bookingId}/status`, { status });
+      const updatedResponse = await api.get(`/rides/${id}`);
+      setRide(updatedResponse.data.data.ride);
+      setBookings(updatedResponse.data.data.bookings || []);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update booking status.');
     }
   };
 
@@ -492,6 +524,69 @@ const RideDetails = () => {
           </>
         )}
 
+        {/* ── Booked Passengers & Requests ─────────────── */}
+        {bookings && bookings.length > 0 && (
+          <div className="glass-panel p-6 space-y-4">
+            <h4 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+              Passenger Requests & Bookings
+            </h4>
+            <div className="space-y-3">
+              {bookings.map((booking, idx) => (
+                <div key={booking._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-sm bg-[var(--bg-surface)] border border-[var(--border-subtle)] gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center text-sm font-bold text-emerald-400 flex-shrink-0">
+                      {booking.passenger?.firstName?.[0] || 'P'}{booking.passenger?.lastName?.[0] || ''}
+                    </div>
+                    <div>
+                      <p className="text-[var(--text-primary)] font-semibold text-sm">
+                        {booking.passenger?.firstName} {booking.passenger?.lastName}
+                      </p>
+                      <p className="text-xs text-[var(--text-secondary)]">{booking.passenger?.phone || booking.passenger?.email}</p>
+                    </div>
+                  </div>
+                  <div className="text-left sm:text-right space-y-3">
+                    <div>
+                      <div className="flex items-center sm:justify-end gap-2">
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border capitalize ${
+                          booking.bookingStatus === 'confirmed' ? 'bg-emerald-950 text-emerald-400 border-emerald-500/20' :
+                          booking.bookingStatus === 'pending'   ? 'bg-amber-950 text-amber-400 border-amber-500/20' :
+                          'bg-red-950 text-red-400 border-red-500/20'
+                        }`}>{booking.bookingStatus}</span>
+                        <span className="text-xs text-[var(--text-secondary)]">{booking.seatsBooked} seat{booking.seatsBooked > 1 ? 's' : ''}</span>
+                      </div>
+                      <p className="text-xs text-[var(--text-secondary)] max-w-xs truncate mt-1">{booking.pickupLocation?.address}</p>
+                      {isDriver && (
+                        <p className="text-[10px] text-[var(--text-secondary)] font-mono">
+                          Stop #{idx + 1} · {booking.pickupLocation?.latitude?.toFixed(4)}, {booking.pickupLocation?.longitude?.toFixed(4)}
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Driver Accept/Reject Actions for Pending Requests */}
+                    {isDriver && booking.bookingStatus === 'pending' && (
+                      <div className="flex items-center sm:justify-end gap-2">
+                        <button
+                          onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
+                          className="btn-primary px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 border-none text-white"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => handleStatusUpdate(booking._id, 'rejected')}
+                          className="btn-secondary px-4 py-1.5 text-xs border-red-500 text-red-500 hover:bg-red-500/10"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid md:grid-cols-[1fr_380px] gap-6">
 
           {/* ── Ride details panel ──────────────────────────────────────── */}
@@ -559,47 +654,6 @@ const RideDetails = () => {
               </div>
             )}
 
-            {/* ── Booked Passengers (driver-visible or all) ─────────────── */}
-            {bookings && bookings.length > 0 && (
-              <div className="pt-6 border-t border-[var(--border-subtle)] space-y-4">
-                <h4 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                  Booked Passengers & Pickups
-                </h4>
-                <div className="space-y-3">
-                  {bookings.map((booking, idx) => (
-                    <div key={booking._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-sm bg-[var(--bg-surface)] border border-[var(--border-subtle)] gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center text-sm font-bold text-emerald-400 flex-shrink-0">
-                          {booking.passenger?.firstName?.[0] || 'P'}{booking.passenger?.lastName?.[0] || ''}
-                        </div>
-                        <div>
-                          <p className="text-[var(--text-primary)] font-semibold text-sm">
-                            {booking.passenger?.firstName} {booking.passenger?.lastName}
-                          </p>
-                          <p className="text-xs text-[var(--text-secondary)]">{booking.passenger?.phone || booking.passenger?.email}</p>
-                        </div>
-                      </div>
-                      <div className="text-left sm:text-right space-y-1">
-                        <div className="flex items-center sm:justify-end gap-2">
-                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border capitalize ${
-                            booking.bookingStatus === 'confirmed' ? 'bg-emerald-950 text-emerald-400 border-emerald-500/20' :
-                            booking.bookingStatus === 'pending'   ? 'bg-amber-950 text-amber-400 border-amber-500/20' :
-                            'bg-red-950 text-red-400 border-red-500/20'
-                          }`}>{booking.bookingStatus}</span>
-                          <span className="text-xs text-[var(--text-secondary)]">{booking.seatsBooked} seat{booking.seatsBooked > 1 ? 's' : ''}</span>
-                        </div>
-                        <p className="text-xs text-[var(--text-secondary)] max-w-xs truncate">{booking.pickupLocation?.address}</p>
-                        {isDriver && (
-                          <p className="text-[10px] text-[var(--text-secondary)] font-mono">
-                            Stop #{idx + 1} · {booking.pickupLocation?.latitude?.toFixed(4)}, {booking.pickupLocation?.longitude?.toFixed(4)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* ── Booking sidebar (passenger-only; drivers see their own panel) ── */}

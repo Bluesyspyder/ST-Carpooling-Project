@@ -221,27 +221,68 @@ export const calculateMultiPointRoute = async (waypoints) => {
     return { lat, lng };
   });
 
-  const origin = formattedWaypoints[0];
-  const destination = formattedWaypoints[formattedWaypoints.length - 1];
-  const middleWaypoints = formattedWaypoints.slice(1, -1);
+  console.log('DEBUG: calculateMultiPointRoute called with waypoints count:', formattedWaypoints.length);
+  
+  let fullCoords = [];
+  let totalDistanceKm = 0;
+  let totalDurationMinutes = 0;
+  let allProviders = new Set();
+  let hasFallback = false;
 
-  const olaResult = await routeWithOla(origin, destination, middleWaypoints);
-  if (olaResult) return olaResult;
-
-  // Fallback: straight-line segment estimates
-  let totalDistance = 0;
-  const path = [];
+  // Process legs sequentially to bypass limits and avoid disjoint routes
   for (let i = 0; i < formattedWaypoints.length - 1; i++) {
-    totalDistance += haversineKm(formattedWaypoints[i], formattedWaypoints[i + 1]);
-    path.push(formattedWaypoints[i]);
-  }
-  path.push(formattedWaypoints[formattedWaypoints.length - 1]);
+    const origin = formattedWaypoints[i];
+    const destination = formattedWaypoints[i + 1];
 
+    console.log(`DEBUG: Requesting route leg ${i + 1} from`, origin, 'to', destination);
+
+    try {
+      // routeWithOla takes origin, destination, waypoints
+      const legResult = await routeWithOla(origin, destination, []);
+      
+      if (legResult && legResult.routePath.length > 0) {
+        console.log(`DEBUG: Leg ${i + 1} successful. Segments: ${legResult.routePath.length}, Distance: ${legResult.distanceKm}km`);
+        
+        // Merge without duplicating points (drop the first point of subsequent legs as it's identical to the last point)
+        if (i === 0) {
+          fullCoords = legResult.routePath;
+        } else {
+          fullCoords = fullCoords.concat(legResult.routePath.slice(1));
+        }
+
+        totalDistanceKm += legResult.distanceKm;
+        totalDurationMinutes += legResult.durationMinutes;
+        allProviders.add(legResult.provider);
+      } else {
+        throw new Error('No route returned from Ola Maps for leg');
+      }
+    } catch (err) {
+      console.warn(`[ROUTE_SERVICE] Backend route failed for leg ${i + 1}, using straight-line estimate:`, err.message);
+      hasFallback = true;
+      allProviders.add('Straight-line estimate');
+      
+      const distanceKm = haversineKm(origin, destination);
+      const durationMinutes = (distanceKm / 40) * 60;
+      const legPath = [origin, destination];
+
+      if (i === 0) {
+        fullCoords = legPath;
+      } else {
+        fullCoords = fullCoords.concat(legPath.slice(1));
+      }
+
+      totalDistanceKm += distanceKm;
+      totalDurationMinutes += durationMinutes;
+    }
+  }
+
+  console.log(`DEBUG: Merged polyline has ${fullCoords.length} points.`);
+  
   return {
-    routePath: path,
-    distanceKm: totalDistance,
-    durationMinutes: (totalDistance / 40) * 60,
-    provider: 'Straight-line estimate',
-    isFallback: true,
+    routePath: fullCoords,
+    distanceKm: totalDistanceKm,
+    durationMinutes: totalDurationMinutes,
+    provider: Array.from(allProviders).join(', '),
+    isFallback: hasFallback,
   };
 };

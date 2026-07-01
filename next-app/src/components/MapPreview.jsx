@@ -3,6 +3,19 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { fetchReverseGeocode } from '@/services/locationService';
 import useCurrentLocation from '@/hooks/useCurrentLocation';
 
+const haversineDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3; // meters
+  const f1 = lat1 * Math.PI/180;
+  const f2 = lat2 * Math.PI/180;
+  const df = (lat2-lat1) * Math.PI/180;
+  const dl = (lon2-lon1) * Math.PI/180;
+  const a = Math.sin(df/2) * Math.sin(df/2) +
+            Math.cos(f1) * Math.cos(f2) *
+            Math.sin(dl/2) * Math.sin(dl/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
 /**
  * Single-location Leaflet map preview with a draggable marker.
  *
@@ -42,6 +55,8 @@ const MapPreview = ({
   const baseLocationRef = useRef(null);
 
   const [reverseLoading, setReverseLoading] = useState(false);
+  const [distanceWarning, setDistanceWarning] = useState(false);
+  const [gpsAccuracyWarning, setGpsAccuracyWarning] = useState(false);
 
   const { getCurrentLocation, loading: gpsLoading } = useCurrentLocation();
 
@@ -68,6 +83,11 @@ const MapPreview = ({
   // ── Reverse geocode after drag ──────────────────────────────────────────
   const handleDragEnd = useCallback(
     async (newLat, newLng) => {
+      if (baseLocationRef.current?.latitude && baseLocationRef.current?.longitude) {
+        const dist = haversineDistance(baseLocationRef.current.latitude, baseLocationRef.current.longitude, newLat, newLng);
+        setDistanceWarning(dist > 500); // 500 meters
+      }
+
       // Immediately push new coordinates upstream (address stays unchanged temporarily)
       onLocationChange?.({ ...location, latitude: newLat, longitude: newLng });
 
@@ -103,6 +123,14 @@ const MapPreview = ({
   const handleCurrentLocation = useCallback(async () => {
     const loc = await getCurrentLocation();
     if (!loc || !isMountedRef.current) return;
+    
+    if (loc.accuracy && loc.accuracy > 50) {
+      setGpsAccuracyWarning(true);
+    } else {
+      setGpsAccuracyWarning(false);
+    }
+    setDistanceWarning(false);
+
     // Move marker on map
     if (markerRef.current) markerRef.current.setLatLng([loc.latitude, loc.longitude]);
     if (leafletMapRef.current) leafletMapRef.current.setView([loc.latitude, loc.longitude], 15);
@@ -337,11 +365,30 @@ const MapPreview = ({
             </div>
           )}
 
-          {/* Drag hint */}
+          {/* Drag hint and Warnings */}
           {!confirmed && (
-            <p className="text-xs text-[var(--text-muted)] text-center border-t border-[var(--border-subtle)] pt-2">
-              Drag the pin or click the map to fine-tune · Confirm when correct
-            </p>
+            <div className="border-t border-[var(--border-subtle)] pt-2 mt-2">
+              {(distanceWarning || gpsAccuracyWarning) ? (
+                <div className="flex flex-col gap-1.5 mt-1">
+                  {distanceWarning && (
+                    <p className="text-xs text-amber-500 bg-amber-500/10 p-2 rounded flex gap-1.5 items-start">
+                      <span>⚠</span>
+                      <span>The selected location is quite far from the originally searched address. Please ensure this is correct.</span>
+                    </p>
+                  )}
+                  {gpsAccuracyWarning && (
+                    <p className="text-xs text-amber-500 bg-amber-500/10 p-2 rounded flex gap-1.5 items-start">
+                      <span>⚠</span>
+                      <span>Your GPS accuracy is low (over 50m). Please move to an open area or drag the pin to correct the location.</span>
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-[var(--text-muted)] text-center">
+                  Drag the pin or click the map to fine-tune · Confirm when correct
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}

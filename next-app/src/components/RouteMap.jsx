@@ -34,7 +34,9 @@ const RouteMap = ({
   const polylineRef   = useRef(null);
   const isMounted     = useRef(true);
 
-  const [routeInfo, setRouteInfo]   = useState(null); // { distanceKm, durationMinutes, provider }
+  const [routeInfo, setRouteInfo]   = useState(null); // { distanceKm, durationMinutes, provider, isFallback }
+  const [internalRoute, setInternalRoute] = useState(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
 
@@ -82,22 +84,8 @@ const RouteMap = ({
       if (!isMounted.current) return;
 
       setRouteInfo({ distanceKm, durationMinutes, provider, isFallback });
+      setInternalRoute({ routePath, isFallback });
 
-      // Draw polyline
-      const L = (await import('leaflet')).default;
-      if (!isMounted.current || !leafletMapRef.current) return;
-
-      if (polylineRef.current) polylineRef.current.remove();
-
-      const latlngs = routePath.map(({ lat, lng }) => [lat, lng]);
-      polylineRef.current = L.polyline(latlngs, {
-        color:     isFallback ? '#f59e0b' : '#818cf8',
-        weight:    4,
-        opacity:   0.85,
-        dashArray: isFallback ? '6 8' : null,
-      }).addTo(leafletMapRef.current);
-
-      leafletMapRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [40, 40], animate: false });
     } catch (err) {
       if (!isMounted.current) return;
       setError('Could not calculate route. Showing marker positions only.');
@@ -200,9 +188,7 @@ const RouteMap = ({
         }
       }
 
-      // Fix #2: Race condition guard — if externalRouteData is already available
-      // when the map finishes initialising, draw the polyline immediately here.
-      // This prevents Effect B from firing into a null leafletMapRef.
+      // Fix #2: Race condition guard
       if (externalRouteData?.routePath?.length) {
         const { routePath, isFallback } = externalRouteData;
         if (polylineRef.current) polylineRef.current.remove();
@@ -217,6 +203,8 @@ const RouteMap = ({
           leafletMapRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [40, 40], animate: false });
         }
       }
+
+      setMapLoaded(true);
     };
 
     initMap();
@@ -295,6 +283,7 @@ const RouteMap = ({
       fetchRoute(pickup, destination, null);
     } else {
       setRouteInfo(null);
+      setInternalRoute(null);
       if (polylineRef.current) {
         polylineRef.current.remove();
         polylineRef.current = null;
@@ -306,6 +295,28 @@ const RouteMap = ({
     destination?.verified, destination?.latitude, destination?.longitude,
     waypoints
   ]);
+
+  // ── Draw internal route once map is loaded ───────────────────────────────
+  useEffect(() => {
+    if (mapLoaded && leafletMapRef.current && internalRoute?.routePath) {
+      const draw = async () => {
+        const L = (await import('leaflet')).default;
+        if (!isMounted.current || !leafletMapRef.current) return;
+        if (polylineRef.current) polylineRef.current.remove();
+        const latlngs = internalRoute.routePath.map(({ lat, lng }) => [lat, lng]);
+        polylineRef.current = L.polyline(latlngs, {
+          color:     internalRoute.isFallback ? '#f59e0b' : '#818cf8',
+          weight:    4,
+          opacity:   0.85,
+          dashArray: internalRoute.isFallback ? '6 8' : null,
+        }).addTo(leafletMapRef.current);
+        if (latlngs.length > 1) {
+          leafletMapRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [40, 40], animate: false });
+        }
+      };
+      draw();
+    }
+  }, [mapLoaded, internalRoute]);
 
   const hasPickup = pickup?.latitude && pickup?.longitude;
   const hasDest   = destination?.latitude && destination?.longitude;

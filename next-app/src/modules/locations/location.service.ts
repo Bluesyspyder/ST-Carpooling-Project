@@ -27,8 +27,8 @@ export const ST_DESTINATION_ADDRESS =
 const ST_DESTINATION_FALLBACK = {
   label: 'STMicroelectronics Private Limited',
   address: ST_DESTINATION_ADDRESS,
-  latitude: 28.4725,
-  longitude: 77.48889,
+  latitude: 28.481200,
+  longitude: 77.481500,
   provider: 'Fixed destination',
 };
 

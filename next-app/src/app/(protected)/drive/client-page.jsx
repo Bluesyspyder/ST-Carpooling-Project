@@ -111,8 +111,8 @@ const DriveMode = () => {
     : [];
 
   const mapCenter = route
-    ? [route.origin.lat, route.origin.lng]
-    : [28.4725, 77.4889];
+    ? [route.destination.lat, route.destination.lng]
+    : [28.481200, 77.481500];
 
   if (loading) {
     return (
