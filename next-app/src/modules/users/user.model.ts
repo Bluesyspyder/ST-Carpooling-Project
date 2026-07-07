@@ -147,6 +147,23 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // ── Green Credits (Phase 1) ──────────────────────────────────────────────
+    // Spendable balance — decreases on reward redemption.
+    greenCreditsBalance: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    // Never decreases — total ever earned, used for the leaderboard so
+    // redeeming rewards doesn't drop a user's rank.
+    lifetimeGreenCredits: {
+      type: Number,
+      default: 0,
+    },
+    lifetimeCo2SavedKg: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

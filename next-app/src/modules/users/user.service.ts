@@ -160,3 +160,29 @@ export const recordLocationUsage = async (userId, locationData) => {
 
   await user.save();
 };
+
+// ─── Leaderboard ─────────────────────────────────────────────────────────────
+
+/**
+ * Top users by lifetime green credits (never decreases on redemption, unlike
+ * the spendable balance, so redeeming rewards doesn't drop your rank).
+ * A simple find+sort+limit suffices — everything needed is already
+ * denormalized onto User, so no cross-collection aggregation is required.
+ */
+export const getLeaderboard = async (limit = 20) => {
+  return User.find({ lifetimeGreenCredits: { $gt: 0 } })
+    .select('firstName lastName profileImage lifetimeGreenCredits lifetimeCo2SavedKg')
+    .sort({ lifetimeGreenCredits: -1 })
+    .limit(limit);
+};
+
+/**
+ * 1-indexed rank of a user by lifetime green credits (not necessarily within
+ * the top `limit` returned by getLeaderboard).
+ */
+export const getUserRank = async (userId) => {
+  const user = await User.findById(userId).select('lifetimeGreenCredits');
+  if (!user) throw new ApiError(404, 'User not found');
+  const higherCount = await User.countDocuments({ lifetimeGreenCredits: { $gt: user.lifetimeGreenCredits || 0 } });
+  return higherCount + 1;
+};

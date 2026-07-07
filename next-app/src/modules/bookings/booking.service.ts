@@ -74,6 +74,8 @@ export const createBooking = async (bookingData) => {
   bookingData.bookingAmount  = (ride.pricePerSeat || 0) * bookingData.seatsBooked;
   bookingData.bookingStatus  = initialStatus;
   bookingData.pickupLocation = pickup;
+  // 4-digit pickup PIN (1000–9999) the passenger reveals to the driver at pickup.
+  bookingData.pickupPin      = String(Math.floor(1000 + Math.random() * 9000));
 
   const booking = await Booking.create(bookingData);
 
@@ -118,6 +120,7 @@ export const getMyRidesBookingsPaginated = async (driverId, page = 1, limit = 10
   const rideIds = rides.map(r => r._id);
 
   const bookings = await Booking.find({ ride: { $in: rideIds } })
+    .select('-pickupPin') // never expose a passenger's pickup PIN to the driver
     .populate('passenger', 'firstName lastName profileImage email phone averageRating cancellations24h cancellations6h cancellations2h')
     .populate({
       path: 'ride',

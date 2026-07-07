@@ -3,9 +3,11 @@ import Ride from './ride.model';
 import Vehicle from '../vehicles/vehicle.model';
 import User from '../users/user.model';
 import Booking from '../bookings/booking.model';
+import Zone from '../zones/zone.model';
 import { ApiError } from '@/lib/api-wrapper';
 import { recordLocationUsage } from '../users/user.service';
 import { emitToUser } from '@/socket/socketHandler';
+import { calculateRoute } from '../routes/route.service';
 
 const EARTH_RADIUS_KM = 6371;
 
@@ -68,8 +70,28 @@ const buildVerifiedLocation = (raw, fieldName) => {
 };
 
 /**
+ * Build a soft (unverified-ok) location for via-stops.
+ */
+const buildViaStopLocation = (raw, index) => {
+  if (!raw || !Number.isFinite(Number(raw.latitude)) || !Number.isFinite(Number(raw.longitude))) {
+    throw new ApiError(400, `Via-stop ${index + 1} must have valid coordinates.`);
+  }
+  return {
+    address:         raw.address || '',
+    latitude:        Number(raw.latitude),
+    longitude:       Number(raw.longitude),
+    verified:        raw.verified === true,
+    verifiedAt:      raw.verified ? new Date() : null,
+    provider:        raw.provider || null,
+    providerPlaceId: raw.providerPlaceId || null,
+  };
+};
+
+/**
  * Register a new ride offer.
  * pickupLocation and destinationLocation must both be coordinate-verified.
+ * viaStops (up to 2) are optional — soft coordinates accepted.
+ * isRecurring + weeklyDays enable automatic daily cloning by the CRON endpoint.
  */
 export const createRide = async (rideData) => {
   const vehicle = await Vehicle.findOne({ _id: rideData.driverVehicle, owner: rideData.driver });
@@ -81,15 +103,55 @@ export const createRide = async (rideData) => {
   const pickup = buildVerifiedLocation(rideData.pickupLocation, 'Pickup location');
   const destination = buildVerifiedLocation(rideData.destinationLocation, 'Destination location');
 
+  // Validate and build via-stops (Feature 1)
+  const viaStops = (rideData.viaStops || []).map((vs, i) => buildViaStopLocation(vs, i));
+
+  // Compute route distance + duration (Feature 3: ETA).
+  // Build ordered waypoints: pickup → via-stops → destination
+  let routeDistance = null;
+  let routeDuration = null;
+  try {
+    const allWaypoints = [
+      { latitude: pickup.latitude, longitude: pickup.longitude },
+      ...viaStops.map(vs => ({ latitude: vs.latitude, longitude: vs.longitude })),
+      { latitude: destination.latitude, longitude: destination.longitude },
+    ];
+
+    // Use multipoint if there are via-stops, otherwise simple two-point route
+    if (viaStops.length > 0) {
+      const { calculateMultiPointRoute } = await import('../routes/route.service');
+      const routeResult = await calculateMultiPointRoute(allWaypoints);
+      routeDistance = routeResult.distanceKm;
+      routeDuration = routeResult.durationMinutes;
+    } else {
+      const routeResult = await calculateRoute({
+        origin: { latitude: pickup.latitude, longitude: pickup.longitude },
+        destination: { latitude: destination.latitude, longitude: destination.longitude },
+      });
+      routeDistance = routeResult.distanceKm;
+      routeDuration = routeResult.durationMinutes;
+    }
+  } catch (err) {
+    console.warn('[RIDE] Route calculation failed, falling back to haversine:', err.message);
+    routeDistance = haversineKm(pickup.latitude, pickup.longitude, destination.latitude, destination.longitude);
+    routeDuration = (routeDistance / 40) * 60; // rough 40 km/h city estimate
+  }
+
+  // Validate recurring settings (Feature 2)
+  if (rideData.isRecurring && (!rideData.weeklyDays || rideData.weeklyDays.length === 0)) {
+    throw new ApiError(400, 'Recurring rides must have at least one weeklyDay selected.');
+  }
+
   const finalRideData = {
     ...rideData,
     pickupLocation: pickup,
     destinationLocation: destination,
+    viaStops,
     rideStatus: 'ACTIVE',
-    routeDistance: rideData.routeDistance ?? haversineKm(
-      pickup.latitude, pickup.longitude,
-      destination.latitude, destination.longitude
-    ),
+    routeDistance: rideData.routeDistance ?? routeDistance,
+    routeDuration: rideData.routeDuration ?? routeDuration,
+    isRecurring: rideData.isRecurring ?? false,
+    weeklyDays: rideData.isRecurring ? (rideData.weeklyDays || []) : [],
   };
 
   const ride = await Ride.create(finalRideData);
@@ -179,6 +241,28 @@ export const getRides = async (filters = {}) => {
     }
   }
 
+  // ── Polygon-based geofence filter (Feature 5) ───────────────────────────────
+  // If any active Zone polygons are configured in the DB, restrict pickup
+  // locations to those inside at least one zone. This replaces the simple
+  // radius check for installations that have defined precise campus boundaries.
+  // Falls back silently to haversine-only when no zones exist.
+  try {
+    const activeZones = await Zone.find({ isActive: true }).select('polygon');
+    if (activeZones.length > 0) {
+      // Build a $geoWithin $geometry filter using the first zone's polygon.
+      // For multi-zone support we use $or across all zone polygons.
+      const zoneFilters = activeZones.map((z) => ({
+        'pickupLocation.coordinates': {
+          $geoWithin: { $geometry: z.polygon },
+        },
+      }));
+      query.$or = query.$or ? [...query.$or, ...zoneFilters] : zoneFilters;
+    }
+  } catch (zoneErr) {
+    // Non-fatal: zones table may not exist yet in fresh installations
+    console.warn('[RIDE] Zone geofence query skipped:', zoneErr.message);
+  }
+
   const rides = await Ride.find(query)
     .populate('driver', 'firstName lastName profileImage averageRating')
     .populate('driverVehicle')
@@ -187,6 +271,14 @@ export const getRides = async (filters = {}) => {
   if (pickupLat === null) {
     return rides;
   }
+
+  // Via-stop corridor matching (Feature 1)
+  // If the passenger supplied a via-point, only keep rides that:
+  //   a) pass through it (ride has a viaStop within viaRadiusKm), OR
+  //   b) have a destination within viaRadiusKm (so the passenger can still be dropped near there)
+  const viaLat = filters.viaLat ? Number(filters.viaLat) : null;
+  const viaLng = filters.viaLng ? Number(filters.viaLng) : null;
+  const viaRadiusKm = radiusKm * 1.2;
 
   // Enforce the true circular radius (the bounding box above is only a coarse
   // pre-filter) and annotate + sort by actual distance from the requested pickup point.
@@ -197,6 +289,8 @@ export const getRides = async (filters = {}) => {
       distanceKm: Math.round(
         haversineKm(pickupLat, pickupLng, ride.pickupLocation.latitude, ride.pickupLocation.longitude) * 10
       ) / 10,
+      // Annotate ETA from stored routeDuration (Feature 3)
+      etaMinutes: ride.routeDuration ? Math.round(ride.routeDuration) : null,
     }))
     .filter((ride) => ride.distanceKm <= radiusKm)
     .filter((ride) => {
@@ -207,6 +301,20 @@ export const getRides = async (filters = {}) => {
       );
       return destDistance <= destinationRadiusKm;
     })
+    .filter((ride) => {
+      // Via-stop corridor filter (Feature 1)
+      if (viaLat === null) return true;
+      // Check each via-stop on the ride
+      const passesThrough = (ride.viaStops || []).some(
+        (vs) => haversineKm(viaLat, viaLng, vs.latitude, vs.longitude) <= viaRadiusKm
+      );
+      // Also accept if the ride's destination itself is near the requested via-point
+      const destNearVia = haversineKm(
+        viaLat, viaLng,
+        ride.destinationLocation.latitude, ride.destinationLocation.longitude
+      ) <= viaRadiusKm;
+      return passesThrough || destNearVia;
+    })
     .sort((a, b) => a.distanceKm - b.distanceKm);
 };
 
@@ -216,13 +324,47 @@ export const getRidesByDriver = async (driverId) => {
     .sort({ createdAt: -1 });
 };
 
-export const updateRideStatus = async (id, driverId, status) => {
+export const updateRideStatus = async (id, driverId, status, options = {}) => {
   const ride = await Ride.findOne({ _id: id, driver: driverId });
   if (!ride) throw new ApiError(404, 'Ride not found or unauthorized');
   const allowed = ['ACTIVE', 'FULL', 'FROZEN', 'IN_PROGRESS', 'CANCELLED', 'COMPLETED'];
   if (!allowed.includes(status)) throw new ApiError(400, 'Invalid status');
   if (ride.rideStatus !== status && !ALLOWED_TRANSITIONS[ride.rideStatus]?.includes(status)) {
     throw new ApiError(400, `Cannot move ride from ${ride.rideStatus} to ${status}`);
+  }
+
+  // ── PIN-gated pickup: starting the ride (FROZEN → IN_PROGRESS) requires the
+  // driver to enter a confirmed passenger's 4-digit pickup PIN. The matched
+  // passenger is marked picked-up. This proves the right passenger is in the car.
+  if (status === 'IN_PROGRESS' && ride.rideStatus === 'FROZEN') {
+    // Demo Mode bypass: skip PIN check when a valid server-side secret is supplied.
+    // This allows investor demos to run without needing a real passenger device.
+    const isDemoBypass =
+      options.demoBypass === true &&
+      !!process.env.DEMO_MODE_SECRET &&
+      options.demoSecret === process.env.DEMO_MODE_SECRET;
+
+    if (!isDemoBypass) {
+      const pin = String(options.pin || '').trim();
+      if (!/^\d{4}$/.test(pin)) {
+        throw new ApiError(400, 'A 4-digit passenger pickup PIN is required to start the ride.');
+      }
+      const matchedBooking = await Booking.findOne({
+        ride: ride._id,
+        bookingStatus: 'confirmed',
+        pickupPin: pin,
+      });
+      if (!matchedBooking) {
+        throw new ApiError(400, 'Invalid pickup PIN. Ask the passenger to read the PIN from their booking.');
+      }
+      if (!matchedBooking.pickedUp) {
+        matchedBooking.pickedUp = true;
+        matchedBooking.pickedUpAt = new Date();
+        await matchedBooking.save();
+      }
+    } else {
+      console.log('[DEMO] PIN bypass accepted for ride:', ride._id);
+    }
   }
 
   // Track driver cancellations
@@ -272,8 +414,31 @@ export const updateRideStatus = async (id, driverId, status) => {
         { _id: { $in: confirmedBookings.map((b) => b._id) } },
         { $set: { creditsEarned: passengerCreditsEarned, emissionSavedKg: emissionSavedPerPassenger } }
       );
+
+      // Persist onto real, spendable/leaderboard-ranked User balances (atomic $inc).
+      await Promise.all([
+        User.findByIdAndUpdate(ride.driver, {
+          $inc: {
+            greenCreditsBalance: ride.driverCreditsEarned,
+            lifetimeGreenCredits: ride.driverCreditsEarned,
+            lifetimeCo2SavedKg: ride.totalEmissionSavedKg,
+          },
+        }),
+        ...confirmedBookings.map((b) =>
+          User.findByIdAndUpdate(b.passenger, {
+            $inc: {
+              greenCreditsBalance: passengerCreditsEarned,
+              lifetimeGreenCredits: passengerCreditsEarned,
+              lifetimeCo2SavedKg: emissionSavedPerPassenger,
+            },
+          })
+        ),
+      ]).catch((err) => console.warn('[RIDE] user credit increment error:', err.message));
     } else {
       ride.driverCreditsEarned = DRIVER_BASE_CREDITS;
+      await User.findByIdAndUpdate(ride.driver, {
+        $inc: { greenCreditsBalance: DRIVER_BASE_CREDITS, lifetimeGreenCredits: DRIVER_BASE_CREDITS },
+      }).catch((err) => console.warn('[RIDE] user credit increment error:', err.message));
     }
   }
 
@@ -302,4 +467,75 @@ export const updateRideStatus = async (id, driverId, status) => {
   }
 
   return ride;
+};
+
+// ── Recurring Rides CRON helper (Feature 2) ─────────────────────────────────────
+/**
+ * spawnRecurringRides
+ * Called once daily (via the /api/v1/rides/recurring CRON endpoint).
+ * For every recurring template ride whose weeklyDays includes today's day-of-week,
+ * create a fresh ACTIVE child ride dated for today — unless one already exists.
+ *
+ * Returns a summary { checked, spawned, skipped }.
+ */
+export const spawnRecurringRides = async () => {
+  const now = new Date();
+  const todayDow = now.getDay(); // 0 = Sunday … 6 = Saturday
+
+  // Compute today's date at midnight (start of day) for the journey date
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setDate(todayEnd.getDate() + 1);
+
+  // Find all active recurring templates that include today
+  const templates = await Ride.find({
+    isRecurring: true,
+    weeklyDays: todayDow,
+    recurringParentId: null, // only top-level templates, not spawned children
+    rideStatus: { $in: ['ACTIVE', 'FULL'] }, // only live templates
+  });
+
+  let spawned = 0;
+  let skipped = 0;
+
+  for (const template of templates) {
+    // Check if a child for today already exists
+    const alreadyExists = await Ride.findOne({
+      recurringParentId: template._id,
+      journeyDate: { $gte: todayStart, $lt: todayEnd },
+    });
+
+    if (alreadyExists) {
+      skipped++;
+      continue;
+    }
+
+    // Build a child ride from the template, dated for today
+    const childData = {
+      driver: template.driver,
+      driverVehicle: template.driverVehicle,
+      journeyDate: new Date(todayStart),
+      journeyTime: template.journeyTime,
+      flexibilityMinutes: template.flexibilityMinutes,
+      availableSeats: template.availableSeats,
+      bookedSeats: 0,
+      pickupLocation: template.pickupLocation,
+      destinationLocation: template.destinationLocation,
+      viaStops: template.viaStops || [],
+      routeDistance: template.routeDistance,
+      routeDuration: template.routeDuration,
+      notes: template.notes,
+      rideStatus: 'ACTIVE',
+      isRecurring: false,     // child is a one-off instance
+      weeklyDays: [],
+      recurringParentId: template._id,
+    };
+
+    await Ride.create(childData);
+    spawned++;
+  }
+
+  console.log(`[CRON] spawnRecurringRides: checked=${templates.length} spawned=${spawned} skipped=${skipped}`);
+  return { checked: templates.length, spawned, skipped };
 };

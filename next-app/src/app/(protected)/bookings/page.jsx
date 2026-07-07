@@ -306,6 +306,55 @@ const Bookings = () => {
                   </div>
                 </div>
 
+                {/* ── Passenger ride-lifecycle strip: PIN + live state (Phase 2) ── */}
+                {roleMode === 'passenger' && booking.bookingStatus === 'confirmed' &&
+                  ['ACTIVE', 'FULL', 'FROZEN', 'IN_PROGRESS'].includes(booking.ride?.rideStatus) && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-sm bg-[var(--bg-surface)] border border-[var(--border-subtle)]">
+                    <div className="flex items-center gap-4">
+                      {/* Lifecycle state */}
+                      <div>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1">Ride State</p>
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-sm uppercase tracking-widest border ${
+                          booking.ride.rideStatus === 'IN_PROGRESS' ? 'text-emerald-400 border-emerald-500/50 animate-pulse' :
+                          booking.ride.rideStatus === 'FROZEN' ? 'text-sky-400 border-sky-500/50' :
+                          'text-[var(--text-secondary)] border-[var(--border-subtle)]'
+                        }`}>
+                          {booking.ride.rideStatus === 'IN_PROGRESS' ? '● En Route' :
+                           booking.ride.rideStatus === 'FROZEN' ? 'Boarding — awaiting start' :
+                           'Confirmed — awaiting departure'}
+                        </span>
+                      </div>
+
+                      {/* Pickup PIN (shown to the passenger only) */}
+                      {booking.pickupPin && booking.ride.rideStatus !== 'IN_PROGRESS' && (
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1">Pickup PIN</p>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-lg tracking-[0.3em] text-[var(--primary-base)]">{booking.pickupPin}</span>
+                            <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest">read to rider</span>
+                          </div>
+                        </div>
+                      )}
+                      {booking.pickedUp && booking.ride.rideStatus === 'IN_PROGRESS' && (
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1">Pickup</p>
+                          <span className="text-emerald-400 text-xs font-bold">✓ Verified — you're on board</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Live Tracking (only while the ride is in progress) */}
+                    {booking.ride.rideStatus === 'IN_PROGRESS' && (
+                      <button
+                        onClick={() => router.push(`/ride-details?id=${booking.ride._id || booking.ride.id}`)}
+                        className="btn-primary px-4 py-2 text-[10px] uppercase tracking-widest flex items-center gap-2 self-start sm:self-auto"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> Live Tracking
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 <div className="pt-2 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   {roleMode === 'passenger' ? (
                     <div className="flex items-center gap-3">

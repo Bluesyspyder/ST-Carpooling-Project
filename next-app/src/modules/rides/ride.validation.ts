@@ -18,6 +18,22 @@ const locationSchema = z.object({
   providerPlaceId: z.string().optional(),
 });
 
+// Relaxed location schema for via-stops — verified is optional (soft coordinates are acceptable).
+const viaStopSchema = z.object({
+  address: z.string().min(1, 'Via-stop address is required'),
+  latitude: z.number()
+    .min(OPERATIONAL_BOUNDS.minLat)
+    .max(OPERATIONAL_BOUNDS.maxLat)
+    .refine(val => val !== 0, 'Via-stop latitude cannot be exactly 0'),
+  longitude: z.number()
+    .min(OPERATIONAL_BOUNDS.minLng)
+    .max(OPERATIONAL_BOUNDS.maxLng)
+    .refine(val => val !== 0, 'Via-stop longitude cannot be exactly 0'),
+  verified: z.boolean().optional(),
+  provider: z.string().optional(),
+  providerPlaceId: z.string().optional(),
+});
+
 /**
  * Schema for creating a ride.
  * Both pickupLocation and destinationLocation are required with full coordinates.
@@ -33,7 +49,22 @@ export const createRideSchema = z.object({
     pickupLocation: locationSchema,
     destinationLocation: locationSchema,
     notes: z.string().optional(),
-  }),
+    // ── Via-Stops (Phase 3 — Feature 1) ───────────────────────────────────────
+    viaStops: z.array(viaStopSchema).max(2, 'Maximum 2 via-stops allowed').optional(),
+    // ── Recurring Rides (Phase 3 — Feature 2) ─────────────────────────────────
+    isRecurring: z.boolean().optional(),
+    weeklyDays: z
+      .array(z.number().int().min(0).max(6))
+      .max(7)
+      .optional(),
+  }).refine(
+    (data) => {
+      // If recurring, at least one day must be selected
+      if (data.isRecurring) return data.weeklyDays && data.weeklyDays.length > 0;
+      return true;
+    },
+    { message: 'Recurring rides must specify at least one weeklyDay (0–6).', path: ['weeklyDays'] }
+  ),
 });
 
 /**
@@ -48,6 +79,9 @@ export const searchRidesSchema = z.object({
     pickupLng: z.union([z.string(), z.number()]).optional(),
     destinationLat: z.union([z.string(), z.number()]).optional(),
     destinationLng: z.union([z.string(), z.number()]).optional(),
+    // Corridor matching: passenger's own via-point
+    viaLat: z.union([z.string(), z.number()]).optional(),
+    viaLng: z.union([z.string(), z.number()]).optional(),
     radiusKm: z.union([z.string(), z.number()]).optional(),
     driverName: z.string().optional(),
     seats: z.string().or(z.number()).optional(),
@@ -60,5 +94,12 @@ export const searchRidesSchema = z.object({
 export const updateRideStatusSchema = z.object({
   body: z.object({
     status: z.enum(['ACTIVE', 'FULL', 'FROZEN', 'IN_PROGRESS', 'CANCELLED', 'COMPLETED']),
+    // Required only for the FROZEN → IN_PROGRESS pickup transition (validated in the service).
+    pin: z.string().regex(/^\d{4}$/, 'PIN must be 4 digits').optional(),
+    // Demo Mode: bypass PIN check when demoBypass=true + correct demoSecret.
+    // The secret is validated server-side against DEMO_MODE_SECRET env var.
+    demoBypass: z.boolean().optional(),
+    demoSecret: z.string().optional(),
   }),
 });
+

@@ -8,7 +8,7 @@ import { updateRideStatusSchema } from '@/modules/rides/ride.validation';
 
 export const PATCH = apiHandler(async (req, { params, user }) => {
   const rawBody = await parseBody(req);
-  const { status } = validate(updateRideStatusSchema, { body: rawBody }).body;
-  const ride = await rideService.updateRideStatus(params!.id, user.id, status);
+  const { status, pin, demoBypass, demoSecret } = validate(updateRideStatusSchema, { body: rawBody }).body;
+  const ride = await rideService.updateRideStatus(params!.id, user.id, status, { pin, demoBypass, demoSecret });
   return NextResponse.json({ status: 'success', data: { ride } }, { status: 200 });
 }, { protect: true, restrictTo: ['hybrid', 'admin'] });

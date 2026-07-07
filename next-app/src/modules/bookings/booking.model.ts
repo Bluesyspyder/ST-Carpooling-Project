@@ -62,6 +62,13 @@ const bookingSchema = new mongoose.Schema(
     // ── Eco-credit / emissions attribution (set when the parent ride completes) ──
     creditsEarned:    { type: Number, default: 0 },
     emissionSavedKg:  { type: Number, default: 0 },
+
+    // ── Pickup verification (Phase 2) ───────────────────────────────────────────
+    // 4-digit PIN shown ONLY to the passenger; the driver must enter it at pickup
+    // to move the ride FROZEN → IN_PROGRESS. Never exposed on driver-facing queries.
+    pickupPin:       { type: String, default: null },
+    pickedUp:        { type: Boolean, default: false },
+    pickedUpAt:      { type: Date, default: null },
   },
   {
     timestamps: true,

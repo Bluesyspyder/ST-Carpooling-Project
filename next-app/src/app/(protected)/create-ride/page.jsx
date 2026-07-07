@@ -27,6 +27,8 @@ const ST_OFFICE = {
   verified: true
 };
 
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 const CreateRide = () => {
   const [step, setStep]           = useState(0);
   const [formData, setFormData]   = useState({
@@ -37,6 +39,26 @@ const CreateRide = () => {
     availableSeats: 3,
     notes: '',
   });
+
+  // ── Via-stops (Feature 1) ─────────────────────────────────────────────────
+  const [showViaStops, setShowViaStops] = useState(false);
+  const [viaStops, setViaStops] = useState([emptyLoc(), emptyLoc()]);
+
+  const updateViaStop = (idx, loc) =>
+    setViaStops((prev) => prev.map((v, i) => (i === idx ? { ...v, ...loc, verified: false } : v)));
+  const confirmViaStop = (idx) =>
+    setViaStops((prev) => prev.map((v, i) => (i === idx ? { ...v, verified: true } : v)));
+  const unconfirmViaStop = (idx) =>
+    setViaStops((prev) => prev.map((v, i) => (i === idx ? { ...v, verified: false } : v)));
+
+  // ── Recurring rides (Feature 2) ───────────────────────────────────────────
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [weeklyDays, setWeeklyDays]   = useState([]);
+
+  const toggleDay = (day) =>
+    setWeeklyDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
 
   const [vehicles, setVehicles]         = useState([]);
   const [pickupLoc, setPickupLoc]       = useState(emptyLoc());
@@ -145,12 +167,25 @@ const CreateRide = () => {
     formData.driverVehicle &&
     formData.journeyDate &&
     formData.journeyTime &&
-    formData.availableSeats > 0;
+    formData.availableSeats > 0 &&
+    (!isRecurring || weeklyDays.length > 0);
 
   const handleSubmit = async () => {
     setError('');
     setIsSubmitting(true);
     try {
+      // Collect confirmed via-stops (only include entries with coordinates)
+      const confirmedViaStops = showViaStops
+        ? viaStops
+            .filter((vs) => vs.latitude && vs.longitude)
+            .map((vs) => ({
+              address: vs.address,
+              latitude: Number(vs.latitude),
+              longitude: Number(vs.longitude),
+              verified: vs.verified ?? false,
+            }))
+        : [];
+
       const payload = {
         driverVehicle: formData.driverVehicle,
         journeyDate: new Date(formData.journeyDate).toISOString(),
@@ -170,6 +205,8 @@ const CreateRide = () => {
           longitude: Number(destLoc.longitude),
           verified: true,
         },
+        ...(confirmedViaStops.length > 0 && { viaStops: confirmedViaStops }),
+        ...(isRecurring && { isRecurring: true, weeklyDays }),
       };
 
       const res = await api.post('/rides', payload);
@@ -298,6 +335,51 @@ const CreateRide = () => {
                   )}
                 </div>
 
+                {/* ── Via-Stops toggle (Feature 1) ── */}
+                <div className="my-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowViaStops((p) => !p)}
+                    className="flex items-center gap-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition"
+                  >
+                    <span className={`w-5 h-5 rounded border flex items-center justify-center text-[10px] transition ${
+                      showViaStops ? 'bg-emerald-500 border-emerald-500 text-black' : 'border-slate-600 text-slate-500'
+                    }`}>{showViaStops ? '✓' : '+'}</span>
+                    Add a Stop Along the Way (via-stops — optional, max 2)
+                  </button>
+
+                  {showViaStops && (
+                    <div className="mt-4 space-y-5 pl-2 border-l-2 border-emerald-500/20">
+                      {[0, 1].map((idx) => (
+                        <div key={idx}>
+                          <label className={labelClass}>Via-Stop {idx + 1} <span className="text-slate-500">(Optional)</span></label>
+                          <AddressAutocomplete
+                            value={viaStops[idx].address}
+                            onChange={(loc) => updateViaStop(idx, loc)}
+                            placeholder={`Intermediate stop ${idx + 1}…`}
+                            savedAddresses={savedAddresses}
+                          />
+                          {viaStops[idx].latitude && (
+                            <div className="mt-2">
+                              <MapPreview
+                                location={viaStops[idx]}
+                                onLocationChange={(loc) => updateViaStop(idx, loc)}
+                                height="180px"
+                                interactive
+                                onConfirm={() => confirmViaStop(idx)}
+                                onUnconfirm={() => unconfirmViaStop(idx)}
+                                confirmed={viaStops[idx].verified}
+                                markerColor="#f59e0b"
+                                markerLabel={String.fromCharCode(67 + idx)} /* C, D */
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Destination */}
                 <div>
                   <label className={labelClass}>Destination</label>
@@ -413,6 +495,52 @@ const CreateRide = () => {
                 </div>
               </div>
 
+              {/* ── Recurring ride toggle (Feature 2) ── */}
+              <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-base)] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-200">Repeat Weekly</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Automatically post this ride every week on selected days</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setIsRecurring((p) => !p); if (isRecurring) setWeeklyDays([]); }}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${
+                      isRecurring ? 'bg-emerald-500' : 'bg-slate-700'
+                    }`}
+                  >
+                    <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${
+                      isRecurring ? 'left-6' : 'left-1'
+                    }`} />
+                  </button>
+                </div>
+
+                {isRecurring && (
+                  <div>
+                    <p className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider mb-2">Select days</p>
+                    <div className="flex flex-wrap gap-2">
+                      {DAY_LABELS.map((label, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => toggleDay(idx)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${
+                            weeklyDays.includes(idx)
+                              ? 'bg-emerald-500 border-emerald-500 text-black'
+                              : 'border-slate-700 text-slate-400 hover:border-emerald-500/50'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {weeklyDays.length === 0 && (
+                      <p className="text-[10px] text-amber-400 mt-2">⚠ Select at least one day to enable recurring.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Optional notes */}
               <div>
                 <label htmlFor="notes" className={labelClass}>Notes for Co-Riders <span className="text-slate-500 text-xs">(Optional)</span></label>
@@ -436,11 +564,14 @@ const CreateRide = () => {
               <div className="space-y-3 text-sm">
                 {[
                   { label: 'From', value: pickupLoc.address },
+                  ...(showViaStops && viaStops[0].latitude ? [{ label: 'Via 1', value: viaStops[0].address }] : []),
+                  ...(showViaStops && viaStops[1].latitude ? [{ label: 'Via 2', value: viaStops[1].address }] : []),
                   { label: 'To', value: destLoc.address },
                   { label: 'Vehicle', value: vehicles.find(v => v._id === formData.driverVehicle)?.vehicleName || '—' },
                   { label: 'Journey', value: formData.journeyDate && formData.journeyTime ? `${formData.journeyDate} at ${formData.journeyTime}` : '—' },
                   { label: 'Flexibility', value: formData.flexibilityMinutes === 0 ? 'On Time' : `Up to ${formData.flexibilityMinutes} mins` },
                   { label: 'Seats Available', value: formData.availableSeats },
+                  ...(isRecurring ? [{ label: 'Repeats', value: weeklyDays.map((d) => DAY_LABELS[d]).join(', ') }] : []),
                   ...(formData.notes ? [{ label: 'Notes', value: formData.notes }] : []),
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-start gap-3 p-4 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-subtle)]">

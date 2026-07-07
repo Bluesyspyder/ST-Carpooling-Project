@@ -181,21 +181,74 @@ const straightLineRoute = (origin, destination) => {
   };
 };
 
+// ─── OSRM Fallback ────────────────────────────────────────────────────────────
+
+/**
+ * Route between two points using the public OSRM demo server (car profile).
+ * Used as a second-tier fallback when Ola Maps is unavailable.
+ *
+ * NOTE: The OSRM demo server is for development only. Self-host or use a
+ * commercial OSRM instance for production workloads.
+ */
+const OSRM_BASE = 'https://router.project-osrm.org';
+
+const routeWithOSRM = async (origin, destination) => {
+  try {
+    const url = `${OSRM_BASE}/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson&steps=false`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'STCarpoolApp/1.0' },
+    });
+    if (!res.ok) {
+      console.warn(`[OSRM] HTTP ${res.status}`);
+      return null;
+    }
+    const data = await res.json();
+    if (data.code !== 'Ok' || !data.routes?.[0]) {
+      console.warn('[OSRM] No route returned:', data.code);
+      return null;
+    }
+
+    const route = data.routes[0];
+    const distanceKm = route.distance / 1000;
+    const durationMinutes = route.duration / 60;
+
+    // GeoJSON LineString coordinates are [lng, lat] — convert to {lat, lng}
+    const routePath = (route.geometry?.coordinates || []).map(([lng, lat]) => ({ lat, lng }));
+
+    if (!routePath.length) return null;
+
+    console.log(`[OSRM] Route OK: ${distanceKm.toFixed(1)} km, ${durationMinutes.toFixed(0)} min`);
+    return { routePath, distanceKm, durationMinutes, provider: 'OSRM (OSM)' };
+  } catch (err) {
+    console.error('[OSRM] Request error:', err.message);
+    return null;
+  }
+};
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
  * calculateRoute
  * Input:  { origin: { latitude, longitude }, destination: { latitude, longitude } }
  * Output: { routePath, distanceKm, durationMinutes, provider }
+ *
+ * Provider chain: Ola Maps → OSRM (OSM) → Straight-line haversine
  */
 export const calculateRoute = async ({ origin, destination }) => {
   const o = validateCoordPair(origin, 'Origin');
   const d = validateCoordPair(destination, 'Destination');
 
+  // Tier 1: Ola Maps
   const olaResult = await routeWithOla(o, d);
   if (olaResult) return olaResult;
 
-  console.warn('[ROUTE] Ola Maps failed. Returning straight-line estimate.');
+  // Tier 2: OSRM (OpenStreetMap)
+  console.warn('[ROUTE] Ola Maps failed. Trying OSRM fallback...');
+  const osrmResult = await routeWithOSRM(o, d);
+  if (osrmResult) return osrmResult;
+
+  // Tier 3: Straight-line haversine estimate
+  console.warn('[ROUTE] OSRM failed. Returning straight-line estimate.');
   return straightLineRoute(o, d);
 };
 
@@ -257,22 +310,39 @@ export const calculateMultiPointRoute = async (waypoints) => {
         throw new Error('No route returned from Ola Maps for leg');
       }
     } catch (err) {
-      console.warn(`[ROUTE_SERVICE] Backend route failed for leg ${i + 1}, using straight-line estimate:`, err.message);
-      hasFallback = true;
-      allProviders.add('Straight-line estimate');
-      
-      const distanceKm = haversineKm(origin, destination);
-      const durationMinutes = (distanceKm / 40) * 60;
-      const legPath = [origin, destination];
+      // Tier 2: try OSRM before falling back to straight-line
+      console.warn(`[ROUTE_SERVICE] Ola Maps failed for leg ${i + 1}, trying OSRM:`, err.message);
+      const osrmLeg = await routeWithOSRM(origin, destination);
 
-      if (i === 0) {
-        fullCoords = legPath;
+      if (osrmLeg && osrmLeg.routePath.length > 0) {
+        console.log(`[ROUTE_SERVICE] OSRM OK for leg ${i + 1}.`);
+        if (i === 0) {
+          fullCoords = osrmLeg.routePath;
+        } else {
+          fullCoords = fullCoords.concat(osrmLeg.routePath.slice(1));
+        }
+        totalDistanceKm += osrmLeg.distanceKm;
+        totalDurationMinutes += osrmLeg.durationMinutes;
+        allProviders.add(osrmLeg.provider);
       } else {
-        fullCoords = fullCoords.concat(legPath.slice(1));
-      }
+        // Tier 3: straight-line haversine
+        console.warn(`[ROUTE_SERVICE] OSRM failed for leg ${i + 1}, using straight-line estimate.`);
+        hasFallback = true;
+        allProviders.add('Straight-line estimate');
 
-      totalDistanceKm += distanceKm;
-      totalDurationMinutes += durationMinutes;
+        const distanceKm = haversineKm(origin, destination);
+        const durationMinutes = (distanceKm / 40) * 60;
+        const legPath = [origin, destination];
+
+        if (i === 0) {
+          fullCoords = legPath;
+        } else {
+          fullCoords = fullCoords.concat(legPath.slice(1));
+        }
+
+        totalDistanceKm += distanceKm;
+        totalDurationMinutes += durationMinutes;
+      }
     }
   }
 

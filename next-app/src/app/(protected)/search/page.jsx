@@ -231,14 +231,34 @@ const SearchRide = () => {
 
                   {/* Actions */}
                   <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between mt-4 relative z-10">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] flex items-center gap-1.5 bg-[var(--bg-base)] px-3 py-1 rounded-full">
-                      <svg className="w-4 h-4 text-[var(--primary-base)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {typeof ride.distanceKm === 'number'
-                        ? `${ride.distanceKm} KM FROM PICKUP`
-                        : (ride.routeDistance ? `${ride.routeDistance.toFixed(1)} KM` : 'ROUTE N/A')}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] flex items-center gap-1.5 bg-[var(--bg-base)] px-3 py-1 rounded-full">
+                        <svg className="w-4 h-4 text-[var(--primary-base)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {typeof ride.distanceKm === 'number'
+                          ? `${ride.distanceKm} km away`
+                          : (ride.routeDistance ? `${ride.routeDistance.toFixed(1)} km` : 'Route N/A')}
+                      </p>
+                      {(ride.etaMinutes || ride.routeDuration) && (
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5 bg-emerald-950/30 border border-emerald-500/20 px-3 py-1 rounded-full">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          ≈ {Math.round(ride.etaMinutes || ride.routeDuration)} min ride
+                        </p>
+                      )}
+                      {ride.viaStops?.length > 0 && (
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400 flex items-center gap-1.5 bg-amber-950/30 border border-amber-500/20 px-3 py-1 rounded-full">
+                          📍 {ride.viaStops.length} stop{ride.viaStops.length > 1 ? 's' : ''}
+                        </p>
+                      )}
+                      {ride.isRecurring && (
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 flex items-center gap-1.5 bg-indigo-950/30 border border-indigo-500/20 px-3 py-1 rounded-full">
+                          🔁 Weekly
+                        </p>
+                      )}
+                    </div>
                     <Link
                       href={`/ride-details?id=${ride._id}`}
                       className="btn-primary px-5 py-2 text-xs rounded-full shadow-lg shadow-[var(--primary-base)]/20 hover:shadow-[var(--primary-base)]/40"

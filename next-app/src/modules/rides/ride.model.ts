@@ -73,6 +73,37 @@ const rideSchema = new mongoose.Schema(
     },
     driverCreditsEarned: { type: Number, default: 0 },
     totalEmissionSavedKg: { type: Number, default: 0 },
+
+    // ── Via-Stops (Phase 3 — Feature 1) ─────────────────────────────────────────
+    // Up to 2 optional intermediate waypoints along the driver's route.
+    // Used for corridor-based passenger matching.
+    viaStops: {
+      type: [locationSchema],
+      default: [],
+      validate: {
+        validator: (arr) => arr.length <= 2,
+        message: 'A ride can have at most 2 via-stops.',
+      },
+    },
+
+    // ── Recurring Rides (Phase 3 — Feature 2) ────────────────────────────────────
+    // When isRecurring is true, the CRON endpoint clones this ride daily
+    // for each day-of-week listed in weeklyDays (0 = Sun … 6 = Sat).
+    isRecurring: { type: Boolean, default: false },
+    weeklyDays: {
+      type: [Number],
+      default: [],
+      validate: {
+        validator: (arr) => arr.every((d) => d >= 0 && d <= 6),
+        message: 'weeklyDays values must be integers 0–6 (Sunday–Saturday).',
+      },
+    },
+    // Child ride instances point back to the template they were spawned from.
+    recurringParentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Ride',
+      default: null,
+    },
   },
   {
     timestamps: true,

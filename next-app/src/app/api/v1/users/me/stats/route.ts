@@ -122,16 +122,12 @@ export const GET = apiHandler(async (req, { params, user }) => {
 
   const averageRating = user?.averageRating || 5.0;
 
-  // ── Green Credits / CO2 impact (fuel-type-aware, summed from stored per-ride/
-  // per-booking values computed by rideService.updateRideStatus on completion) ──
-  const passengerCo2Kg = passengerBookings.reduce((sum: number, b: any) => sum + (b.emissionSavedKg || 0), 0);
-  const passengerCredits = passengerBookings.reduce((sum: number, b: any) => sum + (b.creditsEarned || 0), 0);
-  const driverCo2Kg = driverRidesAll.reduce((sum: number, r: any) => sum + (r.totalEmissionSavedKg || 0), 0);
-  const driverCredits = driverRidesAll.reduce((sum: number, r: any) => sum + (r.driverCreditsEarned || 0), 0);
-
-  const ratingBonus = averageRating >= 4.8 ? 100 : averageRating >= 4.5 ? 50 : 0;
-  const co2SavedKg = Math.round(passengerCo2Kg + driverCo2Kg);
-  const greenCredits = Math.round(passengerCredits + driverCredits + ratingBonus);
+  // ── Green Credits / CO2 impact ──
+  // Balance/lifetime totals are now persisted directly on the User document
+  // (atomically incremented by rideService.updateRideStatus on completion),
+  // so we read them straight off rather than re-summing ride/booking history.
+  const co2SavedKg = Math.round(user.lifetimeCo2SavedKg || 0);
+  const greenCredits = Math.round(user.greenCreditsBalance || 0);
 
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const passengerCo2KgThisMonth = passengerBookings

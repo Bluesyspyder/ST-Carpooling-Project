@@ -8,7 +8,9 @@ import Booking from '@/modules/bookings/booking.model';
 
 export const GET = apiHandler(async (req, { params, user }) => {
   const ride = await rideService.getRideById(params!.id);
-  const bookings = await Booking.find({ ride: ride._id }).populate('passenger', 'firstName lastName profileImage phone email').sort({ bookingStatus: 1, createdAt: -1 });
+  // Exclude pickupPin — this endpoint is shared with the driver, who must not see
+  // passengers' PINs (they enter what the passenger tells them at pickup).
+  const bookings = await Booking.find({ ride: ride._id }).select('-pickupPin').populate('passenger', 'firstName lastName profileImage phone email').sort({ bookingStatus: 1, createdAt: -1 });
   return NextResponse.json({ status: 'success', data: { ride, bookings: bookings || [] } }, { status: 200 });
 }, { rateLimit: { name: 'rides-get-one', limit: 60, windowSeconds: 60 } });
 
