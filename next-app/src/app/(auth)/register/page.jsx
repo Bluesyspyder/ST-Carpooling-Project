@@ -132,7 +132,7 @@ const Register = () => {
   const labelClass = 'block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2';
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-12 px-4 sm:px-6 lg:px-8 flex flex-col justify-center overflow-hidden">
+    <div className="min-h-[calc(100dvh-73px)] relative py-12 px-4 sm:px-6 lg:px-8 flex flex-col justify-center overflow-hidden">
       {/* Background elements */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--primary-base)]/5 blur-[120px] rounded-full pointer-events-none" />
 

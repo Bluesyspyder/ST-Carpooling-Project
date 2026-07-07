@@ -11,4 +11,4 @@ export const POST = apiHandler(async (req) => {
   const body = validate(registerSchema, { body: rawBody }).body;
   const { user, token } = await authService.register(body);
   return NextResponse.json({ status: 'success', data: { user, token } }, { status: 201 });
-});
+}, { rateLimit: { name: 'auth-register', limit: 5, windowSeconds: 3600 } });

@@ -22,6 +22,9 @@ export const emitToUser = async (userId: string, event: string, payload: any) =>
     } else if (event === 'booking:cancelled') {
       type = 'warning';
       title = 'Booking Cancelled';
+    } else if (event === 'ride:status') {
+      type = payload.status === 'CANCELLED' ? 'warning' : 'info';
+      title = payload.status === 'CANCELLED' ? 'Ride Cancelled' : 'Ride Completed';
     }
     
     await Notification.create({

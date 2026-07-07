@@ -16,7 +16,9 @@ app.prepare().then(() => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    // Note: no Access-Control-Allow-Credentials here — this app authenticates via a
+    // Bearer token header, not cookies, and the spec forbids combining a wildcard
+    // origin with credentials:true (browsers reject the response outright).
 
     // Instantly return 200 OK for OPTIONS preflight requests
     if (req.method === 'OPTIONS') {

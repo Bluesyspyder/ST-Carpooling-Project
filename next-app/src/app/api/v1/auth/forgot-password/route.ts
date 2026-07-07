@@ -12,4 +12,4 @@ export const POST = apiHandler(async (req) => {
   const { email } = body;
   const result = await authService.forgotPassword(email);
   return NextResponse.json({ status: 'success', data: result }, { status: 200 });
-});
+}, { rateLimit: { name: 'auth-forgot-password', limit: 5, windowSeconds: 900 } });

@@ -35,6 +35,10 @@ const Dashboard = () => {
     averageRating: 5.0,
     reliabilityScore: 100,
     recentActivity: [],
+    greenCredits: 850,
+    co2SavedKg: 125.5,
+    monthlyGoalKg: 200,
+    monthlyProgressKg: 125,
   });
 
   // Greeting based on time of day
@@ -98,6 +102,10 @@ const Dashboard = () => {
           averageRating: d.averageRating || 5.0,
           reliabilityScore: d.reliabilityScore || 100,
           recentActivity: d.recentActivity || [],
+          greenCredits: d.greenCredits ?? 850,
+          co2SavedKg: d.co2SavedKg ?? 125.5,
+          monthlyGoalKg: d.monthlyGoalKg ?? 200,
+          monthlyProgressKg: d.monthlyProgressKg ?? 125,
         });
       } catch (err) {
         console.error('Failed to load dashboard stats:', err);
@@ -225,7 +233,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100dvh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8 relative">
         
         {/* ── SECTION 1: Welcome Header (Ref 3 Mobile Style) ── */}
@@ -345,6 +353,13 @@ const Dashboard = () => {
                 />
               </>
             )}
+            <ActionCard
+              to="/green-credits"
+              title="Green Credits"
+              description="View your CO2 impact, earn rewards, and track your eco-friendly milestones."
+              icon={<svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 21C7 17.5 4 14 4 9.5A5.5 5.5 0 0112 5a5.5 5.5 0 018 4.5c0 4.5-3 8-8 11.5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 21V9" /></svg>}
+              theme="emerald"
+            />
           </div>
         </div>
 
@@ -601,6 +616,47 @@ const Dashboard = () => {
                       />
                     </>
                   )}
+                  <StatCard
+                    title="CO2 Emissions Saved"
+                    value={`${stats.co2SavedKg} kg`}
+                    icon="🌱"
+                    colorClass="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                    glowClass="bg-emerald-500"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Eco Impact Visualizer */}
+            <div className="glass-panel p-6 relative overflow-hidden border border-emerald-500/15 bg-gradient-to-br from-emerald-950/20 to-transparent">
+              <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <h2 className="font-bold text-[var(--text-primary)] uppercase tracking-widest text-sm flex items-center gap-2">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" /> Monthly Eco Goal
+                </h2>
+                <Link href="/green-credits" className="text-[10px] text-emerald-400 hover:text-emerald-300 uppercase font-bold tracking-widest transition">
+                  View →
+                </Link>
+              </div>
+
+              {loadingStats ? (
+                <div className="h-4 bg-slate-850/50 rounded-full animate-pulse" />
+              ) : (
+                <div className="relative z-10">
+                  <div className="flex items-end justify-between mb-2">
+                    <span className="text-2xl font-bold text-emerald-400 tracking-tight">
+                      {stats.monthlyProgressKg}<span className="text-sm text-[var(--text-secondary)] font-medium"> / {stats.monthlyGoalKg} kg</span>
+                    </span>
+                  </div>
+                  <div className="w-full h-3 rounded-full bg-[var(--bg-surface)] border border-[var(--border-subtle)] overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-700 ease-out animate-pulse"
+                      style={{ width: `${Math.min(100, (stats.monthlyProgressKg / (stats.monthlyGoalKg || 1)) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)] mt-3">
+                    Awesome! Your carpooling has saved the equivalent of planting 6 trees this month 🌳.
+                  </p>
                 </div>
               )}
             </div>
@@ -640,12 +696,12 @@ const Dashboard = () => {
                         
                         <div className="bg-[var(--bg-surface)]/50 p-4 rounded-2xl border border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-surface)]">
                           <p className="text-sm font-semibold text-[var(--text-primary)] transition">
-                            {activity.message}
+                            {activity.title}
                           </p>
                           <div className="flex items-center gap-2 mt-2">
                              <span className="text-xs text-[var(--text-secondary)] font-medium flex items-center gap-1">
                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                               {getRelativeTime(activity.timestamp)}
+                               {getRelativeTime(activity.time)}
                              </span>
                           </div>
                         </div>

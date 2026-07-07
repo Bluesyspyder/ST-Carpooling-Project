@@ -11,6 +11,7 @@ const SearchRide = () => {
     driverName: '',
     journeyDate: '',
     seats: 1,
+    radiusKm: 10,
   });
   const [pickupLocation, setPickupLocation] = useState(null);
   const [rides, setRides] = useState([]);
@@ -27,6 +28,7 @@ const SearchRide = () => {
       if (pickupLocation?.latitude && pickupLocation?.longitude) {
         params.pickupLat = pickupLocation.latitude;
         params.pickupLng = pickupLocation.longitude;
+        params.radiusKm = filters.radiusKm;
       } else if (filters.pickupArea) {
         params.pickupArea = filters.pickupArea;
       }
@@ -61,7 +63,7 @@ const SearchRide = () => {
   const inputClass = "form-input block w-full px-4 py-2.5 text-sm";
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100dvh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-[1500px] mx-auto space-y-8">
         <div className="glass-panel p-6 sm:p-8 rounded-[2rem] shadow-2xl relative overflow-hidden mb-8 border-none bg-gradient-to-br from-[var(--bg-surface)] to-[var(--bg-base)]">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--primary-base)] to-[var(--secondary-base)]"></div>
@@ -86,6 +88,22 @@ const SearchRide = () => {
                   placeholder="e.g. City Center, Sector 14"
                 />
               </div>
+
+              {pickupLocation?.latitude && (
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1.5 font-medium">Search Radius</label>
+                  <select
+                    name="radiusKm"
+                    value={filters.radiusKm}
+                    onChange={handleChange}
+                    className={inputClass}
+                  >
+                    {[5, 10, 20, 35, 50].map((km) => (
+                      <option key={km} value={km}>{km} km</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs text-slate-400 mb-1.5 font-medium">Driver Name</label>
@@ -217,7 +235,9 @@ const SearchRide = () => {
                       <svg className="w-4 h-4 text-[var(--primary-base)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      {ride.routeDistance ? `${ride.routeDistance.toFixed(1)} KM` : 'ROUTE N/A'}
+                      {typeof ride.distanceKm === 'number'
+                        ? `${ride.distanceKm} KM FROM PICKUP`
+                        : (ride.routeDistance ? `${ride.routeDistance.toFixed(1)} KM` : 'ROUTE N/A')}
                     </p>
                     <Link
                       href={`/ride-details?id=${ride._id}`}

@@ -30,7 +30,7 @@ const CheckEmail = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex flex-col items-center justify-center px-4 relative">
+    <div className="min-h-[calc(100dvh-73px)] bg-slate-950 flex flex-col items-center justify-center px-4 relative">
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/5 blur-[140px] rounded-full pointer-events-none" />
 
       <div className="glass-panel max-w-md w-full p-10 rounded-2xl border border-slate-800/80 text-center relative">

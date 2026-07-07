@@ -2,8 +2,42 @@
 import Ride from './ride.model';
 import Vehicle from '../vehicles/vehicle.model';
 import User from '../users/user.model';
+import Booking from '../bookings/booking.model';
 import { ApiError } from '@/lib/api-wrapper';
 import { recordLocationUsage } from '../users/user.service';
+import { emitToUser } from '@/socket/socketHandler';
+
+const EARTH_RADIUS_KM = 6371;
+
+// ── Eco-credit / emissions constants, keyed by Vehicle.vehicleType ──
+const EMISSION_FACTORS_KG_PER_KM = { petrol: 0.192, diesel: 0.171, ev: 0.001 };
+const PASSENGER_CREDITS_PER_KM = 1.2;
+const DRIVER_BASE_CREDITS = 5;
+const DRIVER_FUEL_CREDITS = { petrol: 1, diesel: 0.8, ev: 1.8 };
+
+// Ride lifecycle transitions allowed from each current status.
+const ALLOWED_TRANSITIONS = {
+  ACTIVE: ['FROZEN', 'CANCELLED', 'COMPLETED'],
+  FULL: ['FROZEN', 'CANCELLED', 'COMPLETED'],
+  FROZEN: ['IN_PROGRESS', 'CANCELLED', 'COMPLETED'],
+  IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
+  CANCELLED: [],
+  COMPLETED: [],
+};
+
+/**
+ * Great-circle distance between two lat/lng points, in kilometers.
+ * Used for true radius-based ride matching (replaces the old bounding-box-only filter).
+ */
+const haversineKm = (lat1, lng1, lat2, lng2) => {
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
 
 /**
  * Build a validated, verified location object from raw input.
@@ -52,6 +86,10 @@ export const createRide = async (rideData) => {
     pickupLocation: pickup,
     destinationLocation: destination,
     rideStatus: 'ACTIVE',
+    routeDistance: rideData.routeDistance ?? haversineKm(
+      pickup.latitude, pickup.longitude,
+      destination.latitude, destination.longitude
+    ),
   };
 
   const ride = await Ride.create(finalRideData);
@@ -86,17 +124,40 @@ export const getRides = async (filters = {}) => {
     query.journeyDate = { $gte: date, $lt: nextDay };
   }
 
+  // Radius-based pickup matching. The requested radius (default 10km, capped at 50km)
+  // drives a coarse lat/lng bounding box (cheap, index-friendly pre-filter), and the
+  // exact haversine distance is then computed per-candidate below to enforce a true
+  // circular radius rather than a lopsided box.
+  const radiusKm = Math.min(Number(filters.radiusKm) || 10, 50);
+  let pickupLat = null;
+  let pickupLng = null;
+
   if (filters.pickupLat && filters.pickupLng) {
-    const lat = Number(filters.pickupLat);
-    const lng = Number(filters.pickupLng);
-    // ~5km bounding box
-    const latDelta = 0.045;
-    const lngDelta = 0.045 / Math.cos(lat * (Math.PI / 180));
-    
-    query['pickupLocation.latitude'] = { $gte: lat - latDelta, $lte: lat + latDelta };
-    query['pickupLocation.longitude'] = { $gte: lng - lngDelta, $lte: lng + lngDelta };
+    pickupLat = Number(filters.pickupLat);
+    pickupLng = Number(filters.pickupLng);
+    const latDelta = radiusKm / 111; // ~111km per degree latitude
+    const lngDelta = radiusKm / (111 * Math.cos(pickupLat * (Math.PI / 180)));
+
+    query['pickupLocation.latitude'] = { $gte: pickupLat - latDelta, $lte: pickupLat + latDelta };
+    query['pickupLocation.longitude'] = { $gte: pickupLng - lngDelta, $lte: pickupLng + lngDelta };
   } else if (filters.pickupArea) {
     query['pickupLocation.address'] = { $regex: filters.pickupArea, $options: 'i' };
+  }
+
+  // Optional corridor matching: when the passenger's destination is also supplied,
+  // only surface rides whose destination is roughly along the same corridor
+  // (within a wider radius), instead of matching on pickup proximity alone.
+  let destinationLat = null;
+  let destinationLng = null;
+  const destinationRadiusKm = radiusKm * 1.5;
+  if (filters.destinationLat && filters.destinationLng) {
+    destinationLat = Number(filters.destinationLat);
+    destinationLng = Number(filters.destinationLng);
+    const latDelta = destinationRadiusKm / 111;
+    const lngDelta = destinationRadiusKm / (111 * Math.cos(destinationLat * (Math.PI / 180)));
+
+    query['destinationLocation.latitude'] = { $gte: destinationLat - latDelta, $lte: destinationLat + latDelta };
+    query['destinationLocation.longitude'] = { $gte: destinationLng - lngDelta, $lte: destinationLng + lngDelta };
   }
 
   if (filters.seats) {
@@ -118,10 +179,35 @@ export const getRides = async (filters = {}) => {
     }
   }
 
-  return await Ride.find(query)
+  const rides = await Ride.find(query)
     .populate('driver', 'firstName lastName profileImage averageRating')
     .populate('driverVehicle')
     .sort({ journeyDate: 1, journeyTime: 1 });
+
+  if (pickupLat === null) {
+    return rides;
+  }
+
+  // Enforce the true circular radius (the bounding box above is only a coarse
+  // pre-filter) and annotate + sort by actual distance from the requested pickup point.
+  return rides
+    .map((ride) => ride.toObject())
+    .map((ride) => ({
+      ...ride,
+      distanceKm: Math.round(
+        haversineKm(pickupLat, pickupLng, ride.pickupLocation.latitude, ride.pickupLocation.longitude) * 10
+      ) / 10,
+    }))
+    .filter((ride) => ride.distanceKm <= radiusKm)
+    .filter((ride) => {
+      if (destinationLat === null) return true;
+      const destDistance = haversineKm(
+        destinationLat, destinationLng,
+        ride.destinationLocation.latitude, ride.destinationLocation.longitude
+      );
+      return destDistance <= destinationRadiusKm;
+    })
+    .sort((a, b) => a.distanceKm - b.distanceKm);
 };
 
 export const getRidesByDriver = async (driverId) => {
@@ -133,9 +219,12 @@ export const getRidesByDriver = async (driverId) => {
 export const updateRideStatus = async (id, driverId, status) => {
   const ride = await Ride.findOne({ _id: id, driver: driverId });
   if (!ride) throw new ApiError(404, 'Ride not found or unauthorized');
-  const allowed = ['ACTIVE', 'FULL', 'CANCELLED', 'COMPLETED'];
+  const allowed = ['ACTIVE', 'FULL', 'FROZEN', 'IN_PROGRESS', 'CANCELLED', 'COMPLETED'];
   if (!allowed.includes(status)) throw new ApiError(400, 'Invalid status');
-  
+  if (ride.rideStatus !== status && !ALLOWED_TRANSITIONS[ride.rideStatus]?.includes(status)) {
+    throw new ApiError(400, `Cannot move ride from ${ride.rideStatus} to ${status}`);
+  }
+
   // Track driver cancellations
   if (status === 'CANCELLED' && ride.rideStatus !== 'CANCELLED') {
     const now = new Date();
@@ -158,7 +247,59 @@ export const updateRideStatus = async (id, driverId, status) => {
     }
   }
 
+  const previousStatus = ride.rideStatus;
+
+  // Compute fuel-type-aware eco-credits/emissions on completion, before saving
+  // the new status, so the ride document is written once with everything set.
+  if (status === 'COMPLETED' && previousStatus !== 'COMPLETED') {
+    const confirmedBookings = await Booking.find({ ride: ride._id, bookingStatus: 'confirmed' });
+    const vehicle = await Vehicle.findById(ride.driverVehicle).select('vehicleType');
+    const fuelType = vehicle?.vehicleType || 'petrol';
+    const distanceKm = ride.routeDistance || 0;
+
+    if (distanceKm > 0 && confirmedBookings.length > 0) {
+      const totalSeats = (ride.availableSeats || 0) + (ride.bookedSeats || 0);
+      const occupancyRatio = totalSeats > 0 ? (ride.bookedSeats || 0) / totalSeats : 0;
+
+      ride.driverCreditsEarned = DRIVER_BASE_CREDITS + occupancyRatio * distanceKm * DRIVER_FUEL_CREDITS[fuelType];
+      const emissionPerCar = distanceKm * EMISSION_FACTORS_KG_PER_KM[fuelType];
+      ride.totalEmissionSavedKg = emissionPerCar * confirmedBookings.length;
+
+      const passengerCreditsEarned = distanceKm * PASSENGER_CREDITS_PER_KM;
+      const emissionSavedPerPassenger = ride.totalEmissionSavedKg / confirmedBookings.length;
+
+      await Booking.updateMany(
+        { _id: { $in: confirmedBookings.map((b) => b._id) } },
+        { $set: { creditsEarned: passengerCreditsEarned, emissionSavedKg: emissionSavedPerPassenger } }
+      );
+    } else {
+      ride.driverCreditsEarned = DRIVER_BASE_CREDITS;
+    }
+  }
+
   ride.rideStatus = status;
   await ride.save();
+
+  // Notify every passenger with a live booking on this ride when the driver
+  // cancels or completes it, so they're not left waiting on a dead ride.
+  if ((status === 'CANCELLED' || status === 'COMPLETED') && previousStatus !== status) {
+    const affectedBookings = await Booking.find({
+      ride: ride._id,
+      bookingStatus: { $in: ['pending', 'confirmed', 'waitlisted'] },
+    }).select('passenger');
+
+    const message = status === 'CANCELLED'
+      ? 'The Rider has cancelled this ride.'
+      : 'This ride has been marked as completed.';
+
+    affectedBookings.forEach((booking) => {
+      emitToUser(booking.passenger.toString(), 'ride:status', {
+        rideId: ride._id,
+        status,
+        message,
+      }).catch((err) => console.warn('[RIDE] notify passenger error:', err.message));
+    });
+  }
+
   return ride;
 };

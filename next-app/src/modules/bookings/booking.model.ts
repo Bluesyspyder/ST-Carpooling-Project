@@ -58,6 +58,10 @@ const bookingSchema = new mongoose.Schema(
     rated:           { type: Boolean, default: false },
     rating:          { type: Number, min: 1, max: 5, default: null },
     ratingComment:   { type: String, default: '' },
+
+    // ── Eco-credit / emissions attribution (set when the parent ride completes) ──
+    creditsEarned:    { type: Number, default: 0 },
+    emissionSavedKg:  { type: Number, default: 0 },
   },
   {
     timestamps: true,

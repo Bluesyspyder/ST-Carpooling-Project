@@ -48,7 +48,7 @@ const VerifyOTPContent = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[calc(100dvh-73px)] bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -117,7 +117,7 @@ const VerifyOTPContent = () => {
 
 const VerifyOTP = () => {
   return (
-    <Suspense fallback={<div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-[calc(100dvh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">Loading...</div>}>
       <VerifyOTPContent />
     </Suspense>
   );

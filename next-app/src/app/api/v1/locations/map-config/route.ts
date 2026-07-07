@@ -10,5 +10,5 @@ export const GET = apiHandler(async (req, { params, user }) => {
   const query = Object.fromEntries(url.searchParams.entries());
   const config = await locationService.getMapConfig();
   return NextResponse.json({ status: 'success', data: config }, { status: 200 });
-}, {});
+}, { rateLimit: { name: 'locations-map-config', limit: 30, windowSeconds: 60 } });
 

@@ -137,8 +137,10 @@ const Profile = () => {
     try {
       const formData = new FormData();
       formData.append('profileImage', file);
+      // Let axios/the browser set Content-Type (incl. the multipart boundary) —
+      // forcing 'multipart/form-data' here strips the boundary and breaks parsing server-side.
       const response = await api.post('/users/profile/upload-image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 'Content-Type': undefined },
       });
       setUser(response.data.data.user);
     } catch (error) {
@@ -173,7 +175,7 @@ const Profile = () => {
       const formData = new FormData();
       formData.append('vehicleImage', file);
       const response = await api.post(`/vehicles/${vehicleId}/upload-image`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 'Content-Type': undefined },
       });
       setVehicles((prev) => prev.map((v) => (v._id === vehicleId ? response.data.data.vehicle : v)));
     } catch (error) {
@@ -275,7 +277,7 @@ const Profile = () => {
   /* ── guards ── */
   if (!user) {
     return (
-      <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">
+      <div className="min-h-[calc(100dvh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">
         Loading profile...
       </div>
     );
@@ -290,7 +292,7 @@ const Profile = () => {
 
   /* ──────────────────────────────── RENDER ──────────────────────────────── */
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100dvh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-[1400px] mx-auto">
         <h2 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight mb-8">User Profile</h2>
 

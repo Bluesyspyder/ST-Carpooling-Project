@@ -12,4 +12,4 @@ export const POST = apiHandler(async (req) => {
   const { email, otp } = body;
   const result = await authService.verifyOtp(email, otp);
   return NextResponse.json({ status: 'success', data: result }, { status: 200 });
-});
+}, { rateLimit: { name: 'auth-verify-otp', limit: 10, windowSeconds: 900 } });

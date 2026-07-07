@@ -11,5 +11,5 @@ export const GET = apiHandler(async (req, { params, user }) => {
   if (!query.lat || !query.lng) throw new ApiError(400, 'Missing lat/lng parameters');
   const result = await locationService.reverseGeocode(Number(query.lat), Number(query.lng));
   return NextResponse.json({ status: 'success', data: result }, { status: 200 });
-}, {});
+}, { rateLimit: { name: 'locations-reverse-geocode', limit: 30, windowSeconds: 60 } });
 

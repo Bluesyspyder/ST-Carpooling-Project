@@ -15,4 +15,4 @@ export const POST = apiHandler(async (req) => {
   const result = await calculateMultiPointRoute(body.waypoints);
   
   return NextResponse.json({ status: 'success', data: result }, { status: 200 });
-}, { protect: false });
+}, { protect: false, rateLimit: { name: 'routes-calculate-multipoint', limit: 20, windowSeconds: 60 } });

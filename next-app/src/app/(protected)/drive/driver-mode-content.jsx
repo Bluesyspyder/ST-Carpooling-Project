@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import api from '@/services/api';
+import api, { SOCKET_URL } from '@/services/api';
 import { io } from 'socket.io-client';
 import { Geolocation } from '@capacitor/geolocation';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
@@ -23,6 +23,18 @@ export default function DriverModeContent() {
   
   const socketRef = useRef(null);
   const watchIdRef = useRef(null);
+  const rideRef = useRef(null);
+  const autoCompletingRef = useRef(false);
+
+  // Great-circle distance in km — mirrors the server-side haversineKm helper.
+  const haversineKm = (lat1, lng1, lat2, lng2) => {
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
   
   // Custom marker for Driver Car
   const carIcon = typeof window !== 'undefined' ? new L.Icon({
@@ -52,6 +64,10 @@ export default function DriverModeContent() {
     if (user && id) fetchRide();
   }, [id, user]);
 
+  useEffect(() => {
+    rideRef.current = ride;
+  }, [ride]);
+
   const startDriving = async () => {
     try {
       const permissions = await Geolocation.checkPermissions();
@@ -65,13 +81,11 @@ export default function DriverModeContent() {
 
       setIsDriving(true);
 
-      // Connect to Socket.io (which is running on our backend's port)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
-      // The socket server is on the root of that domain
-      const baseUrl = new URL(apiUrl, window.location.origin).origin;
-      
+      // Connect to Socket.io using the same resolved backend URL as the REST API
+      const baseUrl = SOCKET_URL || window.location.origin;
+
       socketRef.current = io(baseUrl);
-      
+
       socketRef.current.on('connect', () => {
         socketRef.current.emit('join_ride', id);
       });
@@ -87,7 +101,7 @@ export default function DriverModeContent() {
           if (position) {
             const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
             setCurrentLocation(loc);
-            
+
             // Emit to passengers
             socketRef.current.emit('driver_location_update', {
               rideId: id,
@@ -97,6 +111,22 @@ export default function DriverModeContent() {
               speed: position.coords.speed,
               timestamp: Date.now()
             });
+
+            // Auto-complete: once the driver is within ~150m of the destination
+            // while the ride is IN_PROGRESS, mark it completed automatically.
+            const currentRide = rideRef.current;
+            const dest = currentRide?.destinationLocation;
+            if (
+              currentRide?.rideStatus === 'IN_PROGRESS' &&
+              dest?.latitude && dest?.longitude &&
+              !autoCompletingRef.current
+            ) {
+              const distanceKm = haversineKm(loc.lat, loc.lng, dest.latitude, dest.longitude);
+              if (distanceKm <= 0.15) {
+                autoCompletingRef.current = true;
+                updateRideStatus('COMPLETED', { auto: true });
+              }
+            }
           }
         }
       );
@@ -117,6 +147,28 @@ export default function DriverModeContent() {
     if (socketRef.current) {
       socketRef.current.emit('leave_ride', id);
       socketRef.current.disconnect();
+    }
+  };
+
+  const updateRideStatus = async (status, { auto = false } = {}) => {
+    if (!auto) {
+      const confirmMessage = status === 'CANCELLED'
+        ? 'Cancel this ride? All passengers will be notified immediately.'
+        : status === 'COMPLETED'
+        ? 'Mark this ride as completed?'
+        : status === 'FROZEN'
+        ? 'Freeze bookings? No new passengers will be able to book this ride.'
+        : 'Start this ride and begin live GPS tracking?';
+      if (!window.confirm(confirmMessage)) return;
+    }
+    try {
+      if (status === 'COMPLETED' || status === 'CANCELLED') await stopDriving();
+      const res = await api.patch(`/rides/${id}/status`, { status });
+      setRide(res.data.data.ride);
+      if (status === 'IN_PROGRESS') await startDriving();
+      return res.data.data.ride;
+    } catch (err) {
+      alert(err.response?.data?.message || `Failed to update ride status.`);
     }
   };
 
@@ -153,14 +205,48 @@ export default function DriverModeContent() {
       <div className="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center z-10 shadow-lg">
         <div>
           <h1 className="text-xl font-bold text-white">Driver Mode</h1>
-          <p className="text-xs text-slate-400">Ride #{id.substring(0, 6)}</p>
+          <p className="text-xs text-slate-400">Ride #{id.substring(0, 6)} &middot; {ride.rideStatus}</p>
         </div>
-        <button 
-          onClick={() => router.back()}
-          className="text-sm px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700"
-        >
-          Exit
-        </button>
+        <div className="flex items-center gap-2">
+          {(ride.rideStatus === 'ACTIVE' || ride.rideStatus === 'FULL') && (
+            <button
+              onClick={() => updateRideStatus('FROZEN')}
+              className="text-sm px-3 py-2 bg-sky-700 rounded-lg hover:bg-sky-600"
+            >
+              Freeze Bookings
+            </button>
+          )}
+          {ride.rideStatus === 'FROZEN' && (
+            <button
+              onClick={() => updateRideStatus('IN_PROGRESS')}
+              className="text-sm px-3 py-2 bg-indigo-700 rounded-lg hover:bg-indigo-600"
+            >
+              Start Ride
+            </button>
+          )}
+          {['ACTIVE', 'FULL', 'FROZEN', 'IN_PROGRESS'].includes(ride.rideStatus) && (
+            <>
+              <button
+                onClick={() => updateRideStatus('COMPLETED')}
+                className="text-sm px-3 py-2 bg-emerald-700 rounded-lg hover:bg-emerald-600"
+              >
+                Complete Ride
+              </button>
+              <button
+                onClick={() => updateRideStatus('CANCELLED')}
+                className="text-sm px-3 py-2 bg-red-700 rounded-lg hover:bg-red-600"
+              >
+                Cancel Ride
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => router.back()}
+            className="text-sm px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700"
+          >
+            Exit
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 relative">

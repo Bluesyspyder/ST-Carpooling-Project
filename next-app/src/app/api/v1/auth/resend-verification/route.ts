@@ -11,4 +11,4 @@ export const POST = apiHandler(async (req) => {
   const { email } = body;
   const result = await authService.resendVerification(email);
   return NextResponse.json({ status: 'success', data: result }, { status: 200 });
-});
+}, { rateLimit: { name: 'auth-resend-verification', limit: 5, windowSeconds: 900 } });

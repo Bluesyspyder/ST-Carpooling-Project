@@ -188,7 +188,7 @@ const CreateRide = () => {
 
   if (success) {
     return (
-      <div className="min-h-[calc(100vh-73px)] relative flex items-center justify-center px-4">
+      <div className="min-h-[calc(100dvh-73px)] relative flex items-center justify-center px-4">
         <div className="glass-panel p-12 text-center border-l-4 border-l-[var(--primary-base)] max-w-md w-full shadow-2xl shadow-[var(--border-glow)]">
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
             <svg className="w-10 h-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -206,7 +206,7 @@ const CreateRide = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100dvh-73px)] relative py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto relative">
         {/* Header */}
         <div className="glass-panel p-6 sm:p-8 rounded-[2rem] shadow-2xl relative overflow-hidden mb-8 border-none bg-gradient-to-br from-[var(--bg-surface)] to-[var(--bg-base)] text-center sm:text-left">

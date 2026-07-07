@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from './jwt';
 import User from '../modules/users/user.model';
 import dbConnect from './dbConnect';
+import { checkRateLimit, RateLimitOptions } from './rate-limit';
 
 export class ApiError extends Error {
   statusCode: number;
@@ -67,9 +68,20 @@ type HandlerParams = {
 
 type ApiRouteHandler = (req: NextRequest, ctx: any) => Promise<NextResponse> | NextResponse;
 
-export function apiHandler(handler: ApiRouteHandler, options: { protect?: boolean, restrictTo?: string[] } = {}) {
+export function apiHandler(handler: ApiRouteHandler, options: { protect?: boolean, restrictTo?: string[], rateLimit?: RateLimitOptions } = {}) {
   return async (req: NextRequest, context: any) => {
     try {
+      if (options.rateLimit) {
+        const result = await checkRateLimit(req, options.rateLimit);
+        if (!result.success) {
+          const retryAfterSeconds = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000));
+          return NextResponse.json(
+            { status: 'error', statusCode: 429, message: 'Too many requests. Please try again later.' },
+            { status: 429, headers: { 'Retry-After': String(retryAfterSeconds) } }
+          );
+        }
+      }
+
       await dbConnect();
       let user = null;
 

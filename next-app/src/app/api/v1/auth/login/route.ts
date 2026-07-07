@@ -12,4 +12,4 @@ export const POST = apiHandler(async (req) => {
   const { email, password } = body;
   const { user, token } = await authService.login(email, password);
   return NextResponse.json({ status: 'success', data: { user, token } }, { status: 200 });
-});
+}, { rateLimit: { name: 'auth-login', limit: 10, windowSeconds: 900 } });

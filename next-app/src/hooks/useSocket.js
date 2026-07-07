@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
-
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+import { SOCKET_URL } from '@/services/api';
 
 /**
  * useSocket — establishes an authenticated Socket.io connection for the logged-in user.
@@ -26,7 +25,7 @@ const useSocket = (token, handlers = {}) => {
   });
 
   useEffect(() => {
-    if (!token) return; // not logged in
+    if (!token || !SOCKET_URL) return; // not logged in, or no backend URL resolved
 
     const socket = io(SOCKET_URL, {
       auth: { token },

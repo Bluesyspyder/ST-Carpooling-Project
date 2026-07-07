@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { ApiError } from '@/lib/api-wrapper';
+import { isWithinOperationalBounds } from '@/lib/geofence';
 
 // ─── Ola Maps — all geocoding/autocomplete for the Indian market ─────────────
 // Docs: https://api.olamaps.io
@@ -17,15 +18,9 @@ const getOlaApiKey = () => {
 };
 
 /**
- * India bounding-box guard.
- * Returns true when the coordinate falls within rough India bounds.
- * Lat: 6.5 – 35.7   Lng: 68.1 – 97.4
+ * India bounding-box guard, backed by the shared operational bounds config.
  */
-export const isIndiaCoordinate = (lat, lng) => {
-  const la = Number(lat);
-  const lo = Number(lng);
-  return la >= 6.5 && la <= 35.7 && lo >= 68.1 && lo <= 97.4;
-};
+export const isIndiaCoordinate = (lat, lng) => isWithinOperationalBounds(lat, lng);
 
 // ─── Autocomplete ──────────────────────────────────────────────────────────────
 
@@ -61,13 +56,17 @@ export const autocompleteWithOla = async (query) => {
 
     if (!data?.predictions?.length) return [];
 
-    return data.predictions.map((p) => ({
-      address: p.description || p.structured_formatting?.main_text || p.name,
-      latitude: p.geometry?.location?.lat ?? null,
-      longitude: p.geometry?.location?.lng ?? null,
-      provider: 'Ola Maps',
-      providerPlaceId: p.place_id || null,
-    }));
+    return data.predictions
+      .map((p) => ({
+        address: p.description || p.structured_formatting?.main_text || p.name,
+        latitude: p.geometry?.location?.lat ?? null,
+        longitude: p.geometry?.location?.lng ?? null,
+        provider: 'Ola Maps',
+        providerPlaceId: p.place_id || null,
+      }))
+      // Drop suggestions outside the operational region (coordinates missing
+      // is not itself disqualifying — some predictions resolve lat/lng later).
+      .filter((p) => p.latitude == null || p.longitude == null || isWithinOperationalBounds(p.latitude, p.longitude));
   } catch (err) {
     console.error('[OLA_AUTOCOMPLETE] Request error:', err.message);
     throw err;

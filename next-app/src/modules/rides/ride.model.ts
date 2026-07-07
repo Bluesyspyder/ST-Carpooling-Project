@@ -49,7 +49,7 @@ const rideSchema = new mongoose.Schema(
     availableSeats: {
       type: Number,
       required: [true, 'Available seats count is required'],
-      min: [1, 'Must have at least 1 available seat'],
+      min: [0, 'Available seats cannot be negative'],
     },
     bookedSeats: {
       type: Number,
@@ -68,9 +68,11 @@ const rideSchema = new mongoose.Schema(
     notes: { type: String, default: '' },
     rideStatus: {
       type: String,
-      enum: ['ACTIVE', 'FULL', 'CANCELLED', 'COMPLETED'],
+      enum: ['ACTIVE', 'FULL', 'FROZEN', 'IN_PROGRESS', 'CANCELLED', 'COMPLETED'],
       default: 'ACTIVE',
     },
+    driverCreditsEarned: { type: Number, default: 0 },
+    totalEmissionSavedKg: { type: Number, default: 0 },
   },
   {
     timestamps: true,

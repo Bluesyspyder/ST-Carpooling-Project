@@ -11,5 +11,5 @@ export const GET = apiHandler(async (req, { params, user }) => {
   if (!query.address) throw new ApiError(400, 'Missing address parameter');
   const result = await locationService.geocodeAddress(query.address as string);
   return NextResponse.json({ status: 'success', data: result }, { status: 200 });
-}, {});
+}, { rateLimit: { name: 'locations-geocode', limit: 30, windowSeconds: 60 } });
 

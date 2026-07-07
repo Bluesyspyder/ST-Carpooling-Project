@@ -37,17 +37,17 @@ export const GET = apiHandler(async (req, { params, user }) => {
     return { ...ride, pendingRequests }; 
   }));
   
-  const passengerBookings = await Booking.find({ passenger: userId }).populate({ path: 'ride', select: 'rideStatus' }).lean();
+  const passengerBookings = await Booking.find({ passenger: userId }).select('bookingStatus updatedAt creditsEarned emissionSavedKg').populate({ path: 'ride', select: 'rideStatus' }).lean();
   const totalBookings = passengerBookings.length;
   const completedTrips = passengerBookings.filter((b: any) => b.bookingStatus === 'confirmed' && b.ride && b.ride.rideStatus === 'COMPLETED').length;
-  
+
   // Real cancellation metrics from User model (if present)
   const cancelledByUser = user.cancellations24h || 0;
-  
+
   const ridesOffered = await Ride.countDocuments({ driver: userId });
-  const driverRidesAll = await Ride.find({ driver: userId }).select('_id rideStatus').lean();
+  const driverRidesAll = await Ride.find({ driver: userId }).select('_id rideStatus driverCreditsEarned totalEmissionSavedKg updatedAt').lean();
   const driverRideIds = driverRidesAll.map(r => r._id);
-  const confirmedDriverBookings = await Booking.find({ ride: { $in: driverRideIds }, bookingStatus: 'confirmed' }).lean();
+  const confirmedDriverBookings = await Booking.find({ ride: { $in: driverRideIds }, bookingStatus: 'confirmed' }).select('ride seatsBooked updatedAt').lean();
   const completedRideIds = new Set(driverRidesAll.filter(r => r.rideStatus === 'COMPLETED').map(r => r._id.toString()));
   const passengersTransported = confirmedDriverBookings.filter((b: any) => completedRideIds.has(b.ride.toString())).reduce((sum: number, b: any) => sum + (b.seatsBooked || 1), 0);
   
@@ -121,18 +121,47 @@ export const GET = apiHandler(async (req, { params, user }) => {
   recentActivity = recentActivity.slice(0, 5);
 
   const averageRating = user?.averageRating || 5.0;
-  return NextResponse.json({ 
-    status: 'success', 
-    data: { 
-      upcomingBookings: filteredBookings, 
-      drivingRides, 
-      totalBookings, 
-      completedTrips, 
-      ridesOffered, 
-      passengersTransported, 
-      averageRating, 
-      recentActivity 
-    } 
+
+  // ── Green Credits / CO2 impact (fuel-type-aware, summed from stored per-ride/
+  // per-booking values computed by rideService.updateRideStatus on completion) ──
+  const passengerCo2Kg = passengerBookings.reduce((sum: number, b: any) => sum + (b.emissionSavedKg || 0), 0);
+  const passengerCredits = passengerBookings.reduce((sum: number, b: any) => sum + (b.creditsEarned || 0), 0);
+  const driverCo2Kg = driverRidesAll.reduce((sum: number, r: any) => sum + (r.totalEmissionSavedKg || 0), 0);
+  const driverCredits = driverRidesAll.reduce((sum: number, r: any) => sum + (r.driverCreditsEarned || 0), 0);
+
+  const ratingBonus = averageRating >= 4.8 ? 100 : averageRating >= 4.5 ? 50 : 0;
+  const co2SavedKg = Math.round(passengerCo2Kg + driverCo2Kg);
+  const greenCredits = Math.round(passengerCredits + driverCredits + ratingBonus);
+
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const passengerCo2KgThisMonth = passengerBookings
+    .filter((b: any) => new Date(b.updatedAt) >= startOfMonth)
+    .reduce((sum: number, b: any) => sum + (b.emissionSavedKg || 0), 0);
+  const driverCo2KgThisMonth = driverRidesAll
+    .filter((r: any) => new Date(r.updatedAt) >= startOfMonth)
+    .reduce((sum: number, r: any) => sum + (r.totalEmissionSavedKg || 0), 0);
+  const monthlyGoalKg = 50;
+  const monthlyProgressKg = Math.min(
+    monthlyGoalKg,
+    Math.round(passengerCo2KgThisMonth + driverCo2KgThisMonth)
+  );
+
+  return NextResponse.json({
+    status: 'success',
+    data: {
+      upcomingBookings: filteredBookings,
+      drivingRides,
+      totalBookings,
+      completedTrips,
+      ridesOffered,
+      passengersTransported,
+      averageRating,
+      recentActivity,
+      greenCredits,
+      co2SavedKg,
+      monthlyGoalKg,
+      monthlyProgressKg,
+    }
   }, { status: 200 });
 }, { protect: true });
 

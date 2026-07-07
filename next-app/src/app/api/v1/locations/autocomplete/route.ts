@@ -11,5 +11,5 @@ export const GET = apiHandler(async (req, { params, user }) => {
   if (!query.q) throw new ApiError(400, 'Missing search query (q)');
   const results = await locationService.autocompleteAddress(query.q as string);
   return NextResponse.json({ status: 'success', data: results }, { status: 200 });
-}, {});
+}, { rateLimit: { name: 'locations-autocomplete', limit: 30, windowSeconds: 60 } });
 

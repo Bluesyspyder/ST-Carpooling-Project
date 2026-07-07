@@ -15,4 +15,4 @@ export const POST = apiHandler(async (req) => {
   const result = await calculateRoute({ origin: body.origin, destination: body.destination });
   
   return NextResponse.json({ status: 'success', data: result }, { status: 200 });
-}, { protect: false });
+}, { protect: false, rateLimit: { name: 'routes-calculate', limit: 20, windowSeconds: 60 } });

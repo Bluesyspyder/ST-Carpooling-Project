@@ -1,16 +1,17 @@
 // @ts-nocheck
 import { z } from 'zod';
+import { OPERATIONAL_BOUNDS } from '@/lib/geofence';
 
 // Unified location object schema (reused in ride + booking validation)
 const locationSchema = z.object({
   address: z.string().min(1, 'Location address is required'),
   latitude: z.number({ required_error: 'Latitude is required' })
-    .min(6.5, 'Latitude must be >= 6.5 (India bounds)')
-    .max(35.7, 'Latitude must be <= 35.7 (India bounds)')
+    .min(OPERATIONAL_BOUNDS.minLat, `Latitude must be >= ${OPERATIONAL_BOUNDS.minLat} (India bounds)`)
+    .max(OPERATIONAL_BOUNDS.maxLat, `Latitude must be <= ${OPERATIONAL_BOUNDS.maxLat} (India bounds)`)
     .refine(val => val !== 0, 'Latitude cannot be exactly 0'),
   longitude: z.number({ required_error: 'Longitude is required' })
-    .min(68.1, 'Longitude must be >= 68.1 (India bounds)')
-    .max(97.4, 'Longitude must be <= 97.4 (India bounds)')
+    .min(OPERATIONAL_BOUNDS.minLng, `Longitude must be >= ${OPERATIONAL_BOUNDS.minLng} (India bounds)`)
+    .max(OPERATIONAL_BOUNDS.maxLng, `Longitude must be <= ${OPERATIONAL_BOUNDS.maxLng} (India bounds)`)
     .refine(val => val !== 0, 'Longitude cannot be exactly 0'),
   verified: z.boolean({ required_error: 'verified flag is required' }),
   provider: z.string().optional(),
@@ -45,7 +46,19 @@ export const searchRidesSchema = z.object({
     pickupArea: z.string().optional(),
     pickupLat: z.union([z.string(), z.number()]).optional(),
     pickupLng: z.union([z.string(), z.number()]).optional(),
+    destinationLat: z.union([z.string(), z.number()]).optional(),
+    destinationLng: z.union([z.string(), z.number()]).optional(),
+    radiusKm: z.union([z.string(), z.number()]).optional(),
     driverName: z.string().optional(),
     seats: z.string().or(z.number()).optional(),
+  }),
+});
+
+/**
+ * Schema for a driver updating their own ride's lifecycle status.
+ */
+export const updateRideStatusSchema = z.object({
+  body: z.object({
+    status: z.enum(['ACTIVE', 'FULL', 'FROZEN', 'IN_PROGRESS', 'CANCELLED', 'COMPLETED']),
   }),
 });

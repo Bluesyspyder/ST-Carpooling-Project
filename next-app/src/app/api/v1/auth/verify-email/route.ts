@@ -16,4 +16,4 @@ export const POST = apiHandler(async (req) => {
   const result = await authService.verifyEmail(token);
 
   return NextResponse.json({ status: 'success', message: result.message }, { status: 200 });
-}, {});
+}, { rateLimit: { name: 'auth-verify-email', limit: 20, windowSeconds: 60 } });

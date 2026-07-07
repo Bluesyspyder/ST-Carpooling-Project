@@ -12,4 +12,4 @@ export const POST = apiHandler(async (req) => {
   const { email, otp, newPassword } = body;
   const result = await authService.resetPassword(email, otp, newPassword);
   return NextResponse.json({ status: 'success', data: result }, { status: 200 });
-});
+}, { rateLimit: { name: 'auth-reset-password', limit: 5, windowSeconds: 900 } });

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useMemo } from 'react';
 
-import api from '@/services/api';
+import api, { SOCKET_URL } from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import MapPreview from '@/components/MapPreview';
@@ -328,8 +328,7 @@ const RideDetails = () => {
     let socket = null;
     if (id && typeof window !== 'undefined') {
       const { io } = require('socket.io-client');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
-      const baseUrl = new URL(apiUrl, window.location.origin).origin;
+      const baseUrl = SOCKET_URL || window.location.origin;
       socket = io(baseUrl);
 
       socket.on('connect', () => {
@@ -450,14 +449,14 @@ const RideDetails = () => {
   /* ── guards ── */
   if (loading) {
     return (
-      <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">
+      <div className="min-h-[calc(100dvh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">
         Loading ride details…
       </div>
     );
   }
   if (error || !ride) {
     return (
-      <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">
+      <div className="min-h-[calc(100dvh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">
         {error || 'Ride not found.'}
       </div>
     );
@@ -483,7 +482,7 @@ const RideDetails = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative pt-8 pb-24 md:pb-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100dvh-73px)] relative pt-8 pb-24 md:pb-8 px-4 sm:px-6 lg:px-8">
 
       <div className="w-full max-w-[1500px] mx-auto space-y-6">
 

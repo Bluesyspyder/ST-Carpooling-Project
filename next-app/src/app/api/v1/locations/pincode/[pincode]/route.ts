@@ -11,5 +11,5 @@ export const GET = apiHandler(async (req, { params, user }) => {
   const location = await locationService.findPincodeLocation(params!.pincode);
   if (!location) throw new ApiError(404, 'Pincode not found');
   return NextResponse.json({ status: 'success', data: location }, { status: 200 });
-}, {});
+}, { rateLimit: { name: 'locations-pincode', limit: 30, windowSeconds: 60 } });
 

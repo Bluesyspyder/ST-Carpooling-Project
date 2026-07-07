@@ -5,6 +5,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import SocketNotificationManager from './SocketNotificationManager';
+import OfflineBanner from './OfflineBanner';
 import { defineCustomElements } from '@ionic/pwa-elements/loader';
 import { useEffect } from 'react';
 
@@ -22,9 +23,14 @@ export default function ClientProviders({ children }: { children: React.ReactNod
 
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-[var(--bg-base)] flex lg:flex-row flex-col">
+      <OfflineBanner />
+      <div className="min-h-dvh bg-[var(--bg-base)] flex lg:flex-row flex-col">
         {!shouldHideHeader && <Sidebar />}
-        <div className="flex-grow flex flex-col min-w-0 pb-16 lg:pb-0"> {/* pb-16 for MobileNav spacing on small screens */}
+        <div
+          className={`flex-grow flex flex-col min-w-0 lg:pb-0 ${
+            shouldHideHeader ? "" : "pb-[calc(4rem+env(safe-area-inset-bottom))]"
+          }`}
+        >
           {children}
         </div>
         {!shouldHideHeader && <MobileNav />}
