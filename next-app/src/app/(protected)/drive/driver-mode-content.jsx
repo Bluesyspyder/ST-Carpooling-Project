@@ -8,7 +8,9 @@ import { io } from 'socket.io-client';
 import { Geolocation } from '@capacitor/geolocation';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import useDemoAnimation, { DEMO_STAGES } from '@/hooks/useDemoAnimation';
+
 import DemoCompletionModal from '@/components/DemoCompletionModal';
 
 export default function DriverModeContent() {
