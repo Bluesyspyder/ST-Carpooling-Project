@@ -9,9 +9,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const csvCandidates = [
-  path.resolve(process.cwd(), 'pincode_with_lat-long.csv'),
-  path.resolve(process.cwd(), '../pincode_with_lat-long.csv'),
-  path.resolve(__dirname, '../../../../pincode_with_lat-long.csv'),
+  path.resolve(/*turbopackIgnore: true*/ process.cwd(), 'pincode_with_lat-long.csv'),
+  path.resolve(/*turbopackIgnore: true*/ process.cwd(), '../pincode_with_lat-long.csv'),
+  path.resolve(/*turbopackIgnore: true*/ __dirname, '../../../../pincode_with_lat-long.csv'),
 ];
 
 const supplementalPincodeLocations = new Map([

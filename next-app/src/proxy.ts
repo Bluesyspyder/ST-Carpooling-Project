@@ -60,7 +60,7 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   return { ...CORS_BASE_HEADERS, 'Vary': 'Origin' };
 }
 
-export function middleware(req: NextRequest) {
+export default function proxy(req: NextRequest) {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
 
