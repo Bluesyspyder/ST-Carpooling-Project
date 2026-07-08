@@ -28,6 +28,7 @@ export default function DriverModeContent() {
   const [currentHeading, setCurrentHeading] = useState(0);
   const [socketConnected, setSocketConnected] = useState(true);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [staticRoutePolyline, setStaticRoutePolyline] = useState([]);
 
   // ── Demo Mode state ──────────────────────────────────────────────────────────
   const [isDemoMode, setIsDemoMode] = useState(false);
@@ -129,7 +130,35 @@ export default function DriverModeContent() {
           return;
         }
         setRide(rideData);
-        setOrderedWaypoints(routeRes.data?.data?.orderedWaypoints || []);
+        const waypoints = routeRes.data?.data?.orderedWaypoints || [];
+        setOrderedWaypoints(waypoints);
+
+        // Fetch static route polyline for the map view
+        try {
+          const pickup = rideData.pickupLocation;
+          const dest = rideData.destinationLocation;
+          const via = (rideData.viaStops || []).filter((v) => v.latitude && v.longitude);
+          const middle = waypoints.length > 0 ? waypoints.map((w) => [w.lat, w.lng]) : via.map((v) => [v.latitude, v.longitude]);
+          
+          const pts = [
+            [pickup.latitude, pickup.longitude],
+            ...middle,
+            [dest.latitude, dest.longitude],
+          ];
+          
+          const coords = pts.map((p) => `${p[1]},${p[0]}`).join(';');
+          const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
+          const osrmRes = await fetch(url);
+          const osrmData = await osrmRes.json();
+          if (osrmData.routes?.[0]?.geometry?.coordinates) {
+            setStaticRoutePolyline(osrmData.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]));
+          } else {
+            setStaticRoutePolyline(pts); // fallback straight lines
+          }
+        } catch (e) {
+          console.warn('Failed to fetch static route', e);
+        }
+
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load ride');
       } finally {
@@ -430,31 +459,20 @@ export default function DriverModeContent() {
               </Marker>
             )}
 
-            {/* Demo: full route polyline */}
-            {isDemoMode && demoPolyline.length > 1 && (
+            {/* Route polyline (Real mode uses static route, Demo uses animated route) */}
+            {(isDemoMode ? demoPolyline : staticRoutePolyline).length > 1 && (
               <Polyline
-                positions={demoPolyline}
-                pathOptions={{ color: '#10b981', weight: 4, opacity: 0.7, dashArray: '8 4' }}
+                positions={isDemoMode ? demoPolyline : staticRoutePolyline}
+                pathOptions={{ color: '#10b981', weight: 4, opacity: 0.7, dashArray: isDemoMode ? '8 4' : undefined }}
               />
             )}
 
-            {/* Demo: stop markers (A, B, C…) */}
-            {isDemoMode
-              ? stopMarkers.map((sm, i) => (
-                  <Marker key={i} position={[sm.lat, sm.lng]} icon={buildStopIcon(sm.label, sm.color)}>
-                    <Popup>{sm.popup}</Popup>
-                  </Marker>
-                ))
-              : (
-                <>
-                  <Marker position={[ride.pickupLocation.latitude, ride.pickupLocation.longitude]} icon={buildStopIcon('A', '#10b981')}>
-                    <Popup>Pickup</Popup>
-                  </Marker>
-                  <Marker position={[ride.destinationLocation.latitude, ride.destinationLocation.longitude]} icon={buildStopIcon('🏁', '#6366f1')}>
-                    <Popup>Destination</Popup>
-                  </Marker>
-                </>
-              )}
+            {/* Stop markers (Origin, Pickups, Destination) */}
+            {stopMarkers.map((sm, i) => (
+              <Marker key={i} position={[sm.lat, sm.lng]} icon={buildStopIcon(sm.label, sm.color)}>
+                <Popup>{sm.popup}</Popup>
+              </Marker>
+            ))}
           </MapContainer>
         )}
 
