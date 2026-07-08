@@ -413,25 +413,25 @@ const RideDetails = () => {
   };
 
   const handleBooking = async (e) => {
-    if (e) e.preventDefault();
-    if (!user) { navigate('/login'); return; }
-    if (!canBookRide()) return;
-
-    if (!pickupLoc.latitude) {
-      setBookingError('Please select your pickup location using the search box above.');
-      return;
-    }
-    if (!pickupLoc.verified) {
-      setBookingError('Please confirm your pickup location by clicking "Confirm Location" on the map.');
-      return;
-    }
-
-    setIsBooking(true);
-    setBookingError('');
-    setBookingSuccess(false);
-
     try {
-      await api.post('/bookings', {
+      if (e) e.preventDefault();
+      if (!user) { navigate.push('/login'); return; }
+      if (!canBookRide()) return;
+
+      if (!pickupLoc.latitude) {
+        setBookingError('Please select your pickup location using the search box above.');
+        return;
+      }
+      if (!pickupLoc.verified) {
+        setBookingError('Please confirm your pickup location by clicking "Confirm Location" on the map.');
+        return;
+      }
+
+      setIsBooking(true);
+      setBookingError('');
+      setBookingSuccess(false);
+
+      const payload = {
         ride:          id,
         seatsBooked:   Number(bookingSeats),
         pickupAddress: pickupLoc.address,
@@ -442,21 +442,22 @@ const RideDetails = () => {
           coordinates: [Number(pickupLoc.longitude), Number(pickupLoc.latitude)],
           verified:    pickupLoc.verified,
         },
-      });
+      };
+
+      const response = await api.post('/bookings', payload);
       setBookingSuccess(true);
       const updatedResponse = await api.get(`/rides/${id}`);
-      setRide(updatedResponse.data.data.ride);
-      setBookings(updatedResponse.data.data.bookings || []);
+      setRide(updatedResponse.data?.data?.ride || updatedResponse.data?.ride);
+      setBookings(updatedResponse.data?.data?.bookings || []);
     } catch (err) {
       console.error('[RideDetails] Booking request failed:', err);
-      console.error('[RideDetails] Error data:', err.response?.data);
-
       const errMsg =
         err.response?.data?.message ||
+        err.message ||
         (err.request && !err.response
           ? 'Network error — check your connection and try again.'
           : 'Could not complete booking. Please try again.');
-      setBookingError(errMsg);
+      setBookingError(String(errMsg));
     } finally {
       setIsBooking(false);
     }

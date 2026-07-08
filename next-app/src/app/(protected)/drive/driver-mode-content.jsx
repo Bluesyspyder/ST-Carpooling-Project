@@ -385,7 +385,7 @@ export default function DriverModeContent() {
             className="w-full h-full z-0"
             zoomControl={false}
           >
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+            <TileLayer url={`https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/{z}/{x}/{y}.png?api_key=${process.env.NEXT_PUBLIC_OLA_MAPS_API_KEY}`} />
 
             {/* Moving car marker */}
             {currentLocation && (

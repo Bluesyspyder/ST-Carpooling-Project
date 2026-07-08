@@ -238,64 +238,32 @@ const useDemoAnimation = ({ ride, rideId, onLocationUpdate, onStageChange, onCom
       [dest.latitude, dest.longitude],
     ];
 
-    // 3. Fetch OSRM road polyline (or build straight-line fallback)
-    const osrmPoly = await fetchOSRMPolyline(fullWaypoints);
-    const fullPoly = osrmPoly || buildStraightPolyline(fullWaypoints);
-    setPolyline(fullPoly);
-
-    // 4. Total route length for speed calculation
-    let totalKm = 0;
-    for (let i = 1; i < fullWaypoints.length; i++) {
-      totalKm += haversineKm(
-        fullWaypoints[i - 1][0], fullWaypoints[i - 1][1],
-        fullWaypoints[i][0], fullWaypoints[i][1]
-      );
-    }
-
-    // Helper: carve out the sub-polyline between two waypoints using rough index split
-    const getLegPoly = (fromIdx, toIdx) => {
-      const totalSegs = fullWaypoints.length - 1;
-      const startFrac = fromIdx / totalSegs;
-      const endFrac = toIdx / totalSegs;
-      const startPtIdx = Math.floor(startFrac * (fullPoly.length - 1));
-      const endPtIdx = Math.ceil(endFrac * (fullPoly.length - 1));
-      return fullPoly.slice(startPtIdx, endPtIdx + 1);
-    };
-
-    const legKm = (fromIdx, toIdx) =>
-      haversineKm(
-        fullWaypoints[fromIdx][0], fullWaypoints[fromIdx][1],
-        fullWaypoints[toIdx][0], fullWaypoints[toIdx][1]
-      );
-
-    // 5. Build the ordered list of legs to drive
-    // Each leg: { poly, durationMs, onArrive }
+    // 3. Fetch exact OSRM road polyline for each leg and build legs array
     const legs = [];
+    let combinedPoly = [];
 
-    // Leg 0: Origin → Pickup
-    legs.push({
-      poly: getLegPoly(0, 1),
-      durationMs: legKm(0, 1) * DEMO_SPEED_S_PER_KM * 1000,
-      label: 'pickup',
-    });
+    for (let i = 0; i < fullWaypoints.length - 1; i++) {
+      const p1 = fullWaypoints[i];
+      const p2 = fullWaypoints[i + 1];
 
-    // Leg 1+: Pickup → Via-stops (if any)
-    for (let i = 0; i < via.length; i++) {
+      const osrmLeg = await fetchOSRMPolyline([p1, p2]);
+      const legPoly = osrmLeg || buildStraightPolyline([p1, p2]);
+
+      let label = 'destination';
+      if (i < fullWaypoints.length - 2) {
+        label = i === 0 ? 'pickup' : `via_${i}`;
+      }
+
       legs.push({
-        poly: getLegPoly(i + 1, i + 2),
-        durationMs: legKm(i + 1, i + 2) * DEMO_SPEED_S_PER_KM * 1000,
-        label: `via_${i}`,
+        poly: legPoly,
+        durationMs: haversineKm(p1[0], p1[1], p2[0], p2[1]) * DEMO_SPEED_S_PER_KM * 1000,
+        label,
       });
+
+      combinedPoly = combinedPoly.concat(legPoly);
     }
 
-    // Final leg: last waypoint → Destination
-    const lastIdx = fullWaypoints.length - 1;
-    const secondLastIdx = lastIdx - 1;
-    legs.push({
-      poly: getLegPoly(secondLastIdx, lastIdx),
-      durationMs: legKm(secondLastIdx, lastIdx) * DEMO_SPEED_S_PER_KM * 1000,
-      label: 'destination',
-    });
+    setPolyline(combinedPoly);
 
     // 6. Sequentially drive each leg
     const driveLeg = (legIndex) => {
