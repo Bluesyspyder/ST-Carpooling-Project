@@ -32,6 +32,7 @@ const Bookings = () => {
   // Impact analysis state: bookingId -> impactDetails
   const [impacts, setImpacts] = useState({});
   const [impactLoading, setImpactLoading] = useState({});
+  const [actionBusyId, setActionBusyId] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -181,21 +182,29 @@ const Bookings = () => {
   };
 
   const handleStatusUpdate = async (bookingId, status) => {
+    if (actionBusyId) return; // guard against double-clicks / duplicate PATCHes
+    setActionBusyId(bookingId);
     try {
       await api.patch(`/bookings/${bookingId}/status`, { status });
-      fetchData();
+      await fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update booking status.');
+      alert(err.userMessage || err.response?.data?.message || 'Failed to update booking status.');
+    } finally {
+      setActionBusyId(null);
     }
   };
 
   const handleCancelBooking = async (bookingId) => {
+    if (actionBusyId) return;
     if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    setActionBusyId(bookingId);
     try {
       await api.post(`/bookings/${bookingId}/cancel`);
-      fetchData();
+      await fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to cancel booking.');
+      alert(err.userMessage || err.response?.data?.message || 'Failed to cancel booking.');
+    } finally {
+      setActionBusyId(null);
     }
   };
 
@@ -418,11 +427,11 @@ const Bookings = () => {
                         return (
                           <button
                             onClick={() => handleCancelBooking(booking._id)}
-                            disabled={!canCancel}
+                            disabled={!canCancel || actionBusyId === booking._id}
                             title={!canCancel ? 'Cannot cancel within 12h of departure' : ''}
                             className="btn-secondary border-red-500 text-red-500 hover:bg-red-500/10 px-3 py-1.5 text-[10px] disabled:opacity-40 disabled:cursor-not-allowed"
                           >
-                            Cancel {booking.bookingStatus === 'pending' ? 'Request' : 'Booking'}
+                            {actionBusyId === booking._id ? 'Working…' : `Cancel ${booking.bookingStatus === 'pending' ? 'Request' : 'Booking'}`}
                           </button>
                         );
                       }
@@ -433,13 +442,15 @@ const Bookings = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
-                          className="btn-primary px-3 py-1.5 text-[10px]"
+                          disabled={actionBusyId === booking._id}
+                          className="btn-primary px-3 py-1.5 text-[10px] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Accept
+                          {actionBusyId === booking._id ? '…' : 'Accept'}
                         </button>
                         <button
                           onClick={() => handleStatusUpdate(booking._id, 'rejected')}
-                          className="btn-secondary border-red-500 text-red-500 hover:bg-red-500/10 px-3 py-1.5 text-[10px]"
+                          disabled={actionBusyId === booking._id}
+                          className="btn-secondary border-red-500 text-red-500 hover:bg-red-500/10 px-3 py-1.5 text-[10px] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Reject
                         </button>

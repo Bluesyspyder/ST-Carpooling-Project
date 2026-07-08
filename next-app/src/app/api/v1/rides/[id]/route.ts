@@ -8,9 +8,29 @@ import Booking from '@/modules/bookings/booking.model';
 
 export const GET = apiHandler(async (req, { params, user }) => {
   const ride = await rideService.getRideById(params!.id);
-  // Exclude pickupPin — this endpoint is shared with the driver, who must not see
-  // passengers' PINs (they enter what the passenger tells them at pickup).
-  const bookings = await Booking.find({ ride: ride._id }).select('-pickupPin').populate('passenger', 'firstName lastName profileImage phone email').sort({ bookingStatus: 1, createdAt: -1 });
-  return NextResponse.json({ status: 'success', data: { ride, bookings: bookings || [] } }, { status: 200 });
-}, { rateLimit: { name: 'rides-get-one', limit: 60, windowSeconds: 60 } });
+
+  // Determine if the requesting user is the driver of this ride.
+  // Only the driver needs full passenger contact info (phone, email) to
+  // coordinate pickup. Any other authenticated user (fellow passenger, viewer)
+  // only receives name and profile image.
+  const isDriver =
+    user &&
+    (ride.driver?._id?.toString?.() === user.id || ride.driver?.toString?.() === user.id);
+
+  // Exclude pickupPin — the driver must ask the passenger for it at pickup.
+  const passengerFields = isDriver
+    ? 'firstName lastName profileImage phone email averageRating'
+    : 'firstName lastName profileImage averageRating';
+
+  const bookings = await Booking.find({ ride: ride._id })
+    .select('-pickupPin')
+    .populate('passenger', passengerFields)
+    .sort({ bookingStatus: 1, createdAt: -1 });
+
+  return NextResponse.json(
+    { status: 'success', data: { ride, bookings: bookings || [] } },
+    { status: 200 }
+  );
+}, { protect: true, rateLimit: { name: 'rides-get-one', limit: 60, windowSeconds: 60 } });
+
 

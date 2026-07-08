@@ -296,6 +296,8 @@ const RideDetails = () => {
 
   const [liveDriverLocation, setLiveDriverLocation] = useState(null);
   const [sosAlert, setSosAlert] = useState(null);
+  const [rideStatusNotice, setRideStatusNotice] = useState('');
+  const [statusUpdatingId, setStatusUpdatingId] = useState(null);
 
   const activeBooking = bookings?.find((b) => {
     const passengerId = b.passenger?._id || b.passenger?.id || b.passenger;
@@ -329,9 +331,15 @@ const RideDetails = () => {
     if (id && typeof window !== 'undefined') {
       const { io } = require('socket.io-client');
       const baseUrl = SOCKET_URL || window.location.origin;
-      socket = io(baseUrl);
+      socket = io(baseUrl, {
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 10000,
+      });
 
       socket.on('connect', () => {
+        // Re-join the ride room on every (re)connect so live events keep flowing.
         socket.emit('join_ride', id);
       });
 
@@ -341,6 +349,19 @@ const RideDetails = () => {
 
       socket.on('sos_alert', (data) => {
         setSosAlert(data.message);
+      });
+
+      // Driver cancelled/completed the ride — update the view live so the
+      // passenger doesn't book (or keep waiting on) a ghost ride.
+      socket.on('ride_status_changed', (data) => {
+        if (!data) return;
+        setRide((prev) => (prev ? { ...prev, rideStatus: data.status } : prev));
+        setRideStatusNotice(
+          data.message ||
+            (data.status === 'CANCELLED'
+              ? 'The driver has cancelled this ride.'
+              : `This ride is now ${data.status}.`)
+        );
       });
     }
     return () => {
@@ -429,20 +450,30 @@ const RideDetails = () => {
     } catch (err) {
       console.error('[RideDetails] Booking request failed:', err);
       console.error('[RideDetails] Error data:', err.response?.data);
-      
+
+      const errMsg =
+        err.response?.data?.message ||
+        (err.request && !err.response
+          ? 'Network error — check your connection and try again.'
+          : 'Could not complete booking. Please try again.');
       setBookingError(errMsg);
+    } finally {
       setIsBooking(false);
     }
   };
 
   const handleStatusUpdate = async (bookingId, status) => {
+    if (statusUpdatingId) return; // guard against double-clicks / duplicate PATCHes
+    setStatusUpdatingId(bookingId);
     try {
       await api.patch(`/bookings/${bookingId}/status`, { status });
       const updatedResponse = await api.get(`/rides/${id}`);
       setRide(updatedResponse.data.data.ride);
       setBookings(updatedResponse.data.data.bookings || []);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update booking status.');
+      alert(err.userMessage || err.response?.data?.message || 'Failed to update booking status.');
+    } finally {
+      setStatusUpdatingId(null);
     }
   };
 
@@ -485,6 +516,20 @@ const RideDetails = () => {
     <div className="min-h-[calc(100dvh-73px)] relative pt-8 pb-24 md:pb-8 px-4 sm:px-6 lg:px-8">
 
       <div className="w-full max-w-[1500px] mx-auto space-y-6">
+
+        {/* Ride status change banner (driver cancelled/completed while viewing) */}
+        {rideStatusNotice && (
+          <div className="bg-amber-900/40 border border-amber-500/50 rounded-xl p-4 mb-6 flex items-start justify-between gap-3">
+            <p className="text-amber-100 text-sm font-medium">⚠️ {rideStatusNotice}</p>
+            <button
+              onClick={() => setRideStatusNotice('')}
+              className="text-amber-300 hover:text-white text-sm shrink-0"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* SOS Alert Banner */}
         {sosAlert && (
@@ -567,13 +612,15 @@ const RideDetails = () => {
                       <div className="flex items-center sm:justify-end gap-2">
                         <button
                           onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
-                          className="btn-primary px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 border-none text-white"
+                          disabled={statusUpdatingId === booking._id}
+                          className="btn-primary px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 border-none text-white disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Accept
+                          {statusUpdatingId === booking._id ? '…' : 'Accept'}
                         </button>
                         <button
                           onClick={() => handleStatusUpdate(booking._id, 'rejected')}
-                          className="btn-secondary px-4 py-1.5 text-xs border-red-500 text-red-500 hover:bg-red-500/10"
+                          disabled={statusUpdatingId === booking._id}
+                          className="btn-secondary px-4 py-1.5 text-xs border-red-500 text-red-500 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Reject
                         </button>

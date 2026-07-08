@@ -41,15 +41,23 @@ const buildVerifiedLocation = (raw, fieldName) => {
  * 24h booking policy: cannot book if departure is within 24 hours.
  */
 export const createBooking = async (bookingData) => {
-  const ride = await Ride.findById(bookingData.ride);
-  if (!ride) throw new ApiError(404, 'Ride not found');
+  // H3 fix: Read ride and perform seat availability check atomically in a single
+  // DB round-trip. This prevents two concurrent bookings from both passing the
+  // seat check and both receiving 'pending' status (overbooking).
+  const ride = await Ride.findOne({
+    _id: bookingData.ride,
+    rideStatus: 'ACTIVE',
+  });
+  if (!ride) {
+    // Check if ride exists at all for a better error message
+    const rideExists = await Ride.exists({ _id: bookingData.ride });
+    if (!rideExists) throw new ApiError(404, 'Ride not found');
+    throw new ApiError(400, 'This ride is not available for booking');
+  }
   if (ride.driver.toString() === bookingData.passenger.toString()) {
     throw new ApiError(400, 'You cannot book your own ride');
   }
-  if (ride.rideStatus !== 'ACTIVE') {
-    throw new ApiError(400, 'This ride is not available for booking');
-  }
-  
+
   let initialStatus = 'pending';
   if (ride.availableSeats < bookingData.seatsBooked) {
     initialStatus = 'waitlisted';
@@ -60,7 +68,7 @@ export const createBooking = async (bookingData) => {
   const [hours, minutes] = ride.journeyTime.split(':');
   const departureDate = new Date(ride.journeyDate);
   departureDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-  
+
   const hoursUntilDeparture = (departureDate - now) / (1000 * 60 * 60);
   if (hoursUntilDeparture < 12) {
     throw new ApiError(
@@ -85,6 +93,7 @@ export const createBooking = async (bookingData) => {
   return booking;
 };
 
+
 export const getMyBookingsPaginated = async (userId, page = 1, limit = 10) => {
   const skip = (page - 1) * limit;
   const bookings = await Booking.find({ passenger: userId })
@@ -99,10 +108,21 @@ export const getMyBookingsPaginated = async (userId, page = 1, limit = 10) => {
     .skip(skip)
     .limit(limit);
 
+  // H1 fix: Only expose driver phone/email when the booking is confirmed.
+  // Cancelled/rejected/pending passengers should not retain contact info.
+  const sanitized = bookings.map((b) => {
+    const obj = b.toObject ? b.toObject() : b;
+    if (obj.bookingStatus !== 'confirmed' && obj.ride?.driver) {
+      const { phone, email, ...safeDriver } = obj.ride.driver;
+      obj.ride = { ...obj.ride, driver: safeDriver };
+    }
+    return obj;
+  });
+
   const total = await Booking.countDocuments({ passenger: userId });
 
   return {
-    bookings,
+    bookings: sanitized,
     pagination: {
       total,
       page,
@@ -111,6 +131,7 @@ export const getMyBookingsPaginated = async (userId, page = 1, limit = 10) => {
     }
   };
 };
+
 
 export const getMyRidesBookingsPaginated = async (driverId, page = 1, limit = 10) => {
   const skip = (page - 1) * limit;
@@ -170,25 +191,30 @@ export const updateBookingStatus = async (bookingId, driverId, status) => {
     throw new ApiError(400, 'Invalid booking status');
   }
 
-  const ride = await Ride.findById(booking.ride._id);
-
   if (newStatus === 'confirmed') {
     if (oldStatus !== 'pending' && oldStatus !== 'waitlisted') {
       throw new ApiError(400, 'Can only confirm pending or waitlisted bookings');
     }
-    if (ride.availableSeats < booking.seatsBooked) {
+    // Atomic, guarded seat reservation: only decrements if enough seats remain
+    // at write time, so two concurrent confirms of the last seat can't oversell.
+    const reserved = await Ride.findOneAndUpdate(
+      { _id: booking.ride._id, availableSeats: { $gte: booking.seatsBooked } },
+      { $inc: { availableSeats: -booking.seatsBooked, bookedSeats: booking.seatsBooked } },
+      { new: true }
+    );
+    if (!reserved) {
       throw new ApiError(400, 'Insufficient seats available for this ride. Reject or keep waitlisted.');
     }
-    ride.availableSeats -= booking.seatsBooked;
-    await ride.save();
   } else if (newStatus === 'rejected') {
     if (oldStatus !== 'pending' && oldStatus !== 'waitlisted') {
       throw new ApiError(400, 'Can only reject pending or waitlisted bookings');
     }
   } else if (newStatus === 'cancelled') {
     if (oldStatus === 'confirmed') {
-      ride.availableSeats += booking.seatsBooked;
-      await ride.save();
+      // Atomically return the reserved seats.
+      await Ride.findByIdAndUpdate(booking.ride._id, {
+        $inc: { availableSeats: booking.seatsBooked, bookedSeats: -booking.seatsBooked },
+      });
     }
   }
 
@@ -199,11 +225,21 @@ export const updateBookingStatus = async (bookingId, driverId, status) => {
 
 export const cancelBooking = async (id, userId) => {
   const booking = await Booking.findOne({ _id: id, passenger: userId })
-    .populate({ path: 'ride', select: 'journeyDate journeyTime availableSeats' });
+    .populate({ path: 'ride', select: 'journeyDate journeyTime availableSeats rideStatus' });
 
   if (!booking) throw new ApiError(404, 'Booking not found or unauthorized');
   if (booking.bookingStatus === 'cancelled' || booking.bookingStatus === 'rejected') {
     throw new ApiError(400, 'Booking is already cancelled or rejected');
+  }
+
+  // M1 fix: Prevent cancellation after the ride has started or completed.
+  // Seat count corrections on a closed ride would corrupt availability data.
+  const blockedRideStatuses = ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+  if (booking.ride && blockedRideStatuses.includes(booking.ride.rideStatus)) {
+    throw new ApiError(
+      400,
+      'This ride has already started or completed. Cancellation is no longer possible.'
+    );
   }
 
   // ⏰ Cancellation metrics tracking
@@ -219,11 +255,10 @@ export const cancelBooking = async (id, userId) => {
   await booking.save();
 
   if (oldStatus === 'confirmed') {
-    const ride = await Ride.findById(booking.ride._id || booking.ride);
-    if (ride) {
-      ride.availableSeats += booking.seatsBooked;
-      await ride.save();
-    }
+    // Atomically return the reserved seats (mirror of the confirm reservation).
+    await Ride.findByIdAndUpdate(booking.ride._id || booking.ride, {
+      $inc: { availableSeats: booking.seatsBooked, bookedSeats: -booking.seatsBooked },
+    });
   }
 
   // Update metrics if within penalty windows

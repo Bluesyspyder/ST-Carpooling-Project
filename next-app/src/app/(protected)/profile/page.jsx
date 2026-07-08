@@ -67,8 +67,8 @@ const Profile = () => {
 
   /* ── location data ── */
   const [frequentAddresses, setFrequentAddresses] = useState([]);
-  const [recentAddresses,   setRecentAddresses]   = useState([]);
-  const [savedAddresses,    setSavedAddresses]    = useState([]);
+  const [recentAddresses, setRecentAddresses] = useState([]);
+  const [savedAddresses, setSavedAddresses] = useState([]);
 
   /* ── edit personal info ── */
   const [editMode, setEditMode] = useState(false);
@@ -117,8 +117,8 @@ const Profile = () => {
   useEffect(() => {
     if (user?.homeLocation) {
       setHomeLoc({
-        address:   user.homeLocation.address   || '',
-        latitude:  user.homeLocation.latitude  ?? null,
+        address: user.homeLocation.address || '',
+        latitude: user.homeLocation.latitude ?? null,
         longitude: user.homeLocation.longitude ?? null,
       });
     }
@@ -204,11 +204,11 @@ const Profile = () => {
   /* ── handlers: enter edit mode ── */
   const handleStartEdit = () => {
     setEditForm({
-      firstName:        user.firstName        || '',
-      lastName:         user.lastName         || '',
-      phone:            user.phone            || '',
-      address:          user.address          || '',
-      bio:              user.bio              || '',
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      phone: user.phone || '',
+      address: user.address || '',
+      bio: user.bio || '',
       emergencyContact: user.emergencyContact || '',
     });
     setSaveError('');
@@ -258,10 +258,10 @@ const Profile = () => {
     try {
       const response = await api.patch('/users/profile', {
         homeLocation: {
-          address:   homeLoc.address,
-          latitude:  homeLoc.latitude,
+          address: homeLoc.address,
+          latitude: homeLoc.latitude,
           longitude: homeLoc.longitude,
-          verified:  true,
+          verified: true,
         },
       });
       setUser(response.data.data.user);
@@ -284,8 +284,8 @@ const Profile = () => {
   }
 
   const locationStats = {
-    saved:    savedAddresses.length,
-    recent:   recentAddresses.length,
+    saved: savedAddresses.length,
+    recent: recentAddresses.length,
     frequent: frequentAddresses.length,
     totalUses: frequentAddresses.reduce((s, a) => s + (a.useCount || 0), 0),
   };
@@ -377,9 +377,9 @@ const Profile = () => {
             {editMode ? (
               <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 <EditField label="First Name" value={editForm.firstName} onChange={(v) => setEditForm(f => ({ ...f, firstName: v }))} />
-                <EditField label="Last Name"  value={editForm.lastName}  onChange={(v) => setEditForm(f => ({ ...f, lastName: v }))} />
-                <EditField label="Phone"      value={editForm.phone}     onChange={(v) => setEditForm(f => ({ ...f, phone: v }))} type="tel" />
-                <EditField label="Address"    value={editForm.address}   onChange={(v) => setEditForm(f => ({ ...f, address: v }))} />
+                <EditField label="Last Name" value={editForm.lastName} onChange={(v) => setEditForm(f => ({ ...f, lastName: v }))} />
+                <EditField label="Phone" value={editForm.phone} onChange={(v) => setEditForm(f => ({ ...f, phone: v }))} type="tel" />
+                <EditField label="Address" value={editForm.address} onChange={(v) => setEditForm(f => ({ ...f, address: v }))} />
                 <EditField label="Emergency Contact" value={editForm.emergencyContact} onChange={(v) => setEditForm(f => ({ ...f, emergencyContact: v }))} type="tel" />
                 <EditField label="Email (read-only)" value={user.email} readOnly />
                 <div className="sm:col-span-2 xl:col-span-3 space-y-1">
@@ -398,9 +398,9 @@ const Profile = () => {
             ) : (
               <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5 text-sm">
                 {[
-                  { label: 'Email',    value: user.email },
-                  { label: 'Phone',    value: user.phone || 'Not provided' },
-                  { label: 'Address',  value: user.address || 'Not provided' },
+                  { label: 'Email', value: user.email },
+                  { label: 'Phone', value: user.phone || 'Not provided' },
+                  { label: 'Address', value: user.address || 'Not provided' },
                   { label: 'Member Since', value: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' },
                 ].map(({ label, value }) => (
                   <div key={label} className="space-y-1">
@@ -559,9 +559,9 @@ const Profile = () => {
             {/* Location Statistics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { icon: '📌', label: 'Saved',      value: locationStats.saved },
-                { icon: '🕐', label: 'Recent',     value: locationStats.recent },
-                { icon: '🔥', label: 'Frequent',   value: locationStats.frequent },
+                { icon: '📌', label: 'Saved', value: locationStats.saved },
+                { icon: '🕐', label: 'Recent', value: locationStats.recent },
+                { icon: '🔥', label: 'Frequent', value: locationStats.frequent },
                 { icon: '🚗', label: 'Total Trips', value: locationStats.totalUses },
               ].map(({ icon, label, value }) => (
                 <div key={label} className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm p-4 text-center">
@@ -621,11 +621,11 @@ const Profile = () => {
                   <div key={vehicle._id} className="border border-[var(--border-subtle)] p-5 rounded-sm bg-[var(--bg-surface)]">
                     <div className="grid sm:grid-cols-2 gap-4 mb-4">
                       {[
-                        { label: 'Vehicle Name',   value: vehicle.vehicleName },
-                        { label: 'Plate Number',   value: vehicle.vehiclePlateNumber, mono: true },
-                        { label: 'Fuel Type',      value: vehicle.vehicleType, capitalize: true },
-                        { label: 'Mileage',        value: `${vehicle.mileage} km/l` },
-                        { label: 'Seats',          value: vehicle.seatCount },
+                        { label: 'Vehicle Name', value: vehicle.vehicleName },
+                        { label: 'Plate Number', value: vehicle.vehiclePlateNumber, mono: true },
+                        { label: 'Fuel Type', value: vehicle.vehicleType, capitalize: true },
+                        { label: 'Mileage', value: `${vehicle.mileage} km/l` },
+                        { label: 'Seats', value: vehicle.seatCount },
                       ].map(({ label, value, mono, capitalize }) => (
                         <div key={label} className="space-y-1">
                           <p className="text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-widest">{label}</p>
@@ -649,7 +649,7 @@ const Profile = () => {
                             <p className="text-slate-400 text-sm">No vehicle photo</p>
                           </div>
                         )}
-                        <button 
+                        <button
                           onClick={() => onVehiclePhotoClick(vehicle._id)}
                           disabled={vehicleImageUpload[vehicle._id]}
                           className="absolute inset-0 w-full h-full rounded-lg bg-black/0 hover:bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition cursor-pointer"

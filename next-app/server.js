@@ -74,6 +74,14 @@ app.prepare().then(() => {
       }
     });
 
+    // Driver changed the ride lifecycle status (cancelled / completed / frozen…).
+    // Relay to everyone viewing the ride so their UI updates instead of going stale.
+    socket.on('ride_status_changed', (data) => {
+      if (data && data.rideId) {
+        io.to(`ride_${data.rideId}`).emit('ride_status_changed', data);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`[SOCKET] Client disconnected: ${socket.id}`);
     });

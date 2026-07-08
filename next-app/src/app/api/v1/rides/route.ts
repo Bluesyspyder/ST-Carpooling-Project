@@ -20,5 +20,5 @@ export const POST = apiHandler(async (req, { params, user }) => {
   const body = validate(createRideSchema, { body: rawBody }).body;
   const ride = await rideService.createRide({ ...body, driver: user.id });
   return NextResponse.json({ status: 'success', data: { ride } }, { status: 201 });
-}, { protect: true, restrictTo: ['hybrid', 'admin'] });
+}, { protect: true, restrictTo: ['hybrid', 'admin'], rateLimit: { name: 'rides-create', limit: 15, windowSeconds: 60 } });
 

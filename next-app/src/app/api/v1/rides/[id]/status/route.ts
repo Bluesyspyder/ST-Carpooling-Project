@@ -11,4 +11,4 @@ export const PATCH = apiHandler(async (req, { params, user }) => {
   const { status, pin, demoBypass, demoSecret } = validate(updateRideStatusSchema, { body: rawBody }).body;
   const ride = await rideService.updateRideStatus(params!.id, user.id, status, { pin, demoBypass, demoSecret });
   return NextResponse.json({ status: 'success', data: { ride } }, { status: 200 });
-}, { protect: true, restrictTo: ['hybrid', 'admin'] });
+}, { protect: true, restrictTo: ['hybrid', 'admin'], rateLimit: { name: 'rides-status', limit: 30, windowSeconds: 60 } });

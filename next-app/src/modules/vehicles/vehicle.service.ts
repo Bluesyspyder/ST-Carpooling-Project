@@ -29,7 +29,7 @@ export const getVehiclesByOwner = async (ownerId) => {
  */
 export const updateVehicle = async (vehicleId, userId, updateData) => {
   const vehicle = await Vehicle.findById(vehicleId);
-  
+
   if (!vehicle) {
     throw new ApiError(404, 'Vehicle not found');
   }

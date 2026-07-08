@@ -16,6 +16,16 @@ const redis =
       })
     : null;
 
+// H4 fix: Warn loudly in production when Redis is missing — rate limiting is
+// completely non-functional on Vercel's multi-instance serverless without it.
+if (!redis && process.env.NODE_ENV === 'production') {
+  console.error(
+    '[rate-limit] CRITICAL: UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are not set. ' +
+    'Rate limiting is NON-FUNCTIONAL in this production deployment. ' +
+    'Add Upstash Redis env vars to Vercel immediately.'
+  );
+}
+
 const limiterCache = new Map<string, Ratelimit>();
 
 function getUpstashLimiter(name: string, limit: number, windowSeconds: number): Ratelimit {
@@ -68,6 +78,8 @@ export function getClientKey(req: NextRequest): string {
   const ip = forwardedFor?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
   return ip;
 }
+
+
 
 export async function checkRateLimit(req: NextRequest, options: RateLimitOptions) {
   const clientKey = getClientKey(req);

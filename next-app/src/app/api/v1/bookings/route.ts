@@ -15,5 +15,5 @@ export const POST = apiHandler(async (req, { params, user }) => {
   const ride = await Ride.findById(booking.ride).select('driver source destination').lean();
   if (ride?.driver) { emitToUser(ride.driver.toString(), 'booking:new', { bookingId: booking._id, rideId: booking.ride, route: `${ride.source} → ${ride.destination}`, passengerName: `${user.firstName || ''} ${user.lastName || ''}`.trim(), seatsBooked: booking.seatsBooked, message: 'You have a new booking request!' }); }
   return NextResponse.json({ status: 'success', data: { booking } }, { status: 201 });
-}, { protect: true });
+}, { protect: true, rateLimit: { name: 'bookings-create', limit: 15, windowSeconds: 60 } });
 

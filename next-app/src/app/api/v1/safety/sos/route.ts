@@ -12,7 +12,7 @@ export const POST = apiHandler(async (req, { params, user }) => {
   const body = validate(createSosAlertSchema, { body: rawBody }).body;
   const alert = await safetyService.recordSosAlert(user.id, body);
   return NextResponse.json({ status: 'success', data: { alert } }, { status: 201 });
-}, { protect: true });
+}, { protect: true, rateLimit: { name: 'safety-sos', limit: 10, windowSeconds: 300 } });
 
 // The caller's own SOS history.
 export const GET = apiHandler(async (req, { params, user }) => {

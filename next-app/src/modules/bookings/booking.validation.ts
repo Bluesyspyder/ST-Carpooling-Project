@@ -34,3 +34,15 @@ export const createBookingSchema = z.object({
     pickupLocation: locationSchema,
   }),
 });
+
+/**
+ * Schema for a driver updating a booking's status.
+ * The service enforces the allowed transitions on top of this.
+ */
+export const updateBookingStatusSchema = z.object({
+  body: z.object({
+    status: z.enum(['pending', 'confirmed', 'cancelled', 'rejected', 'waitlisted'], {
+      errorMap: () => ({ message: 'Invalid booking status' }),
+    }),
+  }),
+});

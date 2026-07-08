@@ -11,4 +11,4 @@ export const POST = apiHandler(async (req, { params, user }) => {
   const body = validate(redeemRewardSchema, { body: rawBody }).body;
   const result = await rewardService.redeemReward(user.id, body.rewardId);
   return NextResponse.json({ status: 'success', data: result }, { status: 200 });
-}, { protect: true });
+}, { protect: true, rateLimit: { name: 'rewards-redeem', limit: 15, windowSeconds: 60 } });

@@ -23,6 +23,8 @@ export default function DriverModeContent() {
   const [isDriving, setIsDriving] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [currentHeading, setCurrentHeading] = useState(0);
+  const [socketConnected, setSocketConnected] = useState(true);
+  const [statusUpdating, setStatusUpdating] = useState(false);
 
   // ── Demo Mode state ──────────────────────────────────────────────────────────
   const [isDemoMode, setIsDemoMode] = useState(false);
@@ -147,9 +149,24 @@ export default function DriverModeContent() {
 
       setIsDriving(true);
       const baseUrl = SOCKET_URL || window.location.origin;
-      socketRef.current = io(baseUrl);
+      socketRef.current = io(baseUrl, {
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 10000,
+      });
       socketRef.current.on('connect', () => {
+        setSocketConnected(true);
+        // (Re)join the ride room on every (re)connect so location keeps flowing.
         socketRef.current.emit('join_ride', id);
+      });
+      socketRef.current.on('disconnect', (reason) => {
+        console.warn('[DriverMode] socket disconnected:', reason);
+        setSocketConnected(false);
+      });
+      socketRef.current.on('connect_error', (err) => {
+        console.error('[DriverMode] socket connect_error:', err?.message);
+        setSocketConnected(false);
       });
 
       const watchId = await Geolocation.watchPosition(
@@ -188,6 +205,7 @@ export default function DriverModeContent() {
 
   const stopDriving = async () => {
     setIsDriving(false);
+    setSocketConnected(true);
     if (watchIdRef.current !== null) {
       await Geolocation.clearWatch({ id: watchIdRef.current });
       watchIdRef.current = null;
@@ -198,7 +216,24 @@ export default function DriverModeContent() {
     }
   };
 
+  // Push a ride-status change to the ride room. The live-tracking socket is torn
+  // down by stopDriving() before we get here (and may never have existed for a
+  // pre-start cancel), so use a short-lived connection to guarantee delivery.
+  const broadcastRideStatus = (status, message) => {
+    try {
+      const baseUrl = SOCKET_URL || window.location.origin;
+      const tmp = io(baseUrl);
+      tmp.on('connect', () => {
+        tmp.emit('ride_status_changed', { rideId: id, status, message });
+        setTimeout(() => tmp.disconnect(), 500);
+      });
+    } catch (err) {
+      console.warn('[DriverMode] failed to broadcast ride status:', err?.message);
+    }
+  };
+
   const updateRideStatus = async (status, { auto = false } = {}) => {
+    if (statusUpdating) return; // guard against double-clicks / duplicate PATCHes
     let pin;
     if (status === 'IN_PROGRESS') {
       pin = window.prompt("Enter the pickup PIN shown on your passenger's booking to start the ride:");
@@ -213,14 +248,25 @@ export default function DriverModeContent() {
         : 'Start this ride and begin live GPS tracking?';
       if (!window.confirm(confirmMessage)) return;
     }
+    setStatusUpdating(true);
     try {
       if (status === 'COMPLETED' || status === 'CANCELLED') await stopDriving();
       const res = await api.patch(`/rides/${id}/status`, pin ? { status, pin } : { status });
       setRide(res.data.data.ride);
+      // Notify passengers viewing this ride so their screen updates live instead
+      // of letting them submit a booking against a cancelled/completed "ghost" ride.
+      if (status === 'CANCELLED' || status === 'COMPLETED') {
+        const message = status === 'CANCELLED'
+          ? 'The driver has cancelled this ride.'
+          : 'This ride has been marked as completed.';
+        broadcastRideStatus(status, message);
+      }
       if (status === 'IN_PROGRESS') await startDriving();
       return res.data.data.ride;
     } catch (err) {
       alert(err.response?.data?.message || `Failed to update ride status.`);
+    } finally {
+      setStatusUpdating(false);
     }
   };
 
@@ -299,19 +345,19 @@ export default function DriverModeContent() {
           {!isDemoMode && (
             <>
               {(ride.rideStatus === 'ACTIVE' || ride.rideStatus === 'FULL') && (
-                <button onClick={() => updateRideStatus('FROZEN')} className="text-sm px-3 py-2 bg-sky-700 rounded-lg hover:bg-sky-600">
+                <button onClick={() => updateRideStatus('FROZEN')} disabled={statusUpdating} className="text-sm px-3 py-2 bg-sky-700 rounded-lg hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed">
                   Freeze Bookings
                 </button>
               )}
               {ride.rideStatus === 'FROZEN' && (
-                <button onClick={() => updateRideStatus('IN_PROGRESS')} className="text-sm px-3 py-2 bg-indigo-700 rounded-lg hover:bg-indigo-600">
+                <button onClick={() => updateRideStatus('IN_PROGRESS')} disabled={statusUpdating} className="text-sm px-3 py-2 bg-indigo-700 rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed">
                   Start Ride
                 </button>
               )}
               {['ACTIVE', 'FULL', 'FROZEN', 'IN_PROGRESS'].includes(ride.rideStatus) && (
                 <>
-                  <button onClick={() => updateRideStatus('COMPLETED')} className="text-sm px-3 py-2 bg-emerald-700 rounded-lg hover:bg-emerald-600">Complete Ride</button>
-                  <button onClick={() => updateRideStatus('CANCELLED')} className="text-sm px-3 py-2 bg-red-700 rounded-lg hover:bg-red-600">Cancel Ride</button>
+                  <button onClick={() => updateRideStatus('COMPLETED')} disabled={statusUpdating} className="text-sm px-3 py-2 bg-emerald-700 rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed">{statusUpdating ? 'Working…' : 'Complete Ride'}</button>
+                  <button onClick={() => updateRideStatus('CANCELLED')} disabled={statusUpdating} className="text-sm px-3 py-2 bg-red-700 rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed">Cancel Ride</button>
                 </>
               )}
             </>
@@ -319,6 +365,14 @@ export default function DriverModeContent() {
           <button onClick={() => router.back()} className="text-sm px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700">Exit</button>
         </div>
       </div>
+
+      {/* Live-tracking connection warning — location broadcasting is paused while disconnected */}
+      {isDriving && !socketConnected && (
+        <div className="px-4 py-2 bg-amber-500/15 border-b border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center gap-2 z-10">
+          <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          Reconnecting to live tracking… passengers may not see your location until this clears.
+        </div>
+      )}
 
       {/* Map */}
       <div className="flex-1 relative">

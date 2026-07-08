@@ -48,7 +48,7 @@ export const createRideSchema = z.object({
     availableSeats: z.number().int().min(1, 'Must offer at least 1 seat'),
     pickupLocation: locationSchema,
     destinationLocation: locationSchema,
-    notes: z.string().optional(),
+    notes: z.string().max(500, 'Notes cannot exceed 500 characters').optional(),
     // ── Via-Stops (Phase 3 — Feature 1) ───────────────────────────────────────
     viaStops: z.array(viaStopSchema).max(2, 'Maximum 2 via-stops allowed').optional(),
     // ── Recurring Rides (Phase 3 — Feature 2) ─────────────────────────────────

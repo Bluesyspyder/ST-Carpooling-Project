@@ -129,10 +129,10 @@ const userSchema = new mongoose.Schema(
     },
     // Home / starting location for the driver (used in impact analysis)
     homeLocation: {
-      address:   { type: String, default: null },
-      latitude:  { type: Number, default: null },
+      address: { type: String, default: null },
+      latitude: { type: Number, default: null },
       longitude: { type: Number, default: null },
-      verified:  { type: Boolean, default: false },
+      verified: { type: Boolean, default: false },
     },
     // Raw cancellation tracking metrics
     cancellations24h: {

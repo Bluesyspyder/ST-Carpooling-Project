@@ -15,5 +15,5 @@ export const POST = apiHandler(async (req, { params, user }) => {
   const ride = await Ride.findById(booking.ride).select('driver source destination').lean();
   if (ride?.driver) { emitToUser(ride.driver.toString(), 'booking:cancelled', { bookingId: booking._id, rideId: booking.ride, route: `${ride.source} → ${ride.destination}`, message: 'A Co-Rider cancelled their booking.' }); }
   return NextResponse.json({ status: 'success', data: { booking } }, { status: 200 });
-}, { protect: true });
+}, { protect: true, rateLimit: { name: 'bookings-cancel', limit: 20, windowSeconds: 60 } });
 

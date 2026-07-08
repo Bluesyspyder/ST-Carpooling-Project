@@ -44,18 +44,30 @@ export function handleError(err: any) {
     }, { status: statusCode });
   }
 
+  // Never leak raw internal error messages (DB drivers, stack context) to the
+  // client in production. Deliberate ApiError instances (4xx) keep their message;
+  // any unexpected 5xx is masked with a generic message.
+  const isProd = process.env.NODE_ENV === 'production';
+  const clientMessage =
+    isProd && statusCode >= 500 && !(err instanceof ApiError)
+      ? 'Internal Server Error'
+      : message;
+
   const response: any = {
     status: 'error',
     statusCode,
-    message,
+    message: clientMessage,
     ...(err.code && { code: err.code }),
     ...(err.errors && { errors: err.errors }),
     ...(err.data && { data: err.data }),
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    ...(!isProd && { stack: err.stack }),
   };
 
-  if (process.env.NODE_ENV === 'development') {
+  // Always log the real error server-side (both dev and prod) for 5xx.
+  if (!isProd) {
     console.error(`[API Error]`, err.stack || err);
+  } else if (statusCode >= 500) {
+    console.error(`[API Error]`, err.message || err);
   }
 
   return NextResponse.json(response, { status: statusCode });
@@ -126,11 +138,16 @@ export function apiHandler(handler: ApiRouteHandler, options: { protect?: boolea
 
 export async function parseBody(req: NextRequest) {
   try {
-    return await req.json();
+    const text = await req.text();
+    // L3 fix: Explicitly throw on malformed JSON rather than silently returning
+    // {} which produces confusing downstream 'required field missing' Zod errors.
+    if (!text || text.trim() === '') return {};
+    return JSON.parse(text);
   } catch (err) {
-    return {};
+    throw new ApiError(400, 'Invalid or malformed request body. Please send valid JSON.');
   }
 }
+
 
 export function validate(schema: any, data: any) {
   return schema.parse(data);

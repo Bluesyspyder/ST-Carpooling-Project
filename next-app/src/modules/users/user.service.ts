@@ -4,8 +4,26 @@ import { ApiError } from '@/lib/api-wrapper';
 
 // ─── Existing helpers ────────────────────────────────────────────────────────
 
+/**
+ * Full profile — used for the authenticated user's own profile page.
+ * Returns everything except password-related and OTP fields (those use select:false in the model).
+ * Does NOT strip address/homeLocation because the user owns their own data.
+ */
 export const getUserById = async (id) => {
-  const user = await User.findById(id);
+  const user = await User.findById(id).select('-address -homeLocation -savedAddresses -recentAddresses -frequentAddresses');
+  if (!user) throw new ApiError(404, 'User not found');
+  return user;
+};
+
+/**
+ * Public / cross-user profile — used when one user views another user's public data.
+ * Strips all PII: home address, home coordinates, saved locations, phone.
+ * Only exposes the minimal fields needed for ride cards and booking lists.
+ */
+export const getPublicProfile = async (id) => {
+  const user = await User.findById(id).select(
+    'firstName lastName profileImage averageRating bio cancellations24h cancellations6h cancellations2h greenCreditsBalance'
+  );
   if (!user) throw new ApiError(404, 'User not found');
   return user;
 };

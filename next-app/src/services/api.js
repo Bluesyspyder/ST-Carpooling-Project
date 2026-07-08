@@ -62,13 +62,23 @@ api.interceptors.response.use(
     const config = error.config || {};
     const elapsed = Date.now() - (config.metadata?.startTime || Date.now());
 
+    // Normalize a user-facing message so every caller can surface something
+    // actionable regardless of whether there was a response, a timeout, or no
+    // connection at all. Callers should prefer `error.userMessage`.
     if (error.response) {
       console.error(`[api] ← ${error.response.status} ${config.url} (${elapsed}ms)`, error.response.data);
+      error.userMessage =
+        error.response.data?.message ||
+        (error.response.status >= 500
+          ? 'Something went wrong on our end. Please try again shortly.'
+          : 'Request failed. Please check your input and try again.');
     } else if (error.code === 'ECONNABORTED') {
       console.error(`[api] ✗ Timeout after ${elapsed}ms: ${config.url}`);
+      error.userMessage = 'The request timed out. Please check your connection and try again.';
     } else {
       // No response at all — DNS failure, connection refused, CORS block, offline, etc.
       console.error(`[api] ✗ Network error (no response) after ${elapsed}ms: ${config.baseURL || ''}${config.url}`, error.message);
+      error.userMessage = 'Network error — you appear to be offline. Check your connection and try again.';
     }
 
     if (error.response && error.response.status === 401) {

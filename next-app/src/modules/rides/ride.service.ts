@@ -58,10 +58,13 @@ const buildVerifiedLocation = (raw, fieldName) => {
       `${fieldName} must be confirmed on the map before proceeding. Click "Confirm Location" on the pin.`
     );
   }
+  const lat = Number(raw.latitude);
+  const lng = Number(raw.longitude);
   return {
     address:         raw.address || '',
-    latitude:        Number(raw.latitude),
-    longitude:       Number(raw.longitude),
+    latitude:        lat,
+    longitude:       lng,
+    coordinates:     [lng, lat], // [longitude, latitude] — required for $geoWithin geofencing
     verified:        true,
     verifiedAt:      new Date(),
     provider:        raw.provider || null,
@@ -76,10 +79,13 @@ const buildViaStopLocation = (raw, index) => {
   if (!raw || !Number.isFinite(Number(raw.latitude)) || !Number.isFinite(Number(raw.longitude))) {
     throw new ApiError(400, `Via-stop ${index + 1} must have valid coordinates.`);
   }
+  const lat = Number(raw.latitude);
+  const lng = Number(raw.longitude);
   return {
     address:         raw.address || '',
-    latitude:        Number(raw.latitude),
-    longitude:       Number(raw.longitude),
+    latitude:        lat,
+    longitude:       lng,
+    coordinates:     [lng, lat],
     verified:        raw.verified === true,
     verifiedAt:      raw.verified ? new Date() : null,
     provider:        raw.provider || null,
@@ -263,10 +269,15 @@ export const getRides = async (filters = {}) => {
     console.warn('[RIDE] Zone geofence query skipped:', zoneErr.message);
   }
 
+  // M3 fix: Hard cap at 200 results. The bounding-box pre-filter above already
+  // narrows candidates dramatically; without a limit the entire collection would
+  // be loaded into JS memory for in-memory haversine filtering as the DB grows.
   const rides = await Ride.find(query)
     .populate('driver', 'firstName lastName profileImage averageRating')
     .populate('driverVehicle')
-    .sort({ journeyDate: 1, journeyTime: 1 });
+    .sort({ journeyDate: 1, journeyTime: 1 })
+    .limit(200);
+
 
   if (pickupLat === null) {
     return rides;
@@ -369,11 +380,22 @@ export const updateRideStatus = async (id, driverId, status, options = {}) => {
 
   // Track driver cancellations
   if (status === 'CANCELLED' && ride.rideStatus !== 'CANCELLED') {
+    // Atomically claim the cancellation so the counter increment and passenger
+    // notifications below fire exactly once even under concurrent cancel requests.
+    const claimed = await Ride.findOneAndUpdate(
+      { _id: ride._id, rideStatus: { $ne: 'CANCELLED' } },
+      { $set: { rideStatus: 'CANCELLED' } },
+      { new: true }
+    );
+    if (!claimed) {
+      return await Ride.findById(ride._id);
+    }
+
     const now = new Date();
     const [hours, minutes] = ride.journeyTime.split(':');
     const departureDate = new Date(ride.journeyDate);
     departureDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-    
+
     const hoursUntilDeparture = (departureDate - now) / (1000 * 60 * 60);
 
     if (hoursUntilDeparture < 24 && hoursUntilDeparture >= 0) {
@@ -394,6 +416,19 @@ export const updateRideStatus = async (id, driverId, status, options = {}) => {
   // Compute fuel-type-aware eco-credits/emissions on completion, before saving
   // the new status, so the ride document is written once with everything set.
   if (status === 'COMPLETED' && previousStatus !== 'COMPLETED') {
+    // Atomically claim the completion so eco-credits are awarded EXACTLY once,
+    // even if two COMPLETED requests (or a timed-out client's retry) race. Only
+    // the request that flips the status from non-COMPLETED wins; the loser exits.
+    const claimed = await Ride.findOneAndUpdate(
+      { _id: ride._id, rideStatus: { $ne: 'COMPLETED' } },
+      { $set: { rideStatus: 'COMPLETED' } },
+      { new: true }
+    );
+    if (!claimed) {
+      // Another request already completed this ride and awarded its credits.
+      return await Ride.findById(ride._id);
+    }
+
     const confirmedBookings = await Booking.find({ ride: ride._id, bookingStatus: 'confirmed' });
     const vehicle = await Vehicle.findById(ride.driverVehicle).select('vehicleType');
     const fuelType = vehicle?.vehicleType || 'petrol';

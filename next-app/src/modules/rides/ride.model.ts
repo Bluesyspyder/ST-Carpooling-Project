@@ -10,6 +10,7 @@ const locationSchema = new mongoose.Schema(
     address:         { type: String, required: true },
     latitude:        { type: Number, required: true },
     longitude:       { type: Number, required: true },
+    coordinates:     { type: [Number], default: [] }, // [longitude, latitude] — for $geoWithin geofencing
     verified:        { type: Boolean, default: false },
     verifiedAt:      { type: Date, default: null },
     provider:        { type: String, default: null },
@@ -109,6 +110,9 @@ const rideSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// 2dsphere index enables the $geoWithin zone-geofence filter in getRides().
+rideSchema.index({ 'pickupLocation.coordinates': '2dsphere' });
 
 const Ride = mongoose.models.Ride || mongoose.model('Ride', rideSchema);
 
