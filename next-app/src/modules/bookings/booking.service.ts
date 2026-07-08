@@ -4,6 +4,7 @@ import Ride from '../rides/ride.model';
 import { ApiError } from '@/lib/api-wrapper';
 import { recordLocationUsage } from '../users/user.service';
 import User from '../users/user.model';
+import mongoose from 'mongoose';
 
 const buildVerifiedLocation = (raw, fieldName) => {
   if (!raw || !Number.isFinite(Number(raw.latitude)) || !Number.isFinite(Number(raw.longitude))) {
@@ -211,10 +212,25 @@ export const updateBookingStatus = async (bookingId, driverId, status) => {
     }
   } else if (newStatus === 'cancelled') {
     if (oldStatus === 'confirmed') {
-      // Atomically return the reserved seats.
-      await Ride.findByIdAndUpdate(booking.ride._id, {
-        $inc: { availableSeats: booking.seatsBooked, bookedSeats: -booking.seatsBooked },
-      });
+      const session = await mongoose.startSession();
+      session.startTransaction();
+      try {
+        // Atomically return the reserved seats.
+        await Ride.findByIdAndUpdate(
+          booking.ride._id,
+          { $inc: { availableSeats: booking.seatsBooked, bookedSeats: -booking.seatsBooked } },
+          { session }
+        );
+        booking.bookingStatus = newStatus;
+        await booking.save({ session });
+        await session.commitTransaction();
+      } catch (err) {
+        await session.abortTransaction();
+        throw err;
+      } finally {
+        session.endSession();
+      }
+      return booking;
     }
   }
 
@@ -251,27 +267,42 @@ export const cancelBooking = async (id, userId) => {
   const hoursUntilDeparture = (departureDate - now) / (1000 * 60 * 60);
 
   const oldStatus = booking.bookingStatus;
-  booking.bookingStatus = 'cancelled';
-  await booking.save();
+  
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (oldStatus === 'confirmed') {
-    // Atomically return the reserved seats (mirror of the confirm reservation).
-    await Ride.findByIdAndUpdate(booking.ride._id || booking.ride, {
-      $inc: { availableSeats: booking.seatsBooked, bookedSeats: -booking.seatsBooked },
-    });
-  }
+  try {
+    booking.bookingStatus = 'cancelled';
+    await booking.save({ session });
 
-  // Update metrics if within penalty windows
-  if (hoursUntilDeparture < 24 && hoursUntilDeparture >= 0) {
-    const updateQuery = {};
-    if (hoursUntilDeparture < 2) {
-      updateQuery.$inc = { cancellations2h: 1 };
-    } else if (hoursUntilDeparture < 6) {
-      updateQuery.$inc = { cancellations6h: 1 };
-    } else {
-      updateQuery.$inc = { cancellations24h: 1 };
+    if (oldStatus === 'confirmed') {
+      // Atomically return the reserved seats (mirror of the confirm reservation).
+      await Ride.findByIdAndUpdate(
+        booking.ride._id || booking.ride,
+        { $inc: { availableSeats: booking.seatsBooked, bookedSeats: -booking.seatsBooked } },
+        { session }
+      );
     }
-    await User.findByIdAndUpdate(userId, updateQuery);
+
+    // Update metrics if within penalty windows
+    if (hoursUntilDeparture < 24 && hoursUntilDeparture >= 0) {
+      const updateQuery = {};
+      if (hoursUntilDeparture < 2) {
+        updateQuery.$inc = { cancellations2h: 1 };
+      } else if (hoursUntilDeparture < 6) {
+        updateQuery.$inc = { cancellations6h: 1 };
+      } else {
+        updateQuery.$inc = { cancellations24h: 1 };
+      }
+      await User.findByIdAndUpdate(userId, updateQuery, { session });
+    }
+
+    await session.commitTransaction();
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
   }
 
   return { booking };

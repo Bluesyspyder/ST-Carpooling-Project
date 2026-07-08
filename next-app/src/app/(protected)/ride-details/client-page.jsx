@@ -113,7 +113,7 @@ const DriverRoutePanel = ({ ride, bookings, liveDriverLocation, pendingPickup = 
         latitude:  w.lat,
         longitude: w.lng,
         address:   w.address || (i === 0 ? 'Your Start' : i === optimResult.optimizedWaypoints.length - 1 ? 'Destination' : `Stop ${i}`),
-        label:     i === 0 ? 'D' : i === optimResult.optimizedWaypoints.length - 1 ? 'O' : `P${i}`,
+        label:     i === 0 ? 'O' : i === optimResult.optimizedWaypoints.length - 1 ? 'D' : `P${i}`,
       }))
     : null;
 

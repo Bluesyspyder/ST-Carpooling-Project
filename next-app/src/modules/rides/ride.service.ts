@@ -1,6 +1,7 @@
 // @ts-nocheck
 import Ride from './ride.model';
 import Vehicle from '../vehicles/vehicle.model';
+import mongoose from 'mongoose';
 import User from '../users/user.model';
 import Booking from '../bookings/booking.model';
 import Zone from '../zones/zone.model';
@@ -412,6 +413,11 @@ export const updateRideStatus = async (id, driverId, status, options = {}) => {
   }
 
   const previousStatus = ride.rideStatus;
+  
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
+  try {
 
   // Compute fuel-type-aware eco-credits/emissions on completion, before saving
   // the new status, so the ride document is written once with everything set.
@@ -422,9 +428,11 @@ export const updateRideStatus = async (id, driverId, status, options = {}) => {
     const claimed = await Ride.findOneAndUpdate(
       { _id: ride._id, rideStatus: { $ne: 'COMPLETED' } },
       { $set: { rideStatus: 'COMPLETED' } },
-      { new: true }
+      { new: true, session }
     );
     if (!claimed) {
+      await session.abortTransaction();
+      session.endSession();
       // Another request already completed this ride and awarded its credits.
       return await Ride.findById(ride._id);
     }
@@ -447,7 +455,8 @@ export const updateRideStatus = async (id, driverId, status, options = {}) => {
 
       await Booking.updateMany(
         { _id: { $in: confirmedBookings.map((b) => b._id) } },
-        { $set: { creditsEarned: passengerCreditsEarned, emissionSavedKg: emissionSavedPerPassenger } }
+        { $set: { creditsEarned: passengerCreditsEarned, emissionSavedKg: emissionSavedPerPassenger } },
+        { session }
       );
 
       // Persist onto real, spendable/leaderboard-ranked User balances (atomic $inc).
@@ -458,7 +467,7 @@ export const updateRideStatus = async (id, driverId, status, options = {}) => {
             lifetimeGreenCredits: ride.driverCreditsEarned,
             lifetimeCo2SavedKg: ride.totalEmissionSavedKg,
           },
-        }),
+        }, { session }),
         ...confirmedBookings.map((b) =>
           User.findByIdAndUpdate(b.passenger, {
             $inc: {
@@ -466,19 +475,26 @@ export const updateRideStatus = async (id, driverId, status, options = {}) => {
               lifetimeGreenCredits: passengerCreditsEarned,
               lifetimeCo2SavedKg: emissionSavedPerPassenger,
             },
-          })
+          }, { session })
         ),
-      ]).catch((err) => console.warn('[RIDE] user credit increment error:', err.message));
+      ]);
     } else {
       ride.driverCreditsEarned = DRIVER_BASE_CREDITS;
       await User.findByIdAndUpdate(ride.driver, {
         $inc: { greenCreditsBalance: DRIVER_BASE_CREDITS, lifetimeGreenCredits: DRIVER_BASE_CREDITS },
-      }).catch((err) => console.warn('[RIDE] user credit increment error:', err.message));
+      }, { session });
     }
   }
 
   ride.rideStatus = status;
-  await ride.save();
+  await ride.save({ session });
+  await session.commitTransaction();
+} catch (err) {
+  await session.abortTransaction();
+  throw err;
+} finally {
+  session.endSession();
+}
 
   // Notify every passenger with a live booking on this ride when the driver
   // cancels or completes it, so they're not left waiting on a dead ride.

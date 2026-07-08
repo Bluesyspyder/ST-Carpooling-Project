@@ -131,7 +131,7 @@ export const DEMO_STAGES = {
  * @param {function} onComplete — called with { driverCreditsEarned, totalEmissionSavedKg, routeDistance } at end
  * @param {string} rideId — the ride's MongoDB _id string
  */
-const useDemoAnimation = ({ ride, rideId, onLocationUpdate, onStageChange, onComplete }) => {
+const useDemoAnimation = ({ ride, orderedWaypoints = [], rideId, onLocationUpdate, onStageChange, onComplete }) => {
   const [stage, setStage] = useState(DEMO_STAGES.IDLE);
   const [polyline, setPolyline] = useState([]); // [[lat,lng], ...] — full route for the map
 
@@ -230,11 +230,16 @@ const useDemoAnimation = ({ ride, rideId, onLocationUpdate, onStageChange, onCom
     // 2. Build the ordered waypoint list
     const pickup = ride.pickupLocation;
     const dest = ride.destinationLocation;
+    
+    // Fallback to via if no ordered waypoints (though ordered waypoints is preferred)
     const via = (ride.viaStops || []).filter((v) => v.latitude && v.longitude);
+    const middleWaypoints = orderedWaypoints.length > 0 
+      ? orderedWaypoints.map((w) => [w.lat, w.lng])
+      : via.map((v) => [v.latitude, v.longitude]);
 
     const fullWaypoints = [
       [pickup.latitude, pickup.longitude],
-      ...via.map((v) => [v.latitude, v.longitude]),
+      ...middleWaypoints,
       [dest.latitude, dest.longitude],
     ];
 

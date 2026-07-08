@@ -20,6 +20,7 @@ export default function DriverModeContent() {
   const { user } = useAuth();
 
   const [ride, setRide] = useState(null);
+  const [orderedWaypoints, setOrderedWaypoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isDriving, setIsDriving] = useState(false);
@@ -96,6 +97,7 @@ export default function DriverModeContent() {
   // ── Demo Animation Hook ──────────────────────────────────────────────────────
   const { stage: animStage, polyline: demoPolyline, start: startDemo, stop: stopDemo } = useDemoAnimation({
     ride,
+    orderedWaypoints,
     rideId: id,
     onLocationUpdate: ({ lat, lng, heading }) => {
       setCurrentLocation({ lat, lng });
@@ -117,13 +119,17 @@ export default function DriverModeContent() {
   useEffect(() => {
     const fetchRide = async () => {
       try {
-        const res = await api.get(`/rides/${id}`);
+        const [res, routeRes] = await Promise.all([
+          api.get(`/rides/${id}`),
+          api.get(`/rides/${id}/optimized-route`)
+        ]);
         const rideData = res.data.data.ride;
         if (rideData.driver?._id !== user?._id && rideData.driver !== user?._id) {
           setError('Only the assigned driver can enter Driver Mode.');
           return;
         }
         setRide(rideData);
+        setOrderedWaypoints(routeRes.data?.data?.orderedWaypoints || []);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load ride');
       } finally {
@@ -298,16 +304,46 @@ export default function DriverModeContent() {
   const isPaused = demoStage === DEMO_STAGES.PAUSED_AT_PICKUP || demoStage === DEMO_STAGES.PAUSED_AT_VIA;
   const isDemoRunning = isDemoMode && demoStage !== DEMO_STAGES.IDLE && demoStage !== DEMO_STAGES.ARRIVED;
 
-  // Build stop markers for the demo map
+  // Generate Map markers
   const stopMarkers = ride ? [
-    { lat: ride.pickupLocation.latitude, lng: ride.pickupLocation.longitude, label: 'A', color: '#10b981', popup: 'Origin / Pickup' },
-    ...(ride.viaStops || []).map((vs, i) => ({
-      lat: vs.latitude, lng: vs.longitude,
-      label: String.fromCharCode(67 + i), // C, D
-      color: '#f59e0b', popup: `Stop ${i + 1}`,
+    {
+      lat: ride.pickupLocation.latitude,
+      lng: ride.pickupLocation.longitude,
+      label: 'O',
+      color: '#ef4444',
+      popup: 'Origin'
+    },
+    ...orderedWaypoints.map((w, i) => ({
+      lat: w.lat,
+      lng: w.lng,
+      label: `P${i + 1}`,
+      color: '#3b82f6',
+      popup: `Pickup: ${w.passenger.firstName} ${w.passenger.lastName}`
     })),
-    { lat: ride.destinationLocation.latitude, lng: ride.destinationLocation.longitude, label: '🏁', color: '#6366f1', popup: 'Destination' },
+    {
+      lat: ride.destinationLocation.latitude,
+      lng: ride.destinationLocation.longitude,
+      label: 'D',
+      color: '#10b981',
+      popup: 'Destination'
+    },
   ] : [];
+
+  if (demoResult && showCompletionModal) {
+    return (
+      <div className="min-h-screen bg-[#020617] pt-24 pb-8 text-white flex flex-col relative overflow-hidden items-center justify-center">
+        <DemoCompletionModal
+          isOpen={showCompletionModal}
+          onClose={() => router.push('/drive')}
+          driverCreditsEarned={demoResult.driverCreditsEarned}
+          totalEmissionSavedKg={demoResult.totalEmissionSavedKg}
+          routeDistance={demoResult.routeDistance}
+          vehicleType={demoResult.vehicleType}
+          passengerCount={ride?.bookedSeats || 1}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-slate-200">
@@ -518,19 +554,6 @@ export default function DriverModeContent() {
           )}
         </div>
       </div>
-
-      {/* Eco-Credits Completion Modal */}
-      {demoResult && (
-        <DemoCompletionModal
-          isOpen={showCompletionModal}
-          onClose={() => setShowCompletionModal(false)}
-          driverCreditsEarned={demoResult.driverCreditsEarned}
-          totalEmissionSavedKg={demoResult.totalEmissionSavedKg}
-          routeDistance={demoResult.routeDistance}
-          vehicleType={demoResult.vehicleType}
-          passengerCount={ride?.bookedSeats || 1}
-        />
-      )}
     </div>
   );
 }
