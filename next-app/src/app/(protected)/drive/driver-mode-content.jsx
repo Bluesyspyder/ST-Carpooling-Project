@@ -411,10 +411,10 @@ export default function DriverModeContent() {
                 ))
               : (
                 <>
-                  <Marker position={[ride.pickupLocation.latitude, ride.pickupLocation.longitude]}>
+                  <Marker position={[ride.pickupLocation.latitude, ride.pickupLocation.longitude]} icon={buildStopIcon('A', '#10b981')}>
                     <Popup>Pickup</Popup>
                   </Marker>
-                  <Marker position={[ride.destinationLocation.latitude, ride.destinationLocation.longitude]}>
+                  <Marker position={[ride.destinationLocation.latitude, ride.destinationLocation.longitude]} icon={buildStopIcon('🏁', '#6366f1')}>
                     <Popup>Destination</Popup>
                   </Marker>
                 </>
