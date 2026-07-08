@@ -570,7 +570,7 @@ const RideDetails = () => {
         )}
 
         {/* ── Booked Passengers & Requests ─────────────── */}
-        {bookings && bookings.length > 0 && (
+        {isDriver && bookings && bookings.length > 0 && (
           <div className="glass-panel p-6 space-y-4">
             <h4 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
