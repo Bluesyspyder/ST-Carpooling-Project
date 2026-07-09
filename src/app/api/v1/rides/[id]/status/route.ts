@@ -1,0 +1,14 @@
+// @ts-nocheck
+export const runtime = 'nodejs';
+
+import { NextResponse } from 'next/server';
+import { apiHandler, parseBody, validate } from '@/lib/api-wrapper';
+import * as rideService from '@/modules/rides/ride.service';
+import { updateRideStatusSchema } from '@/modules/rides/ride.validation';
+
+export const PATCH = apiHandler(async (req, { params, user }) => {
+  const rawBody = await parseBody(req);
+  const { status } = validate(updateRideStatusSchema, { body: rawBody }).body;
+  const ride = await rideService.updateRideStatus(params!.id, user.id, status);
+  return NextResponse.json({ status: 'success', data: { ride } }, { status: 200 });
+}, { protect: true, restrictTo: ['hybrid', 'admin'] });

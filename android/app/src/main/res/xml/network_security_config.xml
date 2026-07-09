@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- HTTPS only in production: the backend, Ola Maps, and Vercel are all TLS.
+         No cleartext exception is defined, so plain http:// traffic is blocked
+         at the OS level rather than failing silently or being allowed by accident. -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
