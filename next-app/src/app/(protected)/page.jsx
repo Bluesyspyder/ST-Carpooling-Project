@@ -405,7 +405,7 @@ const Dashboard = () => {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {drivingRides.filter(r => r.status !== 'completed').slice(0, 3).map(ride => (
+                      {drivingRides.filter(r => r.status !== 'completed' && new Date(r.journeyDate || r.departureTime) >= new Date(new Date().setHours(0,0,0,0))).slice(0, 3).map(ride => (
                         <Link
                           key={ride._id}
                           href={`/ride-details?id=${ride._id}`}
@@ -443,7 +443,7 @@ const Dashboard = () => {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {upcomingBookings.filter(b => b.ride?.status !== 'completed').slice(0, 3).map(booking => (
+                      {upcomingBookings.filter(b => b.ride?.status !== 'completed' && new Date(b.ride?.journeyDate || b.ride?.departureTime) >= new Date(new Date().setHours(0,0,0,0))).slice(0, 3).map(booking => (
                         <Link
                           key={booking._id}
                           href={`/ride-details?id=${booking.ride?._id}`}
@@ -513,7 +513,7 @@ const Dashboard = () => {
                             </p>
                           </div>
                           <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full whitespace-nowrap">
-                            +{Math.floor((ride.routeDistance || 15) / 5)} pts
+                            +{Math.floor((ride.routeDistance || 15) / 5) * 10} pts
                           </span>
                         </div>
 
@@ -758,7 +758,7 @@ const Dashboard = () => {
                 <Link key={ride._id} href={`/ride-details?id=${ride._id}`} className="glass-panel p-4 w-64 flex-shrink-0 snap-start min-h-[44px]">
                   <div className="flex items-start justify-between mb-2">
                     <p className="text-sm font-bold text-[var(--text-primary)] truncate pr-2">{ride.pickupLocation?.address || ride.source}</p>
-                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full whitespace-nowrap">+{Math.floor((ride.routeDistance || 15) / 5)} pts</span>
+                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full whitespace-nowrap">+{Math.floor((ride.routeDistance || 15) / 5) * 10} pts</span>
                   </div>
                   <p className="text-xs text-[var(--text-muted)] truncate mb-2">↓ {ride.destinationLocation?.address || ride.destination}</p>
                   <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">

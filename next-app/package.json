@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node server.js",
     "build": "next build",
-    "build:mobile": "cross-env BUILD_MODE=export next build",
+    "build:mobile": "node build-mobile.mjs",
     "start": "NODE_ENV=production node server.js",
     "lint": "eslint",
     "seed:admin": "npx tsx --env-file=.env.local src/scripts/seedAdmin.ts"
@@ -42,12 +42,12 @@
     "@capacitor/cli": "^8.4.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^6.0.0",
-    "cross-env": "^7.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",

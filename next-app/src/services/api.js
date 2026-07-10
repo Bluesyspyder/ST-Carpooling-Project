@@ -2,16 +2,14 @@ import axios from 'axios';
 
 import { Capacitor } from '@capacitor/core';
 
-// Dynamically determine the base URL
-const isNative = Capacitor.isNativePlatform();
-const API_BASE_URL = isNative 
-  ? (process.env.NEXT_PUBLIC_PROD_API_URL || 'http://localhost:3000/api/v1') 
-  : (process.env.NEXT_PUBLIC_API_URL || '/api/v1');
+// Always use the absolute URL if provided (eliminates mobile vs web bugs)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Bypass-Tunnel-Reminder': 'true' // Bypasses LocalTunnel's warning screen
   },
 });
 

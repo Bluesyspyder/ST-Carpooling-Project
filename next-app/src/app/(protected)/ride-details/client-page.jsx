@@ -10,6 +10,7 @@ import MapPreview from '@/components/MapPreview';
 import RouteMap from '@/components/RouteMap';
 import QuickLocationChips from '@/components/QuickLocationChips';
 import SeatMap from '@/components/SeatMap';
+import RatingModal from '@/components/RatingModal';
 import { generateSeatLayout } from '@/shared/utils/seatLayout';
 import useCurrentLocation from '@/hooks/useCurrentLocation';
 import { optimizePickupOrder, getMultiPointRoute } from '@/services/locationService';
@@ -321,6 +322,7 @@ const RideDetails = () => {
   const [bookingSuccess,  setBookingSuccess]  = useState(false);
   const [bookingError,    setBookingError]    = useState('');
   const [isBooking,       setIsBooking]       = useState(false);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
 
   const [dbSavedAddresses, setDbSavedAddresses] = useState([]);
   const [recentAddresses,   setRecentAddresses]   = useState([]);
@@ -667,9 +669,11 @@ const RideDetails = () => {
                   {ride.pickupLocation?.address?.split(',')[0]} → {ride.destinationLocation?.address?.split(',')[0]}
                 </h3>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-[var(--primary-base)] tracking-widest uppercase">Free</p>
-                <p className="text-xs text-[var(--text-secondary)] mt-1">per seat</p>
+              <div className="text-right flex flex-col items-end">
+                <p className="text-2xl font-bold text-emerald-400 tracking-widest">
+                  +{Math.floor((ride.routeDistance || 15) / 5) * 10}
+                </p>
+                <p className="text-xs text-emerald-500 font-bold mt-0.5">pts / seat</p>
               </div>
             </div>
 
@@ -710,9 +714,7 @@ const RideDetails = () => {
                   </div>
                   <div>
                     <p className="text-[var(--text-primary)] font-semibold">{ride.driver.firstName} {ride.driver.lastName}</p>
-                    {ride.status === 'completed' && activeBooking && !activeBooking.rated ? (
-                      <InlineRating bookingId={activeBooking._id} />
-                    ) : ride.status === 'completed' && activeBooking && activeBooking.rated ? (
+                    {activeBooking && activeBooking.rated ? (
                       <div className="text-emerald-400 text-[10px] font-bold mt-0.5">⭐ Rated {activeBooking.rating || 5}/5</div>
                     ) : (
                       <div className="flex items-center gap-1 mt-0.5 text-xs text-amber-400 font-bold">
@@ -775,7 +777,7 @@ const RideDetails = () => {
                     { label: 'Seats Taken',      value: bookings.filter(b => b.bookingStatus === 'confirmed').reduce((s, b) => s + b.seatsBooked, 0) },
                     { label: 'Seats Available',  value: ride.availableSeats },
                     { label: 'Pending Requests', value: bookings.filter(b => b.bookingStatus === 'pending').length },
-                    { label: 'Price / Seat',     value: `Free` },
+                    { label: 'Green Credits / Seat', value: `+${Math.floor((ride.routeDistance || 15) / 5) * 10} pts` },
                   ].map(({ label, value }) => (
                     <div key={label} className="flex items-center justify-between py-2 border-b border-[var(--border-subtle)]">
                       <span className="text-[var(--text-secondary)]">{label}</span>
@@ -800,6 +802,30 @@ const RideDetails = () => {
                 <Link href="/bookings" className="btn-secondary block w-full text-center py-2.5 px-4">
                   Manage Requests →
                 </Link>
+              </div>
+            ) : activeBooking ? (
+              /* Passenger has a booking */
+              <div className="space-y-4">
+                <h4 className="text-lg font-bold text-[var(--text-primary)] mb-4">Your Booking</h4>
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl p-5 space-y-4">
+                  <p className="text-sm">Status: <span className={`font-bold uppercase ${activeBooking.bookingStatus === 'confirmed' ? 'text-[var(--primary-base)]' : activeBooking.bookingStatus === 'pending' ? 'text-amber-400' : 'text-red-400'}`}>{activeBooking.bookingStatus}</span></p>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    {activeBooking.seatsBooked} seat{activeBooking.seatsBooked > 1 ? 's' : ''} booked.
+                  </p>
+                  
+                  {/* Rating logic if ride is over or completed */}
+                  {(ride.status === 'completed' || new Date(ride.journeyDate || ride.departureTime) < new Date(new Date().setHours(0,0,0,0))) && !activeBooking.rated && (
+                    <button 
+                      onClick={() => setIsRatingModalOpen(true)}
+                      className="btn-primary w-full py-2.5 mt-2"
+                    >
+                      ⭐ Rate Driver & Write Review
+                    </button>
+                  )}
+                  {activeBooking.rated && (
+                    <div className="text-emerald-400 font-bold mt-2 text-center text-sm">⭐ You rated this ride</div>
+                  )}
+                </div>
               </div>
             ) : (
               /* Passenger booking form */
@@ -864,7 +890,7 @@ const RideDetails = () => {
                     <div className="flex justify-between items-center text-sm pt-2">
                       <span className="text-emerald-400 font-semibold">Green Credits</span>
                       <span className="text-emerald-400 font-extrabold text-lg">
-                        +{Math.floor((ride.routeDistance || 15) / 5) * (selectedSeatIds.length || 1)} pts
+                        +{Math.floor((ride.routeDistance || 15) / 5) * 10 * (selectedSeatIds.length || 1)} pts
                       </span>
                     </div>
 
@@ -1068,12 +1094,12 @@ const RideDetails = () => {
             </Link>
           </StickyActionBar>
         )
-      ) : !bookingSuccess ? (
+      ) : activeBooking ? null : !bookingSuccess ? (
         <StickyActionBar>
           <div className="flex-1 flex items-center justify-between text-xs text-[var(--text-secondary)] mr-2">
             <span className="text-emerald-400 font-semibold">Green Credits</span>
             <span className="text-emerald-400 font-extrabold text-base ml-2">
-              +{Math.floor((ride.routeDistance || 15) / 5) * (selectedSeatIds.length || 1)} pts
+              +{Math.floor((ride.routeDistance || 15) / 5) * 10 * (selectedSeatIds.length || 1)} pts
             </span>
           </div>
           <button
@@ -1093,6 +1119,17 @@ const RideDetails = () => {
           </button>
         </StickyActionBar>
       ) : null}
+
+      {isRatingModalOpen && activeBooking && (
+        <RatingModal 
+          bookingId={activeBooking._id}
+          driverName={`${ride.driver?.firstName || ''} ${ride.driver?.lastName || ''}`.trim()}
+          onClose={() => setIsRatingModalOpen(false)}
+          onSuccess={() => {
+            setBookings(prev => prev.map(b => b._id === activeBooking._id ? { ...b, rated: true } : b));
+          }}
+        />
+      )}
     </div>
     </>
   );
