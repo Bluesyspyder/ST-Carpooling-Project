@@ -320,9 +320,15 @@ const RouteMap = ({
 
   const hasPickup = pickup?.latitude && pickup?.longitude;
   const hasDest   = destination?.latitude && destination?.longitude;
-  const hasWaypoints = waypoints && waypoints.length >= 2;
+  const hasWaypoints = waypoints && waypoints.length >= 1;
 
-  if (!hasPickup && !hasDest && !hasWaypoints) return null;
+  if (!hasPickup && !hasDest && !hasWaypoints) {
+    return (
+      <div className={`rounded-xl overflow-hidden border border-slate-700/60 bg-slate-900 flex items-center justify-center ${className}`} style={{ height: height === '100%' ? '100%' : height }}>
+        <p className="text-slate-500 text-sm">Select a location to view map</p>
+      </div>
+    );
+  }
 
   const fmtDuration = (mins) => {
     if (!mins) return '—';
@@ -332,10 +338,10 @@ const RouteMap = ({
   };
 
   return (
-    <div className={`rounded-xl overflow-hidden border border-slate-700/60 ${className}`}>
+    <div className={`rounded-xl overflow-hidden border border-slate-700/60 flex flex-col ${className}`} style={{ height: height === '100%' ? '100%' : 'auto' }}>
       {/* Map */}
-      <div className="relative">
-        <div ref={mapRef} style={{ height }} className="w-full bg-slate-900" />
+      <div className="relative flex-1 w-full min-h-[250px]" style={{ height: height !== '100%' ? height : '100%' }}>
+        <div ref={mapRef} className="absolute inset-0 w-full h-full bg-slate-900" />
 
         {/* Loading overlay */}
         {loading && (
@@ -350,7 +356,7 @@ const RouteMap = ({
 
       {/* Info panel */}
       {showPanel && (
-        <div className="bg-slate-900/80 border-t border-slate-700/50 px-4 py-3">
+        <div className="bg-slate-900 border-t border-slate-700/50 px-4 py-3 shrink-0">
           {error && (
             <p className="text-amber-400 text-xs mb-2">{error}</p>
           )}
@@ -381,16 +387,16 @@ const RouteMap = ({
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              {hasPickup && (
+              {(hasPickup || waypoints?.length > 0) && (
                 <div className="flex items-center gap-1.5 text-xs text-slate-400">
                   <span className="inline-block w-3 h-3 rounded-full bg-emerald-500" />
-                  <span className="truncate max-w-40">{pickup.address?.split(',')[0] || 'Pickup'}</span>
+                  <span className="truncate max-w-40">{waypoints?.[0]?.address?.split(',')[0] || pickup?.address?.split(',')[0] || 'Pickup'}</span>
                 </div>
               )}
-              {hasDest && (
+              {(hasDest || waypoints?.length > 1) && (
                 <div className="flex items-center gap-1.5 text-xs text-slate-400">
                   <span className="inline-block w-3 h-3 rounded-full bg-indigo-500" />
-                  <span className="truncate max-w-40">{destination.address?.split(',')[0] || 'Destination'}</span>
+                  <span className="truncate max-w-40">{waypoints?.[waypoints.length-1]?.address?.split(',')[0] || destination?.address?.split(',')[0] || 'Destination'}</span>
                 </div>
               )}
             </div>
