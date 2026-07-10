@@ -130,6 +130,12 @@ const Register = () => {
     setIsSubmitting(true);
     try {
       const payload = { ...formData };
+      
+      // Combine country code and phone number
+      const code = formData.countryCode || '+91';
+      let ph = (formData.phone || '').trim();
+      if (ph.startsWith('0')) ph = ph.substring(1);
+      payload.phone = `${code} ${ph}`;
 
       if (payload.role === 'hybrid') {
         payload.mileage = parseFloat(payload.mileage) || 0;
@@ -259,11 +265,34 @@ const Register = () => {
             {/* Phone */}
             <div>
               <label htmlFor="phone" className={labelClass}>Phone Number</label>
-              <input
-                id="phone" name="phone" type="text" required
-                value={formData.phone} onChange={handleChange}
-                className={inputClass} placeholder="+92 300 0000000"
-              />
+              <div className="flex">
+                <select
+                  value={formData.countryCode || '+91'}
+                  onChange={(e) => setFormData({ ...formData, countryCode: e.target.value })}
+                  className={`${inputClass} !w-[100px] !rounded-r-none border-r-0 !pr-2 !pl-3 bg-[var(--bg-surface-hover)] font-medium appearance-none`}
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                    backgroundPosition: 'right 0.2rem center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '1.5em 1.5em',
+                  }}
+                >
+                  <option value="+92">🇵🇰 +92</option>
+                  <option value="+91">🇮🇳 +91</option>
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+61">🇦🇺 +61</option>
+                  <option value="+971">🇦🇪 +971</option>
+                  <option value="+49">🇩🇪 +49</option>
+                  <option value="+33">🇫🇷 +33</option>
+                  <option value="+81">🇯🇵 +81</option>
+                </select>
+                <input
+                  id="phone" name="phone" type="tel" required
+                  value={formData.phone} onChange={handleChange}
+                  className={`${inputClass} !rounded-l-none flex-1`} placeholder="300 0000000"
+                />
+              </div>
             </div>
 
             {/* Gender */}

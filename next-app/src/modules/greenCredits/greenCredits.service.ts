@@ -2,6 +2,8 @@
 import Booking from '@/modules/bookings/booking.model';
 import User from '@/modules/users/user.model';
 
+import { calculateMultiPointRoute } from '@/modules/routes/route.service';
+
 const CREDIT_MULTIPLIER = { petrol: 1, diesel: 0.9, ev: 2 };
 const EMISSION_FACTOR = { petrol: 0.19, diesel: 0.17, ev: 0.05 }; // kg CO2 per km per car
 
@@ -34,14 +36,27 @@ export function nextBadgeInfo(credits) {
 }
 
 export async function awardGreenCredits(ride) {
-  if (ride.greenCreditsAwarded || !ride.routeDistance) return;
+  if (ride.greenCreditsAwarded) return;
+
+  let distance = ride.routeDistance;
+  if (!distance && ride.pickupLocation && ride.destinationLocation) {
+    try {
+      const routeRes = await calculateMultiPointRoute([ride.pickupLocation, ride.destinationLocation]);
+      distance = routeRes.distanceKm;
+      ride.routeDistance = distance;
+    } catch (e) {
+      console.warn('[GREEN CREDITS] Failed to calculate dynamic distance:', e.message);
+    }
+  }
+
+  if (!distance) return;
 
   const confirmedBookings = await Booking.find({ ride: ride._id, bookingStatus: 'confirmed' });
   const passengerSeats = confirmedBookings.reduce((sum, b) => sum + (b.seatsBooked || 1), 0);
   const passengerCount = passengerSeats + 1; // include driver
 
   const vehicleType = ride.driverVehicle?.vehicleType;
-  const { credits, co2Saved } = calculateGreenImpact(ride.routeDistance, vehicleType, passengerCount);
+  const { credits, co2Saved } = calculateGreenImpact(distance, vehicleType, passengerCount);
 
   const recipientIds = [ride.driver.toString(), ...confirmedBookings.map((b) => b.passenger.toString())];
 

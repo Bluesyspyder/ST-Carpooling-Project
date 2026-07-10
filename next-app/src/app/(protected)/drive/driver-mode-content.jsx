@@ -29,6 +29,7 @@ export default function DriverModeContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isDriving, setIsDriving] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [routePath, setRoutePath] = useState(null);
   
@@ -41,6 +42,15 @@ export default function DriverModeContent() {
     iconUrl: 'https://cdn-icons-png.flaticon.com/512/3204/3204018.png',
     iconSize: [40, 40],
     iconAnchor: [20, 20],
+  }) : null;
+
+  const demoCarIcon = typeof window !== 'undefined' ? new L.DivIcon({
+    className: 'bg-transparent',
+    html: `<div class="bg-[var(--bg-surface-hover)] text-[var(--brand-primary)] px-3 py-1.5 rounded-full text-sm font-bold border border-[var(--border-default)] shadow-lg flex items-center gap-2 whitespace-nowrap" style="transform: translate(-50%, -100%); margin-top: 10px;">
+      🚙 Driving to pickup...
+    </div>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
   }) : null;
 
   useEffect(() => {
@@ -77,15 +87,6 @@ export default function DriverModeContent() {
 
   const startDriving = async () => {
     try {
-      const permissions = await Geolocation.checkPermissions();
-      if (permissions.location !== 'granted') {
-        const req = await Geolocation.requestPermissions();
-        if (req.location !== 'granted') {
-          alert('Location permission is required for Live Tracking.');
-          return;
-        }
-      }
-
       setIsDriving(true);
 
       // Connect to Socket.io (which is running on our backend's port)
@@ -99,32 +100,75 @@ export default function DriverModeContent() {
         socketRef.current.emit('join_ride', id);
       });
 
-      // Start watching GPS
-      const watchId = await Geolocation.watchPosition(
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-        (position, err) => {
-          if (err) {
-            console.error('GPS Watch Error:', err);
+      // Try Native Geolocation first (Capacitor)
+      let permissions;
+      try {
+        permissions = await Geolocation.checkPermissions();
+        if (permissions.location !== 'granted') {
+          const req = await Geolocation.requestPermissions();
+          if (req.location !== 'granted') {
+            alert('Location permission is required for Live Tracking.');
+            setIsDriving(false);
             return;
           }
-          if (position) {
-            const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
-            setCurrentLocation(loc);
-            
-            // Emit to passengers
-            socketRef.current.emit('driver_location_update', {
-              rideId: id,
-              lat: loc.lat,
-              lng: loc.lng,
-              heading: position.coords.heading,
-              speed: position.coords.speed,
-              timestamp: Date.now()
-            });
-          }
         }
-      );
-      watchIdRef.current = watchId;
 
+        const watchId = await Geolocation.watchPosition(
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+          (position, err) => {
+            if (err) {
+              console.error('GPS Watch Error:', err);
+              return;
+            }
+            if (position) {
+              const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+              setCurrentLocation(loc);
+              
+              if (socketRef.current) {
+                socketRef.current.emit('driver_location_update', {
+                  rideId: id,
+                  lat: loc.lat,
+                  lng: loc.lng,
+                  heading: position.coords.heading,
+                  speed: position.coords.speed,
+                  timestamp: Date.now()
+                });
+              }
+            }
+          }
+        );
+        watchIdRef.current = watchId;
+      } catch (capErr) {
+        console.warn('Capacitor Geolocation failed, falling back to Web API:', capErr);
+        
+        // Fallback to Web Geolocation API
+        if (navigator.geolocation) {
+          const webWatchId = navigator.geolocation.watchPosition(
+            (position) => {
+              const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+              setCurrentLocation(loc);
+              if (socketRef.current) {
+                socketRef.current.emit('driver_location_update', {
+                  rideId: id,
+                  lat: loc.lat,
+                  lng: loc.lng,
+                  heading: position.coords?.heading || 0,
+                  speed: position.coords?.speed || 0,
+                  timestamp: Date.now()
+                });
+              }
+            },
+            (err) => {
+              console.error('Web GPS Watch Error:', err);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
+          // Store it as a string to differentiate if needed, or just keep it
+          watchIdRef.current = webWatchId;
+        } else {
+          throw new Error('Geolocation is not supported by this browser.');
+        }
+      }
     } catch (err) {
       alert('Could not start GPS tracking: ' + err.message);
       setIsDriving(false);
@@ -138,6 +182,7 @@ export default function DriverModeContent() {
     }
     
     setIsDriving(true);
+    setIsDemo(true);
     let currentIndex = 0;
     
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
@@ -155,7 +200,11 @@ export default function DriverModeContent() {
       }
       
       const pos = routePath[currentIndex];
-      const loc = { lat: pos[0], lng: pos[1] };
+      // handle if pos is array [lat, lng] or object {lat, lng}
+      const lat = pos.lat !== undefined ? pos.lat : pos[0];
+      const lng = pos.lng !== undefined ? pos.lng : pos[1];
+      const loc = { lat, lng };
+      
       setCurrentLocation(loc);
       
       if (socketRef.current) {
@@ -170,14 +219,22 @@ export default function DriverModeContent() {
       }
       
       // Calculate next step
-      currentIndex += Math.max(2, Math.floor(routePath.length / 80)); // scale speed depending on distance
-    }, 150); // Fast interval for smooth and fast demo simulation
+      currentIndex += Math.max(5, Math.floor(routePath.length / 50)); // Faster speed
+    }, 100); // 100ms interval for very fast demo simulation
   };
 
   const stopDriving = async () => {
     setIsDriving(false);
+    setIsDemo(false);
     if (watchIdRef.current !== null) {
-      await Geolocation.clearWatch({ id: watchIdRef.current });
+      try {
+        await Geolocation.clearWatch({ id: watchIdRef.current });
+      } catch (err) {
+        // Fallback for Web API
+        if (navigator.geolocation) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+        }
+      }
       watchIdRef.current = null;
     }
     if (demoIntervalRef.current) {
@@ -187,6 +244,19 @@ export default function DriverModeContent() {
     if (socketRef.current) {
       socketRef.current.emit('leave_ride', id);
       socketRef.current.disconnect();
+    }
+  };
+
+  const handleCompleteRide = async () => {
+    if (window.confirm("Are you sure you want to complete this ride?")) {
+      try {
+        await api.post(`/rides/${id}/complete`);
+        await stopDriving();
+        alert("Ride completed successfully!");
+        router.push('/drive');
+      } catch (err) {
+        alert("Failed to complete ride: " + (err.response?.data?.message || err.message));
+      }
     }
   };
 
@@ -223,17 +293,59 @@ export default function DriverModeContent() {
 
   return (
     <div className="flex flex-col h-screen bg-[var(--bg-default)] text-[var(--text-primary)]">
-      <div className="p-4 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] flex justify-between items-center z-10 shadow-lg">
+      <div className="p-4 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] flex flex-col md:flex-row justify-between items-start md:items-center z-10 shadow-lg gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">Driver Mode</h1>
-          <p className="text-xs text-[var(--text-secondary)]">Ride #{id.substring(0, 6)}</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">Driver Mode</h1>
+            {isDemo && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-900/50 border border-amber-700 text-amber-500 uppercase tracking-widest flex items-center gap-1">
+                🎥 Demo
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-[var(--text-secondary)]">
+            Ride #{id.substring(0, 6)} · ACTIVE
+            {isDemo && <span className="text-amber-500 font-bold ml-2">[DRIVING TO PICKUP]</span>}
+          </p>
         </div>
-        <button 
-          onClick={() => router.back()}
-          className="text-sm px-4 py-2 bg-[var(--bg-surface-hover)] rounded-lg hover:bg-[var(--bg-surface-hover)]"
-        >
-          Exit
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {!isDemo && (
+            <>
+              {!isDriving && (
+                <button 
+                  onClick={startDemo}
+                  className="text-sm px-4 py-2 bg-[var(--bg-surface-hover)] border border-[var(--border-default)] rounded-lg hover:bg-[var(--bg-surface)] flex items-center gap-2 transition"
+                >
+                  🎥 Demo Mode
+                </button>
+              )}
+              <button 
+                onClick={() => alert("Freeze Bookings not yet implemented")}
+                className="text-sm px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+              >
+                Freeze Bookings
+              </button>
+              <button 
+                onClick={handleCompleteRide}
+                className="text-sm px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition"
+              >
+                Complete Ride
+              </button>
+              <button 
+                onClick={() => alert("Cancel Ride not yet implemented")}
+                className="text-sm px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
+              >
+                Cancel Ride
+              </button>
+            </>
+          )}
+          <button 
+            onClick={() => router.back()}
+            className="text-sm px-4 py-2 bg-[var(--bg-surface-hover)] border border-[var(--border-default)] rounded-lg hover:bg-[var(--bg-surface)] transition"
+          >
+            Exit
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 relative">
@@ -248,7 +360,7 @@ export default function DriverModeContent() {
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             />
             {currentLocation && (
-              <Marker position={[currentLocation.lat, currentLocation.lng]} icon={carIcon}>
+              <Marker position={[currentLocation.lat, currentLocation.lng]} icon={isDemo ? demoCarIcon : carIcon}>
                 <Popup>Your Car</Popup>
               </Marker>
             )}
@@ -259,7 +371,7 @@ export default function DriverModeContent() {
               <Popup>End</Popup>
             </Marker>
             {routePath && (
-              <Polyline positions={routePath} color="#3b82f6" weight={6} opacity={0.8} />
+              <Polyline positions={routePath} color={isDemo ? "#10b981" : "#3b82f6"} weight={6} opacity={0.8} />
             )}
           </MapContainer>
         )}
@@ -267,31 +379,30 @@ export default function DriverModeContent() {
         {/* Overlay Controls */}
         <div className="absolute bottom-6 left-0 right-0 px-6 z-10 flex flex-col gap-4">
           {!isDriving ? (
-            <div className="flex flex-col gap-3">
-              <button 
-                onClick={startDriving}
-                className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-[var(--text-primary)] rounded-2xl font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-              >
-                Start Live GPS Broadcasting
-              </button>
-              <button 
-                onClick={startDemo}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(37,99,235,0.3)]"
-              >
-                Start Demo Simulator
-              </button>
-            </div>
+            <button 
+              onClick={startDriving}
+              className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-[var(--text-primary)] rounded-2xl font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+            >
+              Start Driving & Broadcasting
+            </button>
+          ) : isDemo ? (
+            <button 
+              onClick={stopDriving}
+              className="w-full py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[var(--text-primary)] rounded-2xl font-bold text-lg shadow-lg"
+            >
+              ✕ Stop Demo
+            </button>
           ) : (
             <>
               <button 
                 onClick={handleSos}
-                className="w-full py-3 bg-red-600 hover:bg-red-700 text-[var(--text-primary)] rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(220,38,38,0.4)] animate-pulse"
+                className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(220,38,38,0.4)] animate-pulse"
               >
                 🚨 EMERGENCY S.O.S 🚨
               </button>
               <button 
                 onClick={stopDriving}
-                className="w-full py-3 bg-[var(--bg-surface-hover)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl font-bold"
+                className="w-full py-3 bg-[var(--bg-surface-hover)] hover:bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl font-bold text-lg"
               >
                 Stop Broadcasting
               </button>
