@@ -749,7 +749,6 @@ const RideDetails = () => {
                       />
                     )}
 
-                    <div>
                     {ride?.driverVehicle && (
                       <div>
                         <label className="block text-xs text-[var(--text-secondary)] mb-3">Select your seats</label>
