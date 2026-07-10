@@ -14,6 +14,7 @@ import {
   fetchRecentAddresses,
   fetchSavedAddresses,
 } from '@/services/locationService';
+import { lookupVehicleByPlate } from '@/services/vehicleService';
 import { Capacitor } from '@capacitor/core';
 import { takePhoto, dataUrlToFile } from '@/services/nativeCamera';
 
@@ -59,6 +60,18 @@ const Profile = () => {
 
   /* ── vehicles ── */
   const [vehicles, setVehicles] = useState([]);
+  const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const [newVehicle, setNewVehicle] = useState({
+    vehicleName: '',
+    vehiclePlateNumber: '',
+    vehicleType: 'diesel',
+    mileage: '',
+    seatCount: 4,
+  });
+  const [isAddingVehicle, setIsAddingVehicle] = useState(false);
+  const [isLookingUpPlate, setIsLookingUpPlate] = useState(false);
+  const [plateLookupError, setPlateLookupError] = useState('');
+  const [addVehicleError, setAddVehicleError] = useState('');
 
   /* ── photo upload ── */
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
@@ -126,6 +139,57 @@ const Profile = () => {
 
   /* ── handlers: logout ── */
   const handleLogout = () => { logout(); navigate('/'); };
+
+  /* ── handlers: add vehicle ── */
+  const handlePlateLookup = async () => {
+    if (!newVehicle.vehiclePlateNumber || newVehicle.vehiclePlateNumber.length < 4) return;
+    setIsLookingUpPlate(true);
+    setPlateLookupError('');
+    try {
+      const vehicle = await lookupVehicleByPlate(newVehicle.vehiclePlateNumber);
+      if (vehicle) {
+        setNewVehicle(prev => ({
+          ...prev,
+          vehicleName: vehicle.vehicleName || prev.vehicleName,
+          vehicleType: vehicle.vehicleType || prev.vehicleType,
+          mileage: vehicle.mileage || prev.mileage,
+          seatCount: vehicle.seatCount || prev.seatCount,
+        }));
+      }
+    } catch (err) {
+      console.log('Vehicle lookup failed', err);
+      setPlateLookupError('Unable to auto-fill vehicle details. Please enter manually.');
+    } finally {
+      setIsLookingUpPlate(false);
+    }
+  };
+
+  const handleAddVehicle = async (e) => {
+    e.preventDefault();
+    setIsAddingVehicle(true);
+    setAddVehicleError('');
+    try {
+      const res = await api.post('/vehicles', newVehicle);
+      if (res.data?.data?.user) {
+        setUser(res.data.data.user);
+      }
+      if (res.data?.data?.vehicle) {
+        setVehicles(prev => [...prev, res.data.data.vehicle]);
+      }
+      setShowAddVehicle(false);
+      setNewVehicle({
+        vehicleName: '',
+        vehiclePlateNumber: '',
+        vehicleType: 'diesel',
+        mileage: '',
+        seatCount: 4,
+      });
+    } catch (err) {
+      setAddVehicleError(err.response?.data?.message || 'Failed to add vehicle');
+    } finally {
+      setIsAddingVehicle(false);
+    }
+  };
 
   /* ── handlers: profile photo ── */
   const handleProfilePhotoChange = async (fileOrEvent) => {
@@ -604,16 +668,120 @@ const Profile = () => {
             )}
           </div>
 
-          {/* ── Vehicles (hybrid only) ── */}
-          {user.role === 'hybrid' && (
-            <div className="pt-6 border-t border-[var(--border-subtle)] space-y-4">
+          {/* ── Vehicles Section ── */}
+          <div className="pt-6 border-t border-[var(--border-subtle)] space-y-4">
+            <div className="flex items-center justify-between">
               <h4 className="text-lg font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2">
                 <svg className="w-5 h-5 text-[var(--primary-base)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10M21 16v-3a4 4 0 00-4-4h-3v7m0 0l-3-3m3 3l3-3" />
                 </svg>
-                Vehicle Specifications
+                {user.role === 'hybrid' ? 'Vehicle Specifications' : 'Upgrade to Rider'}
               </h4>
+              {!showAddVehicle && (
+                <button 
+                  onClick={() => setShowAddVehicle(true)}
+                  className="btn-primary px-3 py-1.5 text-[10px]"
+                >
+                  {user.role === 'hybrid' ? '+ ADD VEHICLE' : 'UPGRADE NOW'}
+                </button>
+              )}
+            </div>
+
+            {user.role === 'passenger' && !showAddVehicle && (
+              <div className="bg-[var(--bg-surface)] border border-[var(--primary-base)]/50 p-5 rounded-sm flex flex-col items-center justify-center text-center space-y-3">
+                <p className="text-[var(--text-primary)] font-semibold text-sm">Want to drive others?</p>
+                <p className="text-[var(--text-secondary)] text-xs max-w-sm">
+                  Add your vehicle details to upgrade your account to a Rider. This allows you to post rides and earn money while commuting.
+                </p>
+              </div>
+            )}
+
+            {showAddVehicle && (
+              <form onSubmit={handleAddVehicle} className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] p-5 rounded-sm space-y-4">
+                <h5 className="text-[var(--text-primary)] font-bold text-xs uppercase tracking-widest border-b border-[var(--border-subtle)] pb-2 mb-4">
+                  Register New Vehicle
+                </h5>
+                
+                {addVehicleError && (
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-3 rounded-sm text-xs font-bold">
+                    {addVehicleError}
+                  </div>
+                )}
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest mb-1 block">Plate Number</label>
+                    <div className="relative">
+                      <input
+                        type="text" required
+                        value={newVehicle.vehiclePlateNumber} 
+                        onChange={(e) => setNewVehicle({...newVehicle, vehiclePlateNumber: e.target.value})}
+                        onBlur={handlePlateLookup}
+                        className="form-input w-full px-3 py-2.5 text-sm uppercase tracking-wider" 
+                        placeholder="e.g. DL-01-AB-1234"
+                      />
+                      {isLookingUpPlate && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--primary-base)] animate-pulse font-semibold">Looking up...</span>}
+                    </div>
+                    {plateLookupError && <p className="text-amber-500 text-[10px] mt-1 font-medium">{plateLookupError}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest mb-1 block">Vehicle Name</label>
+                    <input
+                      type="text" required
+                      value={newVehicle.vehicleName} 
+                      onChange={(e) => setNewVehicle({...newVehicle, vehicleName: e.target.value})}
+                      className="form-input w-full px-3 py-2.5 text-sm" 
+                      placeholder="e.g. Honda City"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest mb-1 block">Fuel Type</label>
+                    <select
+                      value={newVehicle.vehicleType}
+                      onChange={(e) => setNewVehicle({...newVehicle, vehicleType: e.target.value})}
+                      className="form-input w-full px-3 py-2.5 text-sm"
+                    >
+                      <option value="petrol">Petrol</option>
+                      <option value="diesel">Diesel</option>
+                      <option value="ev">Electric (EV)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest mb-1 block">Mileage (km/l)</label>
+                    <input
+                      type="number" required min="1" step="0.1"
+                      value={newVehicle.mileage} 
+                      onChange={(e) => setNewVehicle({...newVehicle, mileage: e.target.value})}
+                      className="form-input w-full px-3 py-2.5 text-sm" 
+                      placeholder="e.g. 15.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest mb-1 block">Seat Count</label>
+                    <input
+                      type="number" required min="1" max="10"
+                      value={newVehicle.seatCount} 
+                      onChange={(e) => setNewVehicle({...newVehicle, seatCount: e.target.value})}
+                      className="form-input w-full px-3 py-2.5 text-sm" 
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-subtle)]">
+                  <button type="button" onClick={() => setShowAddVehicle(false)}
+                    className="px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
+                    CANCEL
+                  </button>
+                  <button type="submit" disabled={isAddingVehicle}
+                    className="btn-primary px-5 py-2 text-[10px]">
+                    {isAddingVehicle ? 'SAVING...' : 'SAVE VEHICLE'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {user.role === 'hybrid' && (
               <div className="space-y-4">
                 {vehicles.length > 0 ? vehicles.map((vehicle) => (
                   <div key={vehicle._id} className="border border-[var(--border-subtle)] p-5 rounded-sm bg-[var(--bg-surface)]">
@@ -669,8 +837,8 @@ const Profile = () => {
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="pt-6 border-t border-[var(--border-subtle)] flex justify-end">
             <button onClick={handleLogout}

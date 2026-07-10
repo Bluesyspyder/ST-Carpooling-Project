@@ -17,7 +17,7 @@ const mapFuelType = (fuelDesc: string): 'petrol' | 'diesel' | 'ev' => {
  * @returns {Promise<object>} Normalized vehicle details matching our schema
  */
 export const fetchVehicleDetails = async (plateNumber: string) => {
-  const apiKey = process.env.FIREAPI_KEY;
+  const apiKey = process.env.FIRE_API_KEY;
   if (!apiKey) {
     console.warn('[FIREAPI] FIREAPI_KEY is not set in environment variables. Using mock data for development.');
     // Return mock data if API key is missing (useful for local dev without key)

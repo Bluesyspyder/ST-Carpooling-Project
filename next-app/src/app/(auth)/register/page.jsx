@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useRef } from 'react';
 
 import { useAuth } from '@/hooks/useAuth';
+import { lookupVehicleByPlate } from '@/services/vehicleService';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import MapPreview from '@/components/MapPreview';
 
@@ -33,6 +34,8 @@ const Register = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLookingUpPlate, setIsLookingUpPlate] = useState(false);
+  const [plateLookupError, setPlateLookupError] = useState('');
 
   const emailRef = useRef(null);
   const addressRef = useRef(null);
@@ -44,6 +47,29 @@ const Register = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handlePlateLookup = async () => {
+    if (!formData.vehiclePlateNumber || formData.vehiclePlateNumber.length < 4) return;
+    setIsLookingUpPlate(true);
+    setPlateLookupError('');
+    try {
+      const vehicle = await lookupVehicleByPlate(formData.vehiclePlateNumber);
+      if (vehicle) {
+        setFormData(prev => ({
+          ...prev,
+          vehicleName: vehicle.vehicleName || prev.vehicleName,
+          vehicleType: vehicle.vehicleType || prev.vehicleType,
+          mileage: vehicle.mileage || prev.mileage,
+          seatCount: vehicle.seatCount || prev.seatCount,
+        }));
+      }
+    } catch (err) {
+      console.log('Vehicle lookup failed', err);
+      setPlateLookupError('Unable to auto-fill vehicle details. Please enter manually.');
+    } finally {
+      setIsLookingUpPlate(false);
+    }
   };
 
   const handleImageChange = (e, imageType) => {
@@ -320,11 +346,15 @@ const Register = () => {
                   </div>
                   <div>
                     <label htmlFor="vehiclePlateNumber" className={labelClass}>Plate Number</label>
-                    <input
-                      id="vehiclePlateNumber" name="vehiclePlateNumber" type="text" required
-                      value={formData.vehiclePlateNumber} onChange={handleChange}
-                      className={inputClass} placeholder="e.g. ABC-1234"
-                    />
+                    <div className="relative">
+                      <input
+                        id="vehiclePlateNumber" name="vehiclePlateNumber" type="text" required
+                        value={formData.vehiclePlateNumber} onChange={handleChange} onBlur={handlePlateLookup}
+                        className={inputClass} placeholder="e.g. ABC-1234"
+                      />
+                      {isLookingUpPlate && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--primary-base)] animate-pulse font-semibold">Looking up...</span>}
+                    </div>
+                    {plateLookupError && <p className="text-amber-500 text-[10px] mt-1 font-medium">{plateLookupError}</p>}
                   </div>
                 </div>
 

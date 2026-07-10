@@ -1,14 +1,25 @@
 // @ts-nocheck
 import Vehicle from './vehicle.model';
+import User from '@/modules/users/user.model';
 import { ApiError } from '@/lib/api-wrapper';
 
 /**
  * Register a new vehicle in database
+ * @param {string} ownerId - Owner user ID
  * @param {object} vehicleData - Vehicle specifications
- * @returns {Promise<object>} Created vehicle document
+ * @returns {Promise<object>} Created vehicle document and optionally the updated user
  */
-export const createVehicle = async (vehicleData) => {
-  return await Vehicle.create(vehicleData);
+export const createVehicle = async (ownerId, vehicleData) => {
+  const vehicle = await Vehicle.create({ owner: ownerId, ...vehicleData });
+  const user = await User.findById(ownerId);
+  
+  if (user && user.role === 'passenger') {
+    user.role = 'hybrid';
+    await user.save();
+    return { vehicle, user };
+  }
+  
+  return { vehicle };
 };
 
 /**
