@@ -9,6 +9,8 @@ import AddressAutocomplete from '@/components/AddressAutocomplete';
 import MapPreview from '@/components/MapPreview';
 import RouteMap from '@/components/RouteMap';
 import QuickLocationChips from '@/components/QuickLocationChips';
+import SeatMap from '@/components/SeatMap';
+import { generateSeatLayout } from '@/shared/utils/seatLayout';
 import useCurrentLocation from '@/hooks/useCurrentLocation';
 import { optimizePickupOrder, getMultiPointRoute } from '@/services/locationService';
 import {
@@ -128,7 +130,7 @@ const DriverRoutePanel = ({ ride, bookings, liveDriverLocation, pendingPickup = 
 
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-2 text-sm text-slate-400">
+        <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
           <span>🗺️</span>
           <span>No confirmed passengers yet — showing base ride route.</span>
         </div>
@@ -149,7 +151,7 @@ const DriverRoutePanel = ({ ride, bookings, liveDriverLocation, pendingPickup = 
     <div className="space-y-4">
       {/* Route map */}
       {loading ? (
-        <div className="h-[340px] bg-slate-900/60 rounded-2xl border border-slate-800 flex items-center justify-center text-slate-400 text-sm animate-pulse">
+        <div className="h-[340px] bg-[var(--bg-surface)]/60 rounded-2xl border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-secondary)] text-sm animate-pulse">
           Calculating optimised route…
         </div>
       ) : error ? (
@@ -169,16 +171,16 @@ const DriverRoutePanel = ({ ride, bookings, liveDriverLocation, pendingPickup = 
 
       {/* Ordered stop list */}
       {optimResult && (
-        <div className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-4 space-y-3">
+        <div className="bg-[var(--bg-surface)]/50 border border-[var(--border-subtle)]/80 rounded-2xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold text-slate-300 flex items-center gap-2">
+            <h4 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
               <span>🔢</span> Optimised Pickup Order
-              <span className="text-xs font-normal text-slate-500">({confirmedPickups.length} passenger{confirmedPickups.length > 1 ? 's' : ''})</span>
+              <span className="text-xs font-normal text-[var(--text-muted)]">({confirmedPickups.length} passenger{confirmedPickups.length > 1 ? 's' : ''})</span>
             </h4>
             {routeData && (
               <div className="flex items-center gap-3 text-xs">
                 <span className="text-emerald-400 font-bold">{fmtDist(routeData.distanceKm)}</span>
-                <span className="text-slate-500">·</span>
+                <span className="text-[var(--text-muted)]">·</span>
                 <span className="text-indigo-400 font-bold">{fmtDur(routeData.durationMinutes)}</span>
                 {routeData.isFallback && (
                   <span className="text-amber-500/70 text-[10px]">(estimate)</span>
@@ -251,14 +253,14 @@ const haversineKmExport = (a, b) => {
 const StopRow = ({ badge, badgeColor, label, address, isFirst, isLast }) => (
   <div className="flex items-start gap-3">
     <div className="flex flex-col items-center">
-      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ${badgeColor}`}>
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)] flex-shrink-0 ${badgeColor}`}>
         {badge}
       </div>
       {!isLast && <div className="w-px flex-1 bg-slate-700/60 my-0.5" style={{ minHeight: '16px' }} />}
     </div>
     <div className="pb-2 min-w-0">
-      <p className="text-slate-300 text-xs font-semibold truncate">{label}</p>
-      <p className="text-slate-500 text-[11px] truncate">{address}</p>
+      <p className="text-[var(--text-primary)] text-xs font-semibold truncate">{label}</p>
+      <p className="text-[var(--text-muted)] text-[11px] truncate">{address}</p>
     </div>
   </div>
 );
@@ -276,10 +278,10 @@ const RideDetails = () => {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState('');
 
-  const [bookingSeats,   setBookingSeats]   = useState(1);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [bookingError,   setBookingError]   = useState('');
-  const [isBooking,      setIsBooking]      = useState(false);
+  const [selectedSeatIds, setSelectedSeatIds] = useState([]);
+  const [bookingSuccess,  setBookingSuccess]  = useState(false);
+  const [bookingError,    setBookingError]    = useState('');
+  const [isBooking,       setIsBooking]       = useState(false);
 
   const [dbSavedAddresses, setDbSavedAddresses] = useState([]);
   const [recentAddresses,   setRecentAddresses]   = useState([]);
@@ -296,6 +298,12 @@ const RideDetails = () => {
 
   const [liveDriverLocation, setLiveDriverLocation] = useState(null);
   const [sosAlert, setSosAlert] = useState(null);
+
+  const bookedSeatIds = useMemo(() => {
+    return bookings
+      .filter(b => b.bookingStatus === 'confirmed' || b.bookingStatus === 'pending')
+      .flatMap(b => b.seatIds || []);
+  }, [bookings]);
 
   const activeBooking = bookings?.find((b) => {
     const passengerId = b.passenger?._id || b.passenger?.id || b.passenger;
@@ -408,12 +416,17 @@ const RideDetails = () => {
 
     setIsBooking(true);
     setBookingError('');
-    setBookingSuccess(false);
+
+    if (selectedSeatIds.length === 0) {
+      setBookingError('Please select at least one seat from the map.');
+      return;
+    }
 
     try {
-      await api.post('/bookings', {
-        ride:          id,
-        seatsBooked:   Number(bookingSeats),
+      const payload = {
+        ride: id,
+        seatsBooked: selectedSeatIds.length,
+        seatIds: selectedSeatIds,
         pickupAddress: pickupLoc.address,
         pickupLocation: {
           address:     pickupLoc.address,
@@ -422,7 +435,10 @@ const RideDetails = () => {
           coordinates: [Number(pickupLoc.longitude), Number(pickupLoc.latitude)],
           verified:    pickupLoc.verified,
         },
-      });
+      };
+
+      await api.post('/bookings', payload);
+
       setBookingSuccess(true);
       const updatedResponse = await api.get(`/rides/${id}`);
       setRide(updatedResponse.data.data.ride);
@@ -450,14 +466,14 @@ const RideDetails = () => {
   /* ── guards ── */
   if (loading) {
     return (
-      <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">
+      <div className="min-h-[calc(100vh-73px)] bg-[var(--bg-default)] flex items-center justify-center text-[var(--text-secondary)]">
         Loading ride details…
       </div>
     );
   }
   if (error || !ride) {
     return (
-      <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">
+      <div className="min-h-[calc(100vh-73px)] bg-[var(--bg-default)] flex items-center justify-center text-[var(--text-secondary)]">
         {error || 'Ride not found.'}
       </div>
     );
@@ -476,10 +492,10 @@ const RideDetails = () => {
     const m = {
       pending:   'bg-amber-950 text-amber-400 border-amber-500/20',
       active:    'bg-emerald-950 text-emerald-400 border-emerald-500/20',
-      completed: 'bg-slate-800 text-slate-400 border-slate-600/20',
+      completed: 'bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border-[var(--border-hover)]/20',
       cancelled: 'bg-red-950 text-red-400 border-red-500/20',
     };
-    return m[s] || 'bg-slate-800 text-slate-400 border-slate-700';
+    return m[s] || 'bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border-[var(--border-default)]';
   };
 
   return (
@@ -490,7 +506,7 @@ const RideDetails = () => {
         {/* SOS Alert Banner */}
         {sosAlert && (
           <div className="bg-red-900 border-2 border-red-500 rounded-xl p-4 shadow-[0_0_20px_rgba(239,68,68,0.4)] animate-pulse mb-6">
-            <h3 className="text-white font-bold text-lg flex items-center gap-2">
+            <h3 className="text-[var(--text-primary)] font-bold text-lg flex items-center gap-2">
               <span>🚨</span> EMERGENCY S.O.S
             </h3>
             <p className="text-red-100 text-sm mt-1">{sosAlert}</p>
@@ -568,7 +584,7 @@ const RideDetails = () => {
                       <div className="flex items-center sm:justify-end gap-2">
                         <button
                           onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
-                          className="btn-primary px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 border-none text-white"
+                          className="btn-primary px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 border-none text-[var(--text-primary)]"
                         >
                           Accept
                         </button>
@@ -734,25 +750,37 @@ const RideDetails = () => {
                     )}
 
                     <div>
-                      <label className="block text-xs text-[var(--text-secondary)] mb-1">Seats to Reserve</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max={Math.min(8, ride.availableSeats)}
-                        value={bookingSeats}
-                        onChange={(e) => setBookingSeats(e.target.value)}
-                        className="form-input block w-full px-3 py-2 text-sm"
-                      />
-                    </div>
+                    {ride?.driverVehicle && (
+                      <div>
+                        <label className="block text-xs text-[var(--text-secondary)] mb-3">Select your seats</label>
+                        <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-lg p-4">
+                          <SeatMap 
+                            layout={generateSeatLayout(ride.driverVehicle.seatCount)} 
+                            selectedSeatIds={selectedSeatIds} 
+                            bookedSeatIds={bookedSeatIds} 
+                            onToggleSeat={(seatId) => {
+                              setSelectedSeatIds(prev => 
+                                prev.includes(seatId) 
+                                  ? prev.filter(id => id !== seatId)
+                                  : [...prev, seatId]
+                              );
+                            }}
+                            mode="book" 
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex justify-between items-center text-sm pt-2">
                       <span className="text-[var(--text-secondary)]">Total Price</span>
-                      <span className="text-[var(--text-primary)] font-extrabold text-lg">Free</span>
+                      <span className="text-[var(--text-primary)] font-extrabold text-lg">
+                        {ride.pricePerSeat && ride.pricePerSeat > 0 ? `₹${ride.pricePerSeat * selectedSeatIds.length}` : 'Free'}
+                      </span>
                     </div>
 
                     <button
                       type="submit"
-                      disabled={isBooking || ride.availableSeats <= 0 || ride.rideStatus !== 'ACTIVE' || !pickupLoc.verified}
+                      disabled={isBooking || ride.availableSeats <= 0 || ride.rideStatus !== 'ACTIVE' || !pickupLoc.verified || selectedSeatIds.length === 0}
                       className="btn-primary w-full py-2.5 px-4 disabled:opacity-50"
                     >
                       {isBooking
@@ -761,6 +789,8 @@ const RideDetails = () => {
                         ? 'Fully Booked'
                         : !pickupLoc.verified
                         ? 'Confirm Pickup First'
+                        : selectedSeatIds.length === 0
+                        ? 'Select a Seat'
                         : 'Request Booking'}
                     </button>
 

@@ -213,13 +213,13 @@ const Bookings = () => {
             <div className="flex bg-[var(--bg-surface)] p-1 rounded-sm border border-[var(--border-subtle)] mt-4 sm:mt-0">
               <button
                 onClick={() => { setRoleMode('passenger'); setPage(1); }}
-                className={`px-4 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm transition-all ${roleMode === 'passenger' ? 'bg-[var(--primary-base)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                className={`px-4 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm transition-all ${roleMode === 'passenger' ? 'bg-[var(--primary-base)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
               >
                 Co-Rider Mode
               </button>
               <button
                 onClick={() => { setRoleMode('driver'); setPage(1); }}
-                className={`px-4 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm transition-all ${roleMode === 'driver' ? 'bg-[var(--primary-base)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                className={`px-4 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-sm transition-all ${roleMode === 'driver' ? 'bg-[var(--primary-base)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
               >
                 Rider Mode
               </button>
@@ -234,7 +234,7 @@ const Bookings = () => {
               <button
                 key={tab}
                 onClick={() => { setPassengerTab(tab); setPage(1); }}
-                className={`px-4 py-1.5 rounded-sm text-[10px] uppercase tracking-widest font-bold border transition ${passengerTab === tab ? 'bg-[var(--primary-base)] text-white border-[var(--primary-base)]' : 'bg-transparent text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-white hover:border-white'}`}
+                className={`px-4 py-1.5 rounded-sm text-[10px] uppercase tracking-widest font-bold border transition ${passengerTab === tab ? 'bg-[var(--primary-base)] text-[var(--text-primary)] border-[var(--primary-base)]' : 'bg-transparent text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:border-white'}`}
               >
                 {tab}
               </button>
@@ -254,7 +254,7 @@ const Bookings = () => {
               <button
                 key={tab.id}
                 onClick={() => { setDriverTab(tab.id); setPage(1); }}
-                className={`px-4 py-1.5 rounded-sm text-[10px] uppercase tracking-widest font-bold border transition ${driverTab === tab.id ? 'bg-[var(--primary-base)] text-white border-[var(--primary-base)]' : 'bg-transparent text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-white hover:border-white'}`}
+                className={`px-4 py-1.5 rounded-sm text-[10px] uppercase tracking-widest font-bold border transition ${driverTab === tab.id ? 'bg-[var(--primary-base)] text-[var(--text-primary)] border-[var(--primary-base)]' : 'bg-transparent text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:border-white'}`}
               >
                 {tab.label}
               </button>
@@ -263,7 +263,7 @@ const Bookings = () => {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-slate-400 text-sm">
+          <div className="flex items-center justify-center py-20 text-[var(--text-secondary)] text-sm">
             Loading bookings details...
           </div>
         ) : error ? (
@@ -308,18 +308,46 @@ const Bookings = () => {
 
                 <div className="pt-2 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   {roleMode === 'passenger' ? (
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm flex items-center justify-center text-[10px] font-bold text-white uppercase">
-                        {booking.ride?.driver?.firstName?.[0]}{booking.ride?.driver?.lastName?.[0]}
+                    <div className="flex flex-col gap-3 w-full md:w-3/4">
+                      {/* Driver & Vehicle */}
+                      <div className="flex flex-wrap items-center gap-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)] uppercase">
+                            {booking.ride?.driver?.firstName?.[0]}{booking.ride?.driver?.lastName?.[0]}
+                          </div>
+                          <div>
+                            <p className="text-[var(--text-primary)] font-bold text-[10px] uppercase tracking-widest">Rider: {booking.ride?.driver?.firstName} {booking.ride?.driver?.lastName}</p>
+                            <p className="text-[10px] text-[var(--text-muted)]">COMMS: {booking.ride?.driver?.phone || 'N/A'}</p>
+                          </div>
+                        </div>
+                        {booking.ride?.driverVehicle && (
+                          <div className="flex flex-col">
+                            <p className="text-[var(--text-primary)] font-bold text-[10px] uppercase tracking-widest">Vehicle: {booking.ride.driverVehicle.vehicleName}</p>
+                            <p className="text-[10px] text-[var(--text-muted)]">{booking.ride.driverVehicle.vehiclePlateNumber}</p>
+                          </div>
+                        )}
+                        {booking.seatIds && booking.seatIds.length > 0 && (
+                          <div className="flex flex-col">
+                            <p className="text-[var(--text-primary)] font-bold text-[10px] uppercase tracking-widest">Seats</p>
+                            <p className="text-[10px] text-[var(--text-secondary)] font-bold">{booking.seatIds.join(', ')}</p>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-[var(--text-primary)] font-bold text-[10px] uppercase tracking-widest">Rider: {booking.ride?.driver?.firstName} {booking.ride?.driver?.lastName}</p>
-                        <p className="text-[10px] text-[var(--text-muted)]">COMMS: {booking.ride?.driver?.phone || 'N/A'}</p>
+                      {/* Passenger's actual pickup/dropoff */}
+                      <div className="flex flex-col gap-1 mt-2">
+                        <div className="flex items-start gap-2">
+                          <span className="text-emerald-500 mt-0.5">📍</span>
+                          <p className="text-[10px] text-[var(--text-secondary)] leading-tight"><strong className="text-[var(--text-primary)]">Pickup:</strong> {booking.pickupLocation?.address}</p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-indigo-500 mt-0.5">📍</span>
+                          <p className="text-[10px] text-[var(--text-secondary)] leading-tight"><strong className="text-[var(--text-primary)]">Drop:</strong> {booking.dropoffLocation?.address}</p>
+                        </div>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm flex items-center justify-center text-[10px] font-bold text-white uppercase">
+                      <div className="w-8 h-8 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)] uppercase">
                         {booking.passenger?.firstName?.[0]}{booking.passenger?.lastName?.[0]}
                       </div>
                       <div>
@@ -331,7 +359,7 @@ const Bookings = () => {
                         {/* Cancellation Metrics */}
                         {booking.bookingStatus === 'pending' && (
                           <div className="flex gap-2">
-                            <span className="text-[10px] font-medium bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded" title="Cancellations within 24h of departure">
+                            <span className="text-[10px] font-medium bg-[var(--bg-surface-hover)] text-[var(--text-primary)] px-1.5 py-0.5 rounded" title="Cancellations within 24h of departure">
                               24h: {booking.passenger?.cancellations24h || 0}
                             </span>
                             <span className="text-[10px] font-medium bg-amber-950 text-amber-400 px-1.5 py-0.5 rounded" title="Cancellations within 6h of departure">

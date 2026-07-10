@@ -58,7 +58,7 @@ const ResetPasswordContent = () => {
 
   if (success) {
     return (
-      <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+      <div className="min-h-[calc(100vh-73px)] bg-[var(--bg-default)] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -71,7 +71,7 @@ const ResetPasswordContent = () => {
             <h2 className="text-2xl font-extrabold text-slate-100 mb-2">
               Password Reset Successful
             </h2>
-            <p className="text-slate-400 mb-6">
+            <p className="text-[var(--text-secondary)] mb-6">
               Your password has been reset successfully. Redirecting to login...
             </p>
             <Link
@@ -87,14 +87,14 @@ const ResetPasswordContent = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[calc(100vh-73px)] bg-[var(--bg-default)] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-100">
           Reset Password
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-400">
+        <p className="mt-2 text-center text-sm text-[var(--text-secondary)]">
           Enter your new password
         </p>
       </div>
@@ -109,7 +109,7 @@ const ResetPasswordContent = () => {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="newPassword" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="newPassword" className="block text-sm font-medium text-[var(--text-primary)]">
                 New Password
               </label>
               <input
@@ -119,13 +119,13 @@ const ResetPasswordContent = () => {
                 required
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
                 placeholder="Min 6 characters"
               />
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-[var(--text-primary)]">
                 Confirm Password
               </label>
               <input
@@ -135,7 +135,7 @@ const ResetPasswordContent = () => {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
                 placeholder="Confirm your password"
               />
             </div>
@@ -150,7 +150,7 @@ const ResetPasswordContent = () => {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/login" className="text-sm text-slate-400 hover:text-emerald-400">
+            <Link href="/login" className="text-sm text-[var(--text-secondary)] hover:text-emerald-400">
 
               Back to login
             </Link>
@@ -163,7 +163,7 @@ const ResetPasswordContent = () => {
 
 const ResetPassword = () => {
   return (
-    <Suspense fallback={<div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-[calc(100vh-73px)] bg-[var(--bg-default)] flex items-center justify-center text-[var(--text-secondary)]">Loading...</div>}>
       <ResetPasswordContent />
     </Suspense>
   );

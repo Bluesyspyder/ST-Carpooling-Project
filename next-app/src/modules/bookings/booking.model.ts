@@ -39,6 +39,10 @@ const bookingSchema = new mongoose.Schema(
       required: [true, 'Seats booked count is required'],
       min: [1, 'Must book at least 1 seat'],
     },
+    seatIds: {
+      type: [String],
+      default: [],
+    },
     bookingAmount: {
       type: Number,
       required: [true, 'Booking amount is required'],

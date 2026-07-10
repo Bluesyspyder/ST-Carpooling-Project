@@ -38,14 +38,14 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[calc(100vh-73px)] bg-[var(--bg-default)] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-100">
           Forgot Password
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-400">
+        <p className="mt-2 text-center text-sm text-[var(--text-secondary)]">
           Enter your email address and we'll send you a 4-digit code
         </p>
       </div>
@@ -66,7 +66,7 @@ const ForgotPassword = () => {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="email" className="block text-sm font-medium text-[var(--text-primary)]">
                 Email Address
               </label>
               <input
@@ -77,7 +77,7 @@ const ForgotPassword = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
                 placeholder="employee@st.com"
               />
             </div>
@@ -92,7 +92,7 @@ const ForgotPassword = () => {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/login" className="text-sm text-slate-400 hover:text-emerald-400">
+            <Link href="/login" className="text-sm text-[var(--text-secondary)] hover:text-emerald-400">
               Back to login
             </Link>
           </div>

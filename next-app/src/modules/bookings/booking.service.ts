@@ -49,6 +49,15 @@ export const createBooking = async (bookingData) => {
   if (ride.rideStatus !== 'ACTIVE') {
     throw new ApiError(400, 'This ride is not available for booking');
   }
+
+  // 🚫 Max 3 pending requests rule
+  const pendingRequestsCount = await Booking.countDocuments({
+    passenger: bookingData.passenger,
+    bookingStatus: { $in: ['pending', 'waitlisted'] },
+  });
+  if (pendingRequestsCount >= 3) {
+    throw new ApiError(400, 'You can only have up to 3 pending ride requests at a time.');
+  }
   
   let initialStatus = 'pending';
   if (ride.availableSeats < bookingData.seatsBooked) {
@@ -178,6 +187,18 @@ export const updateBookingStatus = async (bookingId, driverId, status) => {
     }
     ride.availableSeats -= booking.seatsBooked;
     await ride.save();
+
+    // 🚀 Auto-cancel other pending requests for this passenger
+    await Booking.updateMany(
+      {
+        passenger: booking.passenger,
+        _id: { $ne: booking._id },
+        bookingStatus: { $in: ['pending', 'waitlisted'] }
+      },
+      {
+        $set: { bookingStatus: 'cancelled' }
+      }
+    );
   } else if (newStatus === 'rejected') {
     if (oldStatus !== 'pending' && oldStatus !== 'waitlisted') {
       throw new ApiError(400, 'Can only reject pending or waitlisted bookings');

@@ -98,14 +98,14 @@ const ToastItem = ({ notification, onDismiss }) => {
               {title}
             </p>
           )}
-          <p className="text-sm text-slate-200 leading-snug">{message}</p>
+          <p className="text-sm text-[var(--text-primary)] leading-snug">{message}</p>
         </div>
       </div>
 
       {/* Close button */}
       <button
         onClick={dismiss}
-        className="absolute top-3 right-3 w-6 h-6 rounded-full bg-slate-800/60 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200 transition text-xs"
+        className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[var(--bg-surface-hover)]/60 hover:bg-slate-700 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition text-xs"
       >
         ✕
       </button>

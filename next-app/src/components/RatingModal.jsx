@@ -53,13 +53,13 @@ const RatingModal = ({ bookingId, driverName, onClose, onSuccess }) => {
 
       {/* Modal */}
       <div className="fixed inset-x-4 bottom-6 sm:inset-auto sm:left-1/2 sm:-translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md z-50">
-        <div className="glass-panel rounded-2xl border border-slate-700/80 p-6 shadow-2xl">
+        <div className="glass-panel rounded-2xl border border-[var(--border-default)]/80 p-6 shadow-2xl">
 
           {submitted ? (
             <div className="text-center py-8 space-y-3">
               <div className="text-5xl">⭐</div>
               <h3 className="text-lg font-bold text-slate-100">Thanks for your feedback!</h3>
-              <p className="text-sm text-slate-400">Your rating helps the ST Carpool community.</p>
+              <p className="text-sm text-[var(--text-secondary)]">Your rating helps the ST Carpool community.</p>
             </div>
           ) : (
             <>
@@ -67,11 +67,11 @@ const RatingModal = ({ bookingId, driverName, onClose, onSuccess }) => {
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <h3 className="text-lg font-bold text-slate-100">Rate Your Rider</h3>
-                  <p className="text-sm text-slate-400 mt-0.5">How was your ride with {driverName}?</p>
+                  <p className="text-sm text-[var(--text-secondary)] mt-0.5">How was your ride with {driverName}?</p>
                 </div>
                 <button
                   onClick={onClose}
-                  className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-200 transition flex-shrink-0"
+                  className="w-8 h-8 rounded-full bg-[var(--bg-surface-hover)] hover:bg-slate-700 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition flex-shrink-0"
                 >
                   ✕
                 </button>
@@ -110,7 +110,7 @@ const RatingModal = ({ bookingId, driverName, onClose, onSuccess }) => {
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Any comments? (optional)"
-                className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 resize-none"
+                className="w-full px-4 py-3 bg-[var(--bg-surface)]/60 border border-[var(--border-default)] rounded-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 resize-none"
               />
 
               {error && (
@@ -123,7 +123,7 @@ const RatingModal = ({ bookingId, driverName, onClose, onSuccess }) => {
               <div className="flex gap-3 mt-5">
                 <button
                   onClick={onClose}
-                  className="flex-1 py-2.5 px-4 border border-slate-700 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 text-sm font-semibold transition"
+                  className="flex-1 py-2.5 px-4 border border-[var(--border-default)] rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-sm font-semibold transition"
                 >
                   Skip
                 </button>

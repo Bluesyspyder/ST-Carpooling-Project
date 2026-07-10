@@ -217,7 +217,7 @@ const Dashboard = () => {
         return { emoji: '❌', bg: 'bg-red-500/10 border-red-500/20' };
       case 'booking_cancelled':
       case 'ride_cancelled':
-        return { emoji: '🚫', bg: 'bg-slate-700/20 border-slate-700/35' };
+        return { emoji: '🚫', bg: 'bg-slate-700/20 border-[var(--border-default)]/35' };
       case 'ride_published':
       default:
         return { emoji: '🚗', bg: 'bg-indigo-500/10 border-indigo-500/20' };
@@ -373,7 +373,7 @@ const Dashboard = () => {
                 ) : isRider ? (
                   // Rider list
                   drivingRides.length === 0 ? (
-                    <div className="text-center py-8 text-slate-500">
+                    <div className="text-center py-8 text-[var(--text-muted)]">
                       <span className="text-3xl block mb-2">🚗</span>
                       <p className="text-sm">No upcoming rides scheduled.</p>
                       <Link href="/create-ride" className="mt-3 inline-block text-emerald-400 text-sm font-semibold hover:text-emerald-300 transition">
@@ -411,7 +411,7 @@ const Dashboard = () => {
                 ) : (
                   // Co-Rider list
                   upcomingBookings.length === 0 ? (
-                    <div className="text-center py-8 text-slate-500">
+                    <div className="text-center py-8 text-[var(--text-muted)]">
                       <span className="text-3xl block mb-2">📅</span>
                       <p className="text-sm">No upcoming bookings.</p>
                       <Link href="/search" className="mt-3 inline-block text-emerald-400 text-sm font-semibold hover:text-emerald-300 transition">
@@ -485,7 +485,7 @@ const Dashboard = () => {
                             <p className="text-sm font-bold text-slate-100 truncate group-hover:text-emerald-400 transition">
                               {ride.pickupLocation?.address || ride.source}
                             </p>
-                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 truncate">
+                            <p className="text-xs text-[var(--text-muted)] flex items-center gap-1 mt-0.5 truncate">
                               <span>↓</span> {ride.destinationLocation?.address || ride.destination}
                             </p>
                           </div>
@@ -494,19 +494,19 @@ const Dashboard = () => {
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between text-xs text-slate-500">
+                        <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
                           <span>{fmtTime(ride)}</span>
-                          <span className={`font-semibold ${ride.availableSeats <= 1 ? 'text-red-400' : 'text-slate-400'}`}>
+                          <span className={`font-semibold ${ride.availableSeats <= 1 ? 'text-red-400' : 'text-[var(--text-secondary)]'}`}>
                             {ride.availableSeats} seat{ride.availableSeats !== 1 ? 's' : ''} left
                           </span>
                         </div>
 
                         {ride.driver && (
-                          <div className="mt-3 pt-3 border-t border-slate-800/60 flex items-center gap-2">
+                          <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]/60 flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-bold text-indigo-400">
                               {ride.driver.firstName?.[0]}
                             </div>
-                            <span className="text-xs text-slate-400">{ride.driver.firstName} {ride.driver.lastName}</span>
+                            <span className="text-xs text-[var(--text-secondary)]">{ride.driver.firstName} {ride.driver.lastName}</span>
                             {ride.driver.averageRating && (
                               <span className="ml-auto text-xs text-amber-400 font-semibold">⭐ {ride.driver.averageRating.toFixed(1)}</span>
                             )}

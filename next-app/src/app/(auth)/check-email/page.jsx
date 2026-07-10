@@ -30,10 +30,10 @@ const CheckEmail = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex flex-col items-center justify-center px-4 relative">
+    <div className="min-h-[calc(100vh-73px)] bg-[var(--bg-default)] flex flex-col items-center justify-center px-4 relative">
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/5 blur-[140px] rounded-full pointer-events-none" />
 
-      <div className="glass-panel max-w-md w-full p-10 rounded-2xl border border-slate-800/80 text-center relative">
+      <div className="glass-panel max-w-md w-full p-10 rounded-2xl border border-[var(--border-subtle)]/80 text-center relative">
         {/* Icon */}
         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
           <svg className="w-10 h-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -43,7 +43,7 @@ const CheckEmail = () => {
 
         <h1 className="text-2xl font-extrabold text-slate-100 mb-3">Check your inbox</h1>
 
-        <p className="text-slate-400 text-sm leading-relaxed mb-6">
+        <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-6">
           We sent a verification link to{' '}
           {email ? (
             <span className="text-emerald-400 font-semibold">{email}</span>
@@ -67,7 +67,7 @@ const CheckEmail = () => {
           <button
             onClick={handleResend}
             disabled={resending || !email}
-            className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50 mb-4"
+            className="w-full py-3 px-4 bg-[var(--bg-surface-hover)] hover:bg-slate-700 border border-[var(--border-default)] text-[var(--text-primary)] font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50 mb-4"
           >
             {resending ? 'Resending...' : 'Resend verification email'}
           </button>

@@ -135,8 +135,8 @@ const CustomDatePicker = ({
           ${isSelected
             ? 'bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/25 hover:bg-emerald-400'
             : isToday
-              ? 'border border-emerald-500/50 text-emerald-400 hover:bg-slate-800'
-              : 'text-slate-200 hover:bg-slate-800/80 hover:text-white'
+              ? 'border border-emerald-500/50 text-emerald-400 hover:bg-[var(--bg-surface-hover)]'
+              : 'text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]/80 hover:text-[var(--text-primary)]'
           }`}
       >
         {day}
@@ -147,7 +147,7 @@ const CustomDatePicker = ({
   return (
     <div ref={containerRef} className="relative w-full">
       {label && (
-        <label htmlFor={id} className="block text-xs font-medium text-slate-400 mb-1">
+        <label htmlFor={id} className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
           {label}
         </label>
       )}
@@ -157,25 +157,25 @@ const CustomDatePicker = ({
           id={id}
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between px-3 py-2.5 border border-slate-800 rounded-lg bg-slate-900/50 hover:bg-slate-900/80 text-slate-100 hover:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all duration-200 text-sm text-left cursor-pointer"
+          className="w-full flex items-center justify-between px-3 py-2.5 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 hover:bg-[var(--bg-surface)]/80 text-slate-100 hover:border-[var(--border-default)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all duration-200 text-sm text-left cursor-pointer"
         >
-          <span className={value ? 'text-slate-100' : 'text-slate-500'}>
+          <span className={value ? 'text-slate-100' : 'text-[var(--text-muted)]'}>
             {value ? formatDisplay(value) : placeholder}
           </span>
-          <span className="text-slate-500 hover:text-slate-300">
+          <span className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
             📅
           </span>
         </button>
       </div>
 
       {isOpen && (
-        <div className="absolute z-[100] mt-1 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl p-4 w-72 backdrop-blur-xl animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute z-[100] mt-1 bg-[var(--bg-default)] border border-[var(--border-subtle)] rounded-xl shadow-2xl p-4 w-72 backdrop-blur-xl animate-in fade-in slide-in-from-top-1 duration-150">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"
               onClick={handlePrevMonth}
-              className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="p-1 rounded-lg hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
             >
               ◀
             </button>
@@ -185,7 +185,7 @@ const CustomDatePicker = ({
             <button
               type="button"
               onClick={handleNextMonth}
-              className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="p-1 rounded-lg hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
             >
               ▶
             </button>
@@ -194,7 +194,7 @@ const CustomDatePicker = ({
           {/* Weekday Row */}
           <div className="grid grid-cols-7 gap-1 text-center mb-2">
             {WEEKDAYS.map((day) => (
-              <div key={day} className="text-[10px] font-bold text-slate-500 uppercase">
+              <div key={day} className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
                 {day}
               </div>
             ))}
@@ -206,11 +206,11 @@ const CustomDatePicker = ({
           </div>
 
           {/* Footer Controls */}
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-800/80">
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--border-subtle)]/80">
             <button
               type="button"
               onClick={handleClear}
-              className="text-xs text-slate-400 hover:text-slate-200 transition-colors hover:scale-105 active:scale-95 cursor-pointer"
+              className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors hover:scale-105 active:scale-95 cursor-pointer"
             >
               Clear
             </button>

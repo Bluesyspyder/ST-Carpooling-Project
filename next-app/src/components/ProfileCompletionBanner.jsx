@@ -80,7 +80,7 @@ const ProfileCompletionBanner = ({ compact = false }) => {
             <span className="text-[var(--text-secondary)] font-semibold">Profile {percentage}% complete</span>
             <Link href="/profile" className="text-[var(--primary-base)] hover:text-[var(--primary-hover)] font-bold transition">Complete →</Link>
           </div>
-          <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-[var(--bg-surface-hover)] rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-[var(--primary-hover)] to-[var(--primary-base)] rounded-full transition-all duration-500"
               style={{ width: `${percentage}%` }}
@@ -108,7 +108,7 @@ const ProfileCompletionBanner = ({ compact = false }) => {
       </div>
 
       {/* Progress bar */}
-      <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+      <div className="w-full h-2 bg-[var(--bg-surface-hover)] rounded-full overflow-hidden">
         <div
           className="h-full bg-gradient-to-r from-[var(--primary-hover)] to-[var(--primary-base)] rounded-full transition-all duration-700"
           style={{ width: `${percentage}%` }}
@@ -123,11 +123,11 @@ const ProfileCompletionBanner = ({ compact = false }) => {
             className={`flex items-center gap-2.5 text-xs px-3 py-2 rounded-lg border transition ${
               item.done
                 ? 'border-emerald-500/20 bg-emerald-950/20 text-emerald-400'
-                : 'border-slate-700/50 bg-slate-900/30 text-slate-400'
+                : 'border-[var(--border-default)]/50 bg-[var(--bg-surface)]/30 text-[var(--text-secondary)]'
             }`}
           >
             <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
-              item.done ? 'bg-emerald-500' : 'border border-slate-600'
+              item.done ? 'bg-emerald-500' : 'border border-[var(--border-hover)]'
             }`}>
               {item.done && (
                 <svg className="w-2.5 h-2.5 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor">

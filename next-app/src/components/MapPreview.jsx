@@ -354,7 +354,7 @@ const MapPreview = ({
               {onConfirm && (
                 <button
                   onClick={onConfirm}
-                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-[var(--primary-base)] hover:bg-[var(--primary-hover)] text-white font-semibold transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] shadow-lg shadow-[var(--border-glow)] ml-auto cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-[var(--primary-base)] hover:bg-[var(--primary-hover)] text-[var(--text-primary)] font-semibold transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] shadow-lg shadow-[var(--border-glow)] ml-auto cursor-pointer"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />

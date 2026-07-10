@@ -57,7 +57,7 @@ const QuickLocationChips = ({
           <button
             key={addr._id}
             onClick={() => onSelect({ address: addr.address, latitude: addr.latitude, longitude: addr.longitude })}
-            className="flex items-center gap-1.5 bg-slate-700/60 border border-slate-600/40 hover:border-slate-500 text-slate-200 rounded-lg px-2.5 py-1.5 text-xs transition-all whitespace-nowrap"
+            className="flex items-center gap-1.5 bg-slate-700/60 border border-[var(--border-hover)]/40 hover:border-slate-500 text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-xs transition-all whitespace-nowrap"
           >
             <span>{addr.icon || '⭐'}</span>
             <span>{addr.label}</span>
@@ -76,10 +76,10 @@ const QuickLocationChips = ({
             <button
               key={i}
               onClick={() => onSelect({ address: addr.address, latitude: addr.latitude, longitude: addr.longitude })}
-              className="flex flex-col items-start bg-slate-700/40 border border-slate-600/30 hover:border-slate-500 text-slate-300 rounded-lg px-2.5 py-1.5 text-[10px] transition-all whitespace-nowrap"
+              className="flex flex-col items-start bg-slate-700/40 border border-[var(--border-hover)]/30 hover:border-slate-500 text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-[10px] transition-all whitespace-nowrap"
             >
-              <span className="font-medium text-xs text-slate-200 truncate max-w-28">{label}</span>
-              <span className="text-slate-500">{timeAgo(addr.lastUsedAt)}</span>
+              <span className="font-medium text-xs text-[var(--text-primary)] truncate max-w-28">{label}</span>
+              <span className="text-[var(--text-muted)]">{timeAgo(addr.lastUsedAt)}</span>
             </button>
           );
         })}
@@ -91,9 +91,9 @@ const QuickLocationChips = ({
             <button
               key={`freq-${i}`}
               onClick={() => onSelect({ address: addr.address, latitude: addr.latitude, longitude: addr.longitude })}
-              className="flex flex-col items-start bg-slate-700/40 border border-yellow-500/20 hover:border-yellow-500/50 text-slate-300 rounded-lg px-2.5 py-1.5 text-[10px] transition-all whitespace-nowrap"
+              className="flex flex-col items-start bg-slate-700/40 border border-yellow-500/20 hover:border-yellow-500/50 text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-[10px] transition-all whitespace-nowrap"
             >
-              <span className="font-medium text-xs text-slate-200 truncate max-w-28">{label}</span>
+              <span className="font-medium text-xs text-[var(--text-primary)] truncate max-w-28">{label}</span>
               <span className="text-yellow-500/70">Used {addr.useCount}×</span>
             </button>
           );

@@ -42,7 +42,7 @@ const VerifyEmailContent = () => {
           <>
             <div className="w-16 h-16 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <h2 className="text-2xl font-bold text-slate-100">Verifying Email</h2>
-            <p className="text-slate-400 text-sm">Please wait while we verify your account...</p>
+            <p className="text-[var(--text-secondary)] text-sm">Please wait while we verify your account...</p>
           </>
         )}
 
@@ -52,7 +52,7 @@ const VerifyEmailContent = () => {
               <span className="text-3xl">✅</span>
             </div>
             <h2 className="text-2xl font-bold text-emerald-400">Email Verified!</h2>
-            <p className="text-slate-300 text-sm leading-relaxed">{message}</p>
+            <p className="text-[var(--text-primary)] text-sm leading-relaxed">{message}</p>
             <div className="pt-4">
               <Link href="/login" className="block w-full py-3 px-4 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-slate-900 transition-colors shadow-lg shadow-emerald-500/20">
                 Continue to Login
@@ -67,9 +67,9 @@ const VerifyEmailContent = () => {
               <span className="text-3xl">❌</span>
             </div>
             <h2 className="text-2xl font-bold text-red-400">Verification Failed</h2>
-            <p className="text-slate-300 text-sm leading-relaxed">{message}</p>
+            <p className="text-[var(--text-primary)] text-sm leading-relaxed">{message}</p>
             <div className="pt-4">
-              <Link href="/login" className="block w-full py-3 px-4 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors">
+              <Link href="/login" className="block w-full py-3 px-4 rounded-xl font-bold bg-[var(--bg-surface-hover)] hover:bg-slate-700 text-[var(--text-primary)] transition-colors">
                 Back to Login
               </Link>
             </div>
@@ -82,7 +82,7 @@ const VerifyEmailContent = () => {
 
 export default function VerifyEmailPage() {
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--bg-default)] flex items-center justify-center p-4">
       <Suspense fallback={<div className="text-emerald-400">Loading...</div>}>
         <VerifyEmailContent />
       </Suspense>

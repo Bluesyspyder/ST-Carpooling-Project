@@ -53,7 +53,7 @@ export default function SeatMap({
       'relative flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-lg border text-xs font-semibold transition-all select-none';
     switch (state) {
       case 'selected':
-        return `${base} bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/30 scale-105`;
+        return `${base} bg-emerald-500 border-emerald-500 text-[var(--text-primary)] shadow-md shadow-emerald-500/30 scale-105`;
       case 'booked':
         return `${base} bg-red-500/15 border-red-500/40 text-red-400 cursor-not-allowed`;
       case 'unavailable':
@@ -80,23 +80,23 @@ export default function SeatMap({
       {/* Car body */}
       <div className="relative mx-auto max-w-[260px] pt-4 pb-6 px-6">
         {/* Left mirror */}
-        <div className="absolute top-16 -left-1 w-3 h-8 bg-slate-700 rounded-l-xl border border-slate-600 shadow-md transform -skew-y-12" />
+        <div className="absolute top-16 -left-1 w-3 h-8 bg-slate-700 rounded-l-xl border border-[var(--border-hover)] shadow-md transform -skew-y-12" />
         {/* Right mirror */}
-        <div className="absolute top-16 -right-1 w-3 h-8 bg-slate-700 rounded-r-xl border border-slate-600 shadow-md transform skew-y-12" />
+        <div className="absolute top-16 -right-1 w-3 h-8 bg-slate-700 rounded-r-xl border border-[var(--border-hover)] shadow-md transform skew-y-12" />
         
         {/* Car chassis */}
-        <div className="relative rounded-t-[4rem] rounded-b-[2.5rem] border-[3px] border-slate-700 bg-slate-800/80 shadow-2xl p-5 pt-8 pb-10 overflow-hidden backdrop-blur-sm">
+        <div className="relative rounded-t-[4rem] rounded-b-[2.5rem] border-[3px] border-[var(--border-default)] bg-[var(--bg-surface-hover)]/80 shadow-2xl p-5 pt-8 pb-10 overflow-hidden backdrop-blur-sm">
           
           {/* Windshield */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[70%] h-10 bg-slate-900/60 rounded-t-[3rem] border-b-2 border-slate-700/50 flex justify-center items-end pb-1 shadow-inner">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[70%] h-10 bg-[var(--bg-surface)]/60 rounded-t-[3rem] border-b-2 border-[var(--border-default)]/50 flex justify-center items-end pb-1 shadow-inner">
             <div className="w-16 h-1 rounded-full bg-slate-600/30" />
           </div>
 
           {/* Rear window */}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[65%] h-6 bg-slate-900/60 rounded-b-[1.5rem] border-t-2 border-slate-700/50 shadow-inner" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[65%] h-6 bg-[var(--bg-surface)]/60 rounded-b-[1.5rem] border-t-2 border-[var(--border-default)]/50 shadow-inner" />
 
           {/* Roof contour lines */}
-          <div className="absolute inset-x-3 top-12 bottom-10 rounded-2xl border border-slate-700/30 pointer-events-none" />
+          <div className="absolute inset-x-3 top-12 bottom-10 rounded-2xl border border-[var(--border-default)]/30 pointer-events-none" />
 
           {/* Seats Container */}
           <div className="relative z-10 space-y-4 mt-2">
@@ -108,7 +108,7 @@ export default function SeatMap({
                       <div
                         key={cell.id}
                         title="Driver"
-                        className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl border-2 border-slate-600 bg-slate-800 text-slate-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]"
+                        className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl border-2 border-[var(--border-hover)] bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]"
                       >
                         <SteeringWheelIcon />
                       </div>

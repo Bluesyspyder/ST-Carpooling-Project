@@ -59,7 +59,7 @@ const WelcomeSetup = () => {
   const finish = () => navigate('/');
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[var(--bg-default)] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Step indicator */}
         <div className="flex justify-center gap-2 mb-8">
@@ -68,17 +68,17 @@ const WelcomeSetup = () => {
           ))}
         </div>
 
-        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-8 shadow-2xl">
           {/* Welcome */}
           {currentStep.id === 'welcome' && (
             <div className="text-center">
               <div className="text-6xl mb-4">🚗</div>
-              <h1 className="text-2xl font-bold text-white mb-3">Welcome to ST Carpooling!</h1>
-              <p className="text-slate-400 mb-8">Let's set up your frequently used locations for faster ride creation and booking.</p>
-              <button onClick={() => setStep(1)} className="w-full bg-violet-600 hover:bg-violet-500 text-white font-medium py-3 rounded-xl transition-colors">
+              <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-3">Welcome to ST Carpooling!</h1>
+              <p className="text-[var(--text-secondary)] mb-8">Let's set up your frequently used locations for faster ride creation and booking.</p>
+              <button onClick={() => setStep(1)} className="w-full bg-violet-600 hover:bg-violet-500 text-[var(--text-primary)] font-medium py-3 rounded-xl transition-colors">
                 Get Started
               </button>
-              <button onClick={finish} className="mt-3 w-full text-slate-500 hover:text-slate-300 text-sm transition-colors">
+              <button onClick={finish} className="mt-3 w-full text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm transition-colors">
                 Skip setup
               </button>
             </div>
@@ -89,7 +89,7 @@ const WelcomeSetup = () => {
             <>
               <div className="flex items-center gap-3 mb-6">
                 <span className="text-4xl">{currentStep.icon}</span>
-                <h2 className="text-xl font-semibold text-white">{currentStep.title}</h2>
+                <h2 className="text-xl font-semibold text-[var(--text-primary)]">{currentStep.title}</h2>
               </div>
 
               <AddressAutocomplete
@@ -117,11 +117,11 @@ const WelcomeSetup = () => {
               {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
 
               <div className="flex gap-3 mt-6">
-                <button onClick={skip} className="flex-1 text-slate-400 hover:text-white text-sm py-2.5 rounded-xl border border-slate-700 transition-colors">
+                <button onClick={skip} className="flex-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm py-2.5 rounded-xl border border-[var(--border-default)] transition-colors">
                   Skip
                 </button>
                 <button onClick={handleSave} disabled={saving || !location?.latitude}
-                  className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50">
+                  className="flex-1 bg-violet-600 hover:bg-violet-500 text-[var(--text-primary)] font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50">
                   {saving ? 'Saving…' : 'Save & Continue'}
                 </button>
               </div>
@@ -132,9 +132,9 @@ const WelcomeSetup = () => {
           {currentStep.id === 'done' && (
             <div className="text-center">
               <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-2xl font-bold text-white mb-3">You're all set!</h2>
-              <p className="text-slate-400 mb-8">Your locations are saved. You can manage them anytime from your Profile page.</p>
-              <button onClick={finish} className="w-full bg-violet-600 hover:bg-violet-500 text-white font-medium py-3 rounded-xl transition-colors">
+              <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-3">You're all set!</h2>
+              <p className="text-[var(--text-secondary)] mb-8">Your locations are saved. You can manage them anytime from your Profile page.</p>
+              <button onClick={finish} className="w-full bg-violet-600 hover:bg-violet-500 text-[var(--text-primary)] font-medium py-3 rounded-xl transition-colors">
                 Go to Home
               </button>
             </div>

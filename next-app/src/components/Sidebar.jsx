@@ -52,7 +52,7 @@ const Sidebar = () => {
       <div className="p-6 pb-2 border-b border-[var(--border-subtle)]/50">
         <Link href="/" className="flex flex-col gap-4 group mt-2">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--primary-base)] to-[var(--secondary-base)] flex items-center justify-center shadow-lg shadow-[var(--primary-base)]/20 group-hover:shadow-[var(--primary-base)]/40 transition-all duration-300">
-            <span className="text-white font-bold text-2xl">ST</span>
+            <span className="text-[var(--text-primary)] font-bold text-2xl">ST</span>
           </div>
           <span className="text-4xl font-extrabold font-['Space_Grotesk'] text-[var(--text-primary)] tracking-tight leading-tight">
             ST Carpool

@@ -181,20 +181,20 @@ const CreateRide = () => {
     }
   };
 
-  const inputClass = 'form-input block w-full px-4 py-2.5 text-sm bg-[var(--bg-base)] border-[var(--border-subtle)] text-white rounded-lg focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-colors';
+  const inputClass = 'form-input block w-full px-4 py-2.5 text-sm bg-[var(--bg-surface)] border-[var(--border-subtle)] text-[var(--text-primary)] rounded-lg focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-colors';
   const labelClass = 'block text-[10px] uppercase font-bold text-[var(--text-secondary)] tracking-widest mb-1.5';
 
   if (success) {
     return (
-      <div className="min-h-[calc(100vh-73px)] relative flex items-center justify-center px-4 bg-[#0B0F19]">
-        <div className="glass-panel p-12 text-center border-l-4 border-l-emerald-500 max-w-md w-full shadow-2xl bg-[#111827]">
+      <div className="min-h-[calc(100vh-73px)] relative flex items-center justify-center px-4 bg-[var(--bg-default)]">
+        <div className="glass-panel p-12 text-center border-l-4 border-l-emerald-500 max-w-md w-full shadow-2xl bg-[var(--bg-surface)]">
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
             <svg className="w-10 h-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold uppercase text-white mb-2">Ride Posted!</h2>
-          <p className="text-slate-400 text-sm">Redirecting to your ride details...</p>
+          <h2 className="text-2xl font-bold uppercase text-[var(--text-primary)] mb-2">Ride Posted!</h2>
+          <p className="text-[var(--text-secondary)] text-sm">Redirecting to your ride details...</p>
           <div className="mt-4 flex justify-center">
             <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
           </div>
@@ -206,16 +206,16 @@ const CreateRide = () => {
   const selectedVehicle = vehicles.find(v => v._id === formData.driverVehicle);
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-[#0B0F19] py-8 px-4 sm:px-6 lg:px-8 text-white">
+    <div className="min-h-[calc(100vh-73px)] bg-[var(--bg-default)] py-8 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)]">
       <div className="max-w-[1600px] mx-auto h-full flex flex-col xl:flex-row gap-6 items-stretch">
         
         {/* ── LEFT COLUMN: Form ── */}
         <div className="xl:w-[45%] flex flex-col gap-6">
-          <div className="glass-panel p-6 sm:p-8 rounded-2xl bg-[#111827] border border-slate-800 shadow-xl overflow-y-auto max-h-[85vh] custom-scrollbar">
+          <div className="glass-panel p-6 sm:p-8 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl overflow-y-auto max-h-[85vh] custom-scrollbar">
             <div className="mb-6">
               <p className="text-emerald-400 font-bold uppercase tracking-widest text-[10px] mb-1">Create Module</p>
-              <h1 className="text-2xl font-bold tracking-tight mb-1 text-white">Offer a Ride</h1>
-              <p className="text-xs text-slate-400">Share your commute with fellow ST colleagues</p>
+              <h1 className="text-2xl font-bold tracking-tight mb-1 text-[var(--text-primary)]">Offer a Ride</h1>
+              <p className="text-xs text-[var(--text-secondary)]">Share your commute with fellow ST colleagues</p>
             </div>
 
             {error && (
@@ -226,14 +226,14 @@ const CreateRide = () => {
 
             <div className="space-y-6">
               {/* Profile & Vehicle */}
-              <div className="bg-[#1A2234] p-4 rounded-xl border border-slate-700/50">
+              <div className="bg-[var(--bg-default)] p-4 rounded-xl border border-[var(--border-subtle)]">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg border border-emerald-500/30">
                     {user?.firstName?.[0] || 'D'}
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-white">{user?.firstName} {user?.lastName}</h3>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Driver</p>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{user?.firstName} {user?.lastName}</h3>
+                    <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wide">Driver</p>
                   </div>
                 </div>
                 
@@ -271,12 +271,12 @@ const CreateRide = () => {
                     onChange={(loc) => setPickupLoc({ ...loc, verified: true })}
                     placeholder="Start typing your pickup address…"
                     savedAddresses={savedAddresses}
-                    className="!bg-[#0B0F19]"
+                    className="!bg-[var(--bg-default)]"
                   />
                   <div className="absolute left-[-16px] top-[40px] w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20"></div>
                 </div>
 
-                <div className="pl-6 border-l-2 border-dashed border-slate-700 space-y-4 relative -ml-1">
+                <div className="pl-6 border-l-2 border-dashed border-[var(--border-default)] space-y-4 relative -ml-1">
                   {viaStops.map((stop, index) => (
                     <div key={index} className="relative">
                       <div className="flex items-center justify-between mb-1.5">
@@ -361,9 +361,9 @@ const CreateRide = () => {
 
               {/* Seat Selection */}
               {selectedVehicle && (
-                <div className="bg-[#1A2234] p-4 rounded-xl border border-slate-700/50">
+                <div className="bg-[var(--bg-surface-hover)] p-4 rounded-xl border border-[var(--border-default)]/50">
                   <label className={labelClass}>Block Specific Seats (Optional)</label>
-                  <p className="text-[10px] text-slate-400 mb-3">Select seats you want to reserve for yourself or keep empty.</p>
+                  <p className="text-[10px] text-[var(--text-secondary)] mb-3">Select seats you want to reserve for yourself or keep empty.</p>
                   <div className="flex justify-center scale-90 origin-top">
                     <SeatMap 
                       layout={generateSeatLayout(selectedVehicle.seatCount)}
@@ -406,7 +406,7 @@ const CreateRide = () => {
 
         {/* ── RIGHT COLUMN: Route Map ── */}
         <div className="xl:flex-1 h-[400px] xl:h-[85vh] min-h-[500px]">
-          <div className="glass-panel rounded-2xl bg-[#111827] border border-slate-800 shadow-xl h-full w-full overflow-hidden relative">
+          <div className="glass-panel rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl h-full w-full overflow-hidden relative">
             <RouteMap 
               waypoints={waypoints}
               height="100%"

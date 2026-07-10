@@ -48,16 +48,16 @@ const VerifyOTPContent = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[calc(100vh-73px)] bg-[var(--bg-default)] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-100">
           Verify OTP
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-400">
+        <p className="mt-2 text-center text-sm text-[var(--text-secondary)]">
           Enter the 4-digit code sent to<br/>
-          <span className="text-slate-300 font-medium">{email}</span>
+          <span className="text-[var(--text-primary)] font-medium">{email}</span>
         </p>
       </div>
 
@@ -71,7 +71,7 @@ const VerifyOTPContent = () => {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="otp" className="block text-sm font-medium text-slate-300 text-center">
+              <label htmlFor="otp" className="block text-sm font-medium text-[var(--text-primary)] text-center">
                 Enter OTP
               </label>
               <input
@@ -83,7 +83,7 @@ const VerifyOTPContent = () => {
                 required
                 value={otp}
                 onChange={handleChange}
-                className="mt-4 appearance-none block w-full px-6 py-4 text-4xl text-center tracking-[1.5rem] border-2 border-slate-800 rounded-lg bg-slate-900/50 placeholder-slate-500 text-emerald-400 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                className="mt-4 appearance-none block w-full px-6 py-4 text-4xl text-center tracking-[1.5rem] border-2 border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 placeholder-slate-500 text-emerald-400 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
                 placeholder="0000"
               />
             </div>
@@ -98,13 +98,13 @@ const VerifyOTPContent = () => {
           </form>
 
           <div className="mt-6 space-y-2 text-center text-sm">
-            <p className="text-slate-400">
+            <p className="text-[var(--text-secondary)]">
               Didn't receive the code?{' '}
               <Link href="/forgot-password" className="text-emerald-400 hover:text-emerald-300">
                 Try again
               </Link>
             </p>
-            <Link href="/login" className="block text-slate-400 hover:text-emerald-400">
+            <Link href="/login" className="block text-[var(--text-secondary)] hover:text-emerald-400">
 
               Back to login
             </Link>
@@ -117,7 +117,7 @@ const VerifyOTPContent = () => {
 
 const VerifyOTP = () => {
   return (
-    <Suspense fallback={<div className="min-h-[calc(100vh-73px)] bg-slate-950 flex items-center justify-center text-slate-400">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-[calc(100vh-73px)] bg-[var(--bg-default)] flex items-center justify-center text-[var(--text-secondary)]">Loading...</div>}>
       <VerifyOTPContent />
     </Suspense>
   );

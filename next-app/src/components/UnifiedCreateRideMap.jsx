@@ -269,7 +269,7 @@ const UnifiedCreateRideMap = ({
     return (
       <div
         style={{ height }}
-        className="bg-slate-800/60 rounded-xl border border-dashed border-slate-600/50 flex flex-col items-center justify-center gap-2 text-slate-500 text-sm"
+        className="bg-[var(--bg-surface-hover)]/60 rounded-xl border border-dashed border-[var(--border-hover)]/50 flex flex-col items-center justify-center gap-2 text-[var(--text-muted)] text-sm"
       >
         <span className="text-3xl opacity-40">🗺️</span>
         <span>Map preview appears after entering locations</span>
@@ -278,13 +278,13 @@ const UnifiedCreateRideMap = ({
   }
 
   return (
-    <div className="rounded-xl overflow-hidden border border-slate-600/50 shadow-lg">
-      <div ref={mapRef} style={{ height }} className="w-full bg-slate-900" />
+    <div className="rounded-xl overflow-hidden border border-[var(--border-hover)]/50 shadow-lg">
+      <div ref={mapRef} style={{ height }} className="w-full bg-[var(--bg-surface)]" />
 
       {/* Verification control footer */}
-      <div className="bg-slate-900/95 border-t border-slate-700/60 p-4 grid sm:grid-cols-2 gap-4">
+      <div className="bg-[var(--bg-surface)]/95 border-t border-[var(--border-default)]/60 p-4 grid sm:grid-cols-2 gap-4">
         {/* Pickup Status */}
-        <div className="p-3 bg-slate-950/40 rounded-lg border border-slate-800 space-y-2">
+        <div className="p-3 bg-[var(--bg-default)]/40 rounded-lg border border-[var(--border-subtle)] space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0" />
@@ -297,15 +297,15 @@ const UnifiedCreateRideMap = ({
             )}
           </div>
           <div className="min-h-12">
-            <p className="text-slate-200 text-xs truncate">
+            <p className="text-[var(--text-primary)] text-xs truncate">
               {pickupLoading ? (
-                <span className="text-slate-400 italic">Resolving address…</span>
+                <span className="text-[var(--text-secondary)] italic">Resolving address…</span>
               ) : (
                 pickup?.address || 'Enter pickup address'
               )}
             </p>
             {pickup?.latitude && (
-              <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+              <p className="text-[10px] text-[var(--text-muted)] font-mono mt-0.5">
                 {pickup.latitude.toFixed(6)}, {pickup.longitude.toFixed(6)}
               </p>
             )}
@@ -316,7 +316,7 @@ const UnifiedCreateRideMap = ({
                 <button
                   type="button"
                   onClick={onPickupUnconfirm}
-                  className="text-[11px] text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-600 px-2.5 py-1 rounded transition-all cursor-pointer"
+                  className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] px-2.5 py-1 rounded transition-all cursor-pointer"
                 >
                   Edit Location
                 </button>
@@ -324,7 +324,7 @@ const UnifiedCreateRideMap = ({
                 <button
                   type="button"
                   onClick={onPickupConfirm}
-                  className="text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3 py-1 rounded transition-all cursor-pointer"
+                  className="text-[11px] bg-emerald-600 hover:bg-emerald-500 text-[var(--text-primary)] font-semibold px-3 py-1 rounded transition-all cursor-pointer"
                 >
                   Confirm Pickup Location
                 </button>
@@ -334,7 +334,7 @@ const UnifiedCreateRideMap = ({
         </div>
 
         {/* Destination Status */}
-        <div className="p-3 bg-slate-950/40 rounded-lg border border-slate-800 space-y-2">
+        <div className="p-3 bg-[var(--bg-default)]/40 rounded-lg border border-[var(--border-subtle)] space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-indigo-400 flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 flex-shrink-0" />
@@ -347,15 +347,15 @@ const UnifiedCreateRideMap = ({
             )}
           </div>
           <div className="min-h-12">
-            <p className="text-slate-200 text-xs truncate">
+            <p className="text-[var(--text-primary)] text-xs truncate">
               {destLoading ? (
-                <span className="text-slate-400 italic">Resolving address…</span>
+                <span className="text-[var(--text-secondary)] italic">Resolving address…</span>
               ) : (
                 destination?.address || 'Enter destination address'
               )}
             </p>
             {destination?.latitude && (
-              <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+              <p className="text-[10px] text-[var(--text-muted)] font-mono mt-0.5">
                 {destination.latitude.toFixed(6)}, {destination.longitude.toFixed(6)}
               </p>
             )}
@@ -366,7 +366,7 @@ const UnifiedCreateRideMap = ({
                 <button
                   type="button"
                   onClick={onDestUnconfirm}
-                  className="text-[11px] text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-600 px-2.5 py-1 rounded transition-all cursor-pointer"
+                  className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] px-2.5 py-1 rounded transition-all cursor-pointer"
                 >
                   Edit Location
                 </button>
@@ -374,7 +374,7 @@ const UnifiedCreateRideMap = ({
                 <button
                   type="button"
                   onClick={onDestConfirm}
-                  className="text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-1 rounded transition-all cursor-pointer"
+                  className="text-[11px] bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] font-semibold px-3 py-1 rounded transition-all cursor-pointer"
                 >
                   Confirm Destination Location
                 </button>

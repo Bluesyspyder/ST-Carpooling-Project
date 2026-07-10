@@ -31,24 +31,24 @@ const LocationInsights = ({ frequentAddresses = [], savedAddresses = [] }) => {
   };
 
   return (
-    <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
-      <h3 className="text-slate-200 font-semibold mb-4 flex items-center gap-2">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm p-5">
+      <h3 className="text-[var(--text-primary)] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
         <span>🔥</span> Most Used Locations
       </h3>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {top5.map((addr, i) => (
           <div
             key={i}
-            className="flex items-center justify-between bg-slate-700/30 rounded-lg px-4 py-3"
+            className="flex items-center justify-between bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm px-4 py-2.5"
           >
             <div className="flex items-center gap-3 min-w-0">
               <span className="text-xl flex-shrink-0">{getIcon(addr)}</span>
               <div className="min-w-0">
-                <p className="text-slate-200 text-sm font-medium truncate">{addr.address}</p>
-                <p className="text-slate-500 text-xs">{timeAgo(addr.lastUsedAt)}</p>
+                <p className="text-[var(--text-primary)] text-sm font-medium truncate">{addr.address}</p>
+                <p className="text-[var(--text-secondary)] text-xs">{timeAgo(addr.lastUsedAt)}</p>
               </div>
             </div>
-            <span className="text-violet-400 text-xs font-medium bg-violet-500/10 px-2 py-1 rounded-full flex-shrink-0 ml-3">
+            <span className="text-[var(--text-primary)] border border-[var(--primary-base)] text-[10px] font-bold bg-[var(--bg-surface)] px-2 py-0.5 rounded-sm flex-shrink-0 ml-3">
               {addr.useCount}×
             </span>
           </div>

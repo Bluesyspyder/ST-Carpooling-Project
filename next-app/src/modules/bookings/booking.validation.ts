@@ -30,6 +30,7 @@ export const createBookingSchema = z.object({
   body: z.object({
     ride: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Ride ID format'),
     seatsBooked: z.number().int().min(1, 'Must book at least 1 seat'),
+    seatIds: z.array(z.string()).optional(),
     pickupAddress: z.string().min(2, 'Pickup address must be at least 2 characters'),
     pickupLocation: locationSchema,
   }),

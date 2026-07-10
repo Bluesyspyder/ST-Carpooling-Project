@@ -155,19 +155,19 @@ export default function DriverModeContent() {
     };
   }, []);
 
-  if (loading) return <div className="p-6 text-slate-300">Loading Driver Mode...</div>;
+  if (loading) return <div className="p-6 text-[var(--text-primary)]">Loading Driver Mode...</div>;
   if (error) return <div className="p-6 text-red-400 font-bold">{error}</div>;
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-200">
-      <div className="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center z-10 shadow-lg">
+    <div className="flex flex-col h-screen bg-[var(--bg-default)] text-[var(--text-primary)]">
+      <div className="p-4 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] flex justify-between items-center z-10 shadow-lg">
         <div>
-          <h1 className="text-xl font-bold text-white">Driver Mode</h1>
-          <p className="text-xs text-slate-400">Ride #{id.substring(0, 6)}</p>
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">Driver Mode</h1>
+          <p className="text-xs text-[var(--text-secondary)]">Ride #{id.substring(0, 6)}</p>
         </div>
         <button 
           onClick={() => router.back()}
-          className="text-sm px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700"
+          className="text-sm px-4 py-2 bg-[var(--bg-surface-hover)] rounded-lg hover:bg-slate-700"
         >
           Exit
         </button>
@@ -203,7 +203,7 @@ export default function DriverModeContent() {
           {!isDriving ? (
             <button 
               onClick={startDriving}
-              className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+              className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-[var(--text-primary)] rounded-2xl font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)]"
             >
               Start Driving & Broadcasting
             </button>
@@ -211,13 +211,13 @@ export default function DriverModeContent() {
             <>
               <button 
                 onClick={handleSos}
-                className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(220,38,38,0.4)] animate-pulse"
+                className="w-full py-3 bg-red-600 hover:bg-red-700 text-[var(--text-primary)] rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(220,38,38,0.4)] animate-pulse"
               >
                 🚨 EMERGENCY S.O.S 🚨
               </button>
               <button 
                 onClick={stopDriving}
-                className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl font-bold"
+                className="w-full py-3 bg-[var(--bg-surface-hover)] hover:bg-slate-700 border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl font-bold"
               >
                 Stop Broadcasting
               </button>

@@ -76,7 +76,7 @@ const SearchRide = () => {
           <form className="space-y-4" onSubmit={handleSearch}>
             <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
               <div>
-                <label className="block text-xs text-slate-400 mb-1.5 font-medium">Pickup Area</label>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1.5 font-medium">Pickup Area</label>
                 <AddressAutocomplete
                   value={pickupLocation?.address || filters.pickupArea}
                   onChange={(loc) => {
@@ -88,7 +88,7 @@ const SearchRide = () => {
               </div>
 
               <div>
-                <label className="block text-xs text-slate-400 mb-1.5 font-medium">Driver Name</label>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1.5 font-medium">Driver Name</label>
                 <input
                   type="text"
                   name="driverName"
@@ -100,7 +100,7 @@ const SearchRide = () => {
               </div>
 
               <div>
-                <label className="block text-xs text-slate-400 mb-1.5 font-medium">Date</label>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1.5 font-medium">Date</label>
                 <input
                   type="date"
                   name="journeyDate"
@@ -111,7 +111,7 @@ const SearchRide = () => {
               </div>
 
               <div>
-                <label className="block text-xs text-slate-400 mb-1.5 font-medium">Required Seats</label>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1.5 font-medium">Required Seats</label>
                 <input
                   type="number"
                   name="seats"
@@ -156,14 +156,14 @@ const SearchRide = () => {
                     {/* Header: Driver + Status */}
                     <div className="flex justify-between items-start mb-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center text-sm font-bold text-emerald-400 flex-shrink-0 uppercase">
+                        <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center text-sm font-bold text-emerald-600 dark:text-emerald-400 flex-shrink-0 uppercase">
                           {ride.driver?.firstName?.[0]}{ride.driver?.lastName?.[0]}
                         </div>
                         <div>
-                          <p className="text-slate-100 font-bold text-sm">
+                          <p className="text-[var(--text-primary)] font-bold text-sm">
                             {ride.driver?.firstName} {ride.driver?.lastName}
                           </p>
-                          <p className="text-xs text-emerald-400 font-medium">★ {ride.driver?.averageRating?.toFixed(1) || '5.0'}</p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">★ {ride.driver?.averageRating?.toFixed(1) || '5.0'}</p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -176,14 +176,14 @@ const SearchRide = () => {
                     {/* Time & Vehicle */}
                     <div className="grid grid-cols-2 gap-4 mb-5 p-3 rounded-sm bg-[var(--bg-surface)] border border-[var(--border-subtle)]">
                       <div>
-                        <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-0.5">Journey Time</p>
-                        <p className="text-sm text-slate-200 font-bold">{new Date(ride.journeyDate).toLocaleDateString()} at {ride.journeyTime}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">Wait: {ride.flexibilityMinutes} mins</p>
+                        <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold mb-0.5">Journey Time</p>
+                        <p className="text-sm text-[var(--text-primary)] font-bold">{new Date(ride.journeyDate).toLocaleDateString()} at {ride.journeyTime}</p>
+                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">Wait: {ride.flexibilityMinutes} mins</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-0.5">Vehicle</p>
-                        <p className="text-sm text-slate-200 font-bold truncate" title={ride.driverVehicle?.vehicleName}>{ride.driverVehicle?.vehicleName || 'Car'}</p>
-                        <p className="text-xs text-emerald-400 font-medium mt-0.5">{ride.availableSeats} seats left</p>
+                        <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold mb-0.5">Vehicle</p>
+                        <p className="text-sm text-[var(--text-primary)] font-bold truncate" title={ride.driverVehicle?.vehicleName}>{ride.driverVehicle?.vehicleName || 'Car'}</p>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">{ride.availableSeats} seats left</p>
                       </div>
                     </div>
 
@@ -191,21 +191,21 @@ const SearchRide = () => {
                     <div className="space-y-3 mb-6">
                       <div className="flex items-start gap-3">
                         <div className="mt-1 flex flex-col items-center">
-                          <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full"></span>
-                          <div className="w-px h-5 bg-slate-700/50 my-0.5"></div>
+                          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
+                          <div className="w-px h-5 bg-slate-300 dark:bg-slate-700/50 my-0.5"></div>
                         </div>
                         <div>
-                          <p className="text-[10px] text-slate-500 font-semibold uppercase">Pickup</p>
-                          <p className="text-slate-200 text-xs font-medium line-clamp-2">{ride.pickupLocation?.address}</p>
+                          <p className="text-[10px] text-[var(--text-muted)] font-semibold uppercase">Pickup</p>
+                          <p className="text-[var(--text-primary)] text-xs font-medium line-clamp-2">{ride.pickupLocation?.address}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="mt-1 flex flex-col items-center">
-                          <span className="w-2.5 h-2.5 bg-indigo-400 rounded-full"></span>
+                          <span className="w-2.5 h-2.5 bg-indigo-500 rounded-full"></span>
                         </div>
                         <div>
-                          <p className="text-[10px] text-slate-500 font-semibold uppercase">Destination</p>
-                          <p className="text-slate-200 text-xs font-medium line-clamp-2">{ride.destinationLocation?.address}</p>
+                          <p className="text-[10px] text-[var(--text-muted)] font-semibold uppercase">Destination</p>
+                          <p className="text-[var(--text-primary)] text-xs font-medium line-clamp-2">{ride.destinationLocation?.address}</p>
                         </div>
                       </div>
                     </div>
