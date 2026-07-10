@@ -305,7 +305,7 @@ const Bookings = () => {
                     }`}>
                       {booking.bookingStatus}
                     </span>
-                    <p className="text-xs text-[var(--text-secondary)] font-bold mt-2 text-right">₹{booking.bookingAmount} / {booking.seatsBooked} PAX</p>
+                    <p className="text-xs text-emerald-400 font-bold mt-2 text-right">+{booking.bookingAmount} pts / {booking.seatsBooked} PAX</p>
                   </div>
                 </div>
 
@@ -628,7 +628,7 @@ const Bookings = () => {
               footer={
                 <>
                   <span>{booking.seatsBooked} PAX</span>
-                  <span>₹{booking.bookingAmount}</span>
+                  <span className="text-emerald-400 font-bold">+{booking.bookingAmount} pts</span>
                 </>
               }
             />

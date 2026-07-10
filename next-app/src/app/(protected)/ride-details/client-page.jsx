@@ -267,6 +267,43 @@ const StopRow = ({ badge, badgeColor, label, address, isFirst, isLast }) => (
   </div>
 );
 
+/* ─── Inline Rating Component ────────────────────────────────────────────── */
+const InlineRating = ({ bookingId }) => {
+  const [hovered, setHovered] = useState(0);
+  const [rating, setRating] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleRate = async (val) => {
+    try {
+      setRating(val);
+      await api.post(`/reviews/bookings/${bookingId}/rate`, { rating: val, comment: '' });
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (submitted) return <div className="text-emerald-400 text-[10px] font-bold mt-0.5">⭐ Rated {rating}/5</div>;
+
+  return (
+    <div className="flex items-center gap-1 mt-0.5">
+      {[1, 2, 3, 4, 5].map(star => (
+        <button
+          key={star}
+          type="button"
+          onMouseEnter={() => setHovered(star)}
+          onMouseLeave={() => setHovered(0)}
+          onClick={() => handleRate(star)}
+          className={`text-base transition ${star <= (hovered || rating) ? 'text-amber-400 scale-110' : 'text-[var(--border-strong)] opacity-50'}`}
+        >
+          ★
+        </button>
+      ))}
+      <span className="text-[10px] text-[var(--text-muted)] ml-1 font-semibold uppercase tracking-wider">Rate Driver</span>
+    </div>
+  );
+};
+
 /* ═══════════════════════════ MAIN PAGE ═══════════════════════════════════════ */
 
 const RideDetails = () => {
@@ -673,12 +710,18 @@ const RideDetails = () => {
                   </div>
                   <div>
                     <p className="text-[var(--text-primary)] font-semibold">{ride.driver.firstName} {ride.driver.lastName}</p>
-                    <div className="flex items-center gap-1 mt-0.5 text-xs text-amber-400 font-bold">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                      {ride.driver.averageRating?.toFixed(1) || '5.0'} / 5.0
-                    </div>
+                    {ride.status === 'completed' && activeBooking && !activeBooking.rated ? (
+                      <InlineRating bookingId={activeBooking._id} />
+                    ) : ride.status === 'completed' && activeBooking && activeBooking.rated ? (
+                      <div className="text-emerald-400 text-[10px] font-bold mt-0.5">⭐ Rated {activeBooking.rating || 5}/5</div>
+                    ) : (
+                      <div className="flex items-center gap-1 mt-0.5 text-xs text-amber-400 font-bold">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        {ride.driver.averageRating?.toFixed(1) || '5.0'} / 5.0
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -688,7 +731,41 @@ const RideDetails = () => {
 
           {/* ── Booking sidebar (passenger-only; drivers see their own panel) ── */}
           <div className="glass-panel p-6 h-fit">
-            {isDriver ? (
+            {ride.status === 'completed' ? (
+              <div className="space-y-4">
+                <h4 className="text-lg font-bold text-[var(--text-primary)]">Ride Completed</h4>
+                <div className="bg-[var(--bg-surface)] border border-emerald-500/20 rounded-xl p-5 space-y-4">
+                  <div className="flex items-center gap-3 pb-3 border-b border-[var(--border-subtle)]">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-emerald-400">Trip Finished</p>
+                      <p className="text-xs text-[var(--text-secondary)]">Thanks for carpooling!</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 pt-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">Distance</span>
+                      <span className="text-[var(--text-primary)] font-semibold">{(ride.routeDistance || 0).toFixed(1)} km</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">Duration</span>
+                      <span className="text-[var(--text-primary)] font-semibold">{ride.routeDuration ? Math.round(ride.routeDuration / 60) : Math.round((ride.routeDistance || 0) * 2)} mins</span>
+                    </div>
+                    <div className="flex justify-between text-teal-400">
+                      <span className="font-medium">CO2 Saved</span>
+                      <span className="font-bold">{((ride.routeDistance || 0) * 0.15).toFixed(1)} kg</span>
+                    </div>
+                    <div className="flex justify-between text-emerald-400">
+                      <span className="font-medium">Green Credits</span>
+                      <span className="font-bold">+{Math.floor((ride.routeDistance || 0) / 5)} pts</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : isDriver ? (
               /* Driver sidebar: ride stats */
               <div className="space-y-4">
                 <h4 className="text-lg font-bold text-[var(--text-primary)]">Ride Statistics</h4>
@@ -785,9 +862,9 @@ const RideDetails = () => {
                     )}
 
                     <div className="flex justify-between items-center text-sm pt-2">
-                      <span className="text-[var(--text-secondary)]">Total Price</span>
-                      <span className="text-[var(--text-primary)] font-extrabold text-lg">
-                        {ride.pricePerSeat && ride.pricePerSeat > 0 ? `₹${ride.pricePerSeat * selectedSeatIds.length}` : 'Free'}
+                      <span className="text-emerald-400 font-semibold">Green Credits</span>
+                      <span className="text-emerald-400 font-extrabold text-lg">
+                        +{Math.floor((ride.routeDistance || 15) / 5) * (selectedSeatIds.length || 1)} pts
                       </span>
                     </div>
 
@@ -994,9 +1071,9 @@ const RideDetails = () => {
       ) : !bookingSuccess ? (
         <StickyActionBar>
           <div className="flex-1 flex items-center justify-between text-xs text-[var(--text-secondary)] mr-2">
-            <span>Total</span>
-            <span className="text-[var(--text-primary)] font-extrabold text-base ml-2">
-              {ride.pricePerSeat && ride.pricePerSeat > 0 ? `₹${ride.pricePerSeat * selectedSeatIds.length}` : 'Free'}
+            <span className="text-emerald-400 font-semibold">Green Credits</span>
+            <span className="text-emerald-400 font-extrabold text-base ml-2">
+              +{Math.floor((ride.routeDistance || 15) / 5) * (selectedSeatIds.length || 1)} pts
             </span>
           </div>
           <button

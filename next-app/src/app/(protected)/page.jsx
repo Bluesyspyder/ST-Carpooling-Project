@@ -297,7 +297,7 @@ const Dashboard = () => {
             <span className="w-1.5 h-6 rounded bg-emerald-400 block" />
             Quick Actions
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${isRider ? 'xl:grid-cols-5 lg:grid-cols-3' : 'lg:grid-cols-4'} gap-5`}>
             {isRider ? (
               <>
                 <ActionCard
@@ -328,6 +328,13 @@ const Dashboard = () => {
                   icon={<svg className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}
                   theme="amber"
                 />
+                <ActionCard
+                  to="/green-impact"
+                  title="Green Impact"
+                  description="View your CO2 savings and earn points for sustainable commuting."
+                  icon={<svg className="w-6 h-6 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                  theme="teal"
+                />
               </>
             ) : (
               <>
@@ -351,6 +358,13 @@ const Dashboard = () => {
                   description="Manage email, saved locations, phone, bio and preferences."
                   icon={<svg className="w-6 h-6 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}
                   theme="violet"
+                />
+                <ActionCard
+                  to="/green-impact"
+                  title="Green Impact"
+                  description="View your CO2 savings and earn points for sustainable commuting."
+                  icon={<svg className="w-6 h-6 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                  theme="teal"
                 />
               </>
             )}
@@ -391,7 +405,7 @@ const Dashboard = () => {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {drivingRides.slice(0, 3).map(ride => (
+                      {drivingRides.filter(r => r.status !== 'completed').slice(0, 3).map(ride => (
                         <Link
                           key={ride._id}
                           href={`/ride-details?id=${ride._id}`}
@@ -429,7 +443,7 @@ const Dashboard = () => {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {upcomingBookings.slice(0, 3).map(booking => (
+                      {upcomingBookings.filter(b => b.ride?.status !== 'completed').slice(0, 3).map(booking => (
                         <Link
                           key={booking._id}
                           href={`/ride-details?id=${booking.ride?._id}`}
@@ -499,7 +513,7 @@ const Dashboard = () => {
                             </p>
                           </div>
                           <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full whitespace-nowrap">
-                            ₹{ride.pricePerSeat}/seat
+                            +{Math.floor((ride.routeDistance || 15) / 5)} pts
                           </span>
                         </div>
 
@@ -744,7 +758,7 @@ const Dashboard = () => {
                 <Link key={ride._id} href={`/ride-details?id=${ride._id}`} className="glass-panel p-4 w-64 flex-shrink-0 snap-start min-h-[44px]">
                   <div className="flex items-start justify-between mb-2">
                     <p className="text-sm font-bold text-[var(--text-primary)] truncate pr-2">{ride.pickupLocation?.address || ride.source}</p>
-                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full whitespace-nowrap">₹{ride.pricePerSeat}</span>
+                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full whitespace-nowrap">+{Math.floor((ride.routeDistance || 15) / 5)} pts</span>
                   </div>
                   <p className="text-xs text-[var(--text-muted)] truncate mb-2">↓ {ride.destinationLocation?.address || ride.destination}</p>
                   <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
