@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useViewMode } from '@/context/ViewModeContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LogOut, Home, Search, PlusCircle, Calendar, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -32,12 +33,13 @@ const NavLink = ({ href, icon: Icon, children, isActive }) => (
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
+  const { viewMode, setViewMode, isHybrid } = useViewMode();
   const pathname = usePathname();
   const router = useRouter();
 
   if (!user) return null;
 
-  const isRider = user?.role === 'hybrid';
+  const isRider = viewMode === 'driver';
 
   const handleLogout = () => {
     logout();
@@ -72,6 +74,15 @@ const Sidebar = () => {
                 </>
               )}
             </span>
+            {isHybrid && (
+              <button 
+                onClick={() => setViewMode(isRider ? 'passenger' : 'driver')}
+                className="text-[10px] uppercase font-bold tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition border border-[var(--border-subtle)] px-2 py-1 rounded-sm bg-[var(--bg-surface)] ml-auto"
+                title={`Switch to ${isRider ? 'Co-Rider' : 'Rider'} View`}
+              >
+                Switch
+              </button>
+            )}
         </div>
       </div>
 

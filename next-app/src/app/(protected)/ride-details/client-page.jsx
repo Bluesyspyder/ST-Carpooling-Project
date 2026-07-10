@@ -569,11 +569,21 @@ const RideDetails = () => {
                           booking.bookingStatus === 'pending'   ? 'bg-amber-950 text-amber-400 border-amber-500/20' :
                           'bg-red-950 text-red-400 border-red-500/20'
                         }`}>{booking.bookingStatus}</span>
-                        <span className="text-xs text-[var(--text-secondary)]">{booking.seatsBooked} seat{booking.seatsBooked > 1 ? 's' : ''}</span>
+                        <span className="text-xs text-[var(--text-secondary)]">
+                          {booking.seatsBooked} seat{booking.seatsBooked > 1 ? 's' : ''}
+                          {booking.seatIds?.length > 0 && ` (${booking.seatIds.join(', ')})`}
+                        </span>
                       </div>
-                      <p className="text-xs text-[var(--text-secondary)] max-w-xs truncate mt-1">{booking.pickupLocation?.address}</p>
+                      <p className="text-xs text-[var(--text-secondary)] max-w-xs truncate mt-1">
+                        <strong className="text-[var(--text-primary)] font-semibold">Pickup: </strong>
+                        {booking.pickupLocation?.address}
+                      </p>
+                      <p className="text-xs text-[var(--text-secondary)] max-w-xs truncate mt-0.5">
+                        <strong className="text-[var(--text-primary)] font-semibold">Drop: </strong>
+                        {ride?.destinationLocation?.address}
+                      </p>
                       {isDriver && (
-                        <p className="text-[10px] text-[var(--text-secondary)] font-mono">
+                        <p className="text-[10px] text-[var(--text-secondary)] font-mono mt-1">
                           Stop #{idx + 1} · {booking.pickupLocation?.latitude?.toFixed(4)}, {booking.pickupLocation?.longitude?.toFixed(4)}
                         </p>
                       )}

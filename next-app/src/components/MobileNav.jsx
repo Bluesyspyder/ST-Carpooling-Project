@@ -3,17 +3,19 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useViewMode } from '@/context/ViewModeContext';
 import { Home, Search, PlusCircle, Calendar, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 const MobileNav = () => {
   const { user } = useAuth();
+  const { viewMode } = useViewMode();
   const pathname = usePathname();
 
   if (!user) return null;
 
-  const isRider = user?.role === 'hybrid';
+  const isRider = viewMode === 'driver';
 
   const NavItem = ({ href, icon: Icon, label, isActive }) => (
     <Link

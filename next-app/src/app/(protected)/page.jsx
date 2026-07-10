@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useViewMode } from '@/context/ViewModeContext';
 import api from '@/services/api';
 import ProfileCompletionBanner, { useProfileCompletion } from '@/components/ProfileCompletionBanner';
 
@@ -15,8 +16,9 @@ import ProfileCompletionBanner, { useProfileCompletion } from '@/components/Prof
  */
 const Dashboard = () => {
   const { user } = useAuth();
+  const { viewMode } = useViewMode();
   const navigate = useRouter();
-  const isRider = user?.role === 'hybrid';
+  const isRider = viewMode === 'driver';
   const { isComplete, percentage } = useProfileCompletion();
 
   const [upcomingBookings, setUpcomingBookings] = useState([]);

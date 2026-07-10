@@ -341,7 +341,7 @@ const Bookings = () => {
                         </div>
                         <div className="flex items-start gap-2">
                           <span className="text-indigo-500 mt-0.5">📍</span>
-                          <p className="text-[10px] text-[var(--text-secondary)] leading-tight"><strong className="text-[var(--text-primary)]">Drop:</strong> {booking.dropoffLocation?.address}</p>
+                          <p className="text-[10px] text-[var(--text-secondary)] leading-tight"><strong className="text-[var(--text-primary)]">Drop:</strong> {booking.ride?.destinationLocation?.address}</p>
                         </div>
                       </div>
                     </div>

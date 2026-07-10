@@ -194,9 +194,9 @@ const RouteMap = ({
         if (polylineRef.current) polylineRef.current.remove();
         const latlngs = routePath.map(({ lat, lng }) => [lat, lng]);
         polylineRef.current = L.polyline(latlngs, {
-          color:     isFallback ? '#f59e0b' : '#818cf8',
-          weight:    4,
-          opacity:   0.85,
+          color:     isFallback ? '#f59e0b' : '#2563eb', // Bolder blue
+          weight:    5,
+          opacity:   1.0,
           dashArray: isFallback ? '6 8' : null,
         }).addTo(leafletMapRef.current);
         if (latlngs.length > 1) {
@@ -264,9 +264,9 @@ const RouteMap = ({
       if (polylineRef.current) polylineRef.current.remove();
       const latlngs = routePath.map(({ lat, lng }) => [lat, lng]);
       polylineRef.current = L.polyline(latlngs, {
-        color:     isFallback ? '#f59e0b' : '#818cf8',
-        weight:    4,
-        opacity:   0.85,
+        color:     isFallback ? '#f59e0b' : '#2563eb', // Bolder blue
+        weight:    5,
+        opacity:   1.0,
         dashArray: isFallback ? '6 8' : null,
       }).addTo(leafletMapRef.current);
       if (latlngs.length > 1) leafletMapRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [40, 40], animate: false });
@@ -305,9 +305,9 @@ const RouteMap = ({
         if (polylineRef.current) polylineRef.current.remove();
         const latlngs = internalRoute.routePath.map(({ lat, lng }) => [lat, lng]);
         polylineRef.current = L.polyline(latlngs, {
-          color:     internalRoute.isFallback ? '#f59e0b' : '#818cf8',
-          weight:    4,
-          opacity:   0.85,
+          color:     internalRoute.isFallback ? '#f59e0b' : '#2563eb', // Bolder blue
+          weight:    5,
+          opacity:   1.0,
           dashArray: internalRoute.isFallback ? '6 8' : null,
         }).addTo(leafletMapRef.current);
         if (latlngs.length > 1) {

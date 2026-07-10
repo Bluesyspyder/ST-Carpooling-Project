@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useViewMode } from '@/context/ViewModeContext';
 import useCurrentLocation from '@/hooks/useCurrentLocation';
 import api from '@/services/api';
 import SavedLocationsManager from '@/components/SavedLocationsManager';
@@ -54,7 +55,8 @@ const EditField = ({ label, value, onChange, type = 'text', readOnly = false, ma
 /* ═══════════════════════════ PROFILE PAGE ═══════════════════════════ */
 
 const Profile = () => {
-  const { user, logout, setUser } = useAuth();
+  const { user, setUser, logout } = useAuth();
+  const { setViewMode } = useViewMode();
   const navigate = useRouter();
   const { getCurrentLocation } = useCurrentLocation();
 
@@ -172,6 +174,9 @@ const Profile = () => {
       const res = await api.post('/vehicles', newVehicle);
       if (res.data?.data?.user) {
         setUser(res.data.data.user);
+        if (res.data.data.user.role === 'hybrid') {
+          setViewMode('driver');
+        }
       }
       if (res.data?.data?.vehicle) {
         setVehicles(prev => [...prev, res.data.data.vehicle]);

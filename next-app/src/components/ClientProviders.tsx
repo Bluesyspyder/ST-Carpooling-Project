@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { AuthProvider } from '@/context/AuthContext';
+import { ViewModeProvider } from '@/context/ViewModeContext';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import SocketNotificationManager from './SocketNotificationManager';
@@ -22,14 +23,16 @@ export default function ClientProviders({ children }: { children: React.ReactNod
 
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-[var(--bg-base)] flex lg:flex-row flex-col">
-        {!shouldHideHeader && <Sidebar />}
-        <div className="flex-grow flex flex-col min-w-0 pb-16 lg:pb-0"> {/* pb-16 for MobileNav spacing on small screens */}
-          {children}
+      <ViewModeProvider>
+        <div className="min-h-screen bg-[var(--bg-base)] flex lg:flex-row flex-col">
+          {!shouldHideHeader && <Sidebar />}
+          <div className="flex-grow flex flex-col min-w-0 pb-16 lg:pb-0"> {/* pb-16 for MobileNav spacing on small screens */}
+            {children}
+          </div>
+          {!shouldHideHeader && <MobileNav />}
+          <SocketNotificationManager />
         </div>
-        {!shouldHideHeader && <MobileNav />}
-        <SocketNotificationManager />
-      </div>
+      </ViewModeProvider>
     </AuthProvider>
   );
 }
