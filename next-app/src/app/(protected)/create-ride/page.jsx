@@ -210,8 +210,8 @@ const CreateRide = () => {
       <div className="max-w-[1600px] mx-auto h-full flex flex-col xl:flex-row gap-6 items-stretch">
         
         {/* ── LEFT COLUMN: Form ── */}
-        <div className="xl:w-1/3 flex flex-col gap-6">
-          <div className="glass-panel p-6 rounded-2xl bg-[#111827] border border-slate-800 shadow-xl overflow-y-auto max-h-[85vh] custom-scrollbar">
+        <div className="xl:w-[45%] flex flex-col gap-6">
+          <div className="glass-panel p-6 sm:p-8 rounded-2xl bg-[#111827] border border-slate-800 shadow-xl overflow-y-auto max-h-[85vh] custom-scrollbar">
             <div className="mb-6">
               <p className="text-emerald-400 font-bold uppercase tracking-widest text-[10px] mb-1">Create Module</p>
               <h1 className="text-2xl font-bold tracking-tight mb-1 text-white">Offer a Ride</h1>
@@ -404,24 +404,8 @@ const CreateRide = () => {
           </div>
         </div>
 
-        {/* ── MIDDLE COLUMN: Booking Activity ── */}
-        <div className="xl:w-1/4 hidden xl:flex flex-col gap-4">
-          <div className="glass-panel rounded-2xl bg-[#111827] border border-slate-800 shadow-xl p-6 h-full flex flex-col">
-            <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-4 mb-4">
-              Booking Activity
-            </h3>
-            <div className="flex-1 flex flex-col items-center justify-center text-center opacity-60">
-              <svg className="w-12 h-12 text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <p className="text-sm text-slate-400 font-medium">No activity yet</p>
-              <p className="text-xs text-slate-500 mt-1">Publish your ride to start receiving booking requests.</p>
-            </div>
-          </div>
-        </div>
-
         {/* ── RIGHT COLUMN: Route Map ── */}
-        <div className="xl:flex-1 h-[400px] xl:h-auto min-h-[500px]">
+        <div className="xl:flex-1 h-[400px] xl:h-[85vh] min-h-[500px]">
           <div className="glass-panel rounded-2xl bg-[#111827] border border-slate-800 shadow-xl h-full w-full overflow-hidden relative">
             <RouteMap 
               waypoints={waypoints}

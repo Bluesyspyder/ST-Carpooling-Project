@@ -78,47 +78,63 @@ export default function SeatMap({
   return (
     <div className="space-y-4">
       {/* Car body */}
-      <div className="mx-auto max-w-[240px] rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
-        {/* Windshield / front hint */}
-        <div className="mb-3 flex justify-center">
-          <div className="h-1.5 w-16 rounded-full bg-[var(--border-subtle)]" aria-hidden />
-        </div>
+      <div className="relative mx-auto max-w-[260px] pt-4 pb-6 px-6">
+        {/* Left mirror */}
+        <div className="absolute top-16 -left-1 w-3 h-8 bg-slate-700 rounded-l-xl border border-slate-600 shadow-md transform -skew-y-12" />
+        {/* Right mirror */}
+        <div className="absolute top-16 -right-1 w-3 h-8 bg-slate-700 rounded-r-xl border border-slate-600 shadow-md transform skew-y-12" />
+        
+        {/* Car chassis */}
+        <div className="relative rounded-t-[4rem] rounded-b-[2.5rem] border-[3px] border-slate-700 bg-slate-800/80 shadow-2xl p-5 pt-8 pb-10 overflow-hidden backdrop-blur-sm">
+          
+          {/* Windshield */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[70%] h-10 bg-slate-900/60 rounded-t-[3rem] border-b-2 border-slate-700/50 flex justify-center items-end pb-1 shadow-inner">
+            <div className="w-16 h-1 rounded-full bg-slate-600/30" />
+          </div>
 
-        <div className="space-y-2.5">
-          {layout.map((row, rowIdx) => (
-            <div key={rowIdx} className="flex justify-center gap-2.5">
-              {row.map((cell) => {
-                if (cell.type === 'driver') {
+          {/* Rear window */}
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[65%] h-6 bg-slate-900/60 rounded-b-[1.5rem] border-t-2 border-slate-700/50 shadow-inner" />
+
+          {/* Roof contour lines */}
+          <div className="absolute inset-x-3 top-12 bottom-10 rounded-2xl border border-slate-700/30 pointer-events-none" />
+
+          {/* Seats Container */}
+          <div className="relative z-10 space-y-4 mt-2">
+            {layout.map((row, rowIdx) => (
+              <div key={rowIdx} className="flex justify-center gap-3">
+                {row.map((cell) => {
+                  if (cell.type === 'driver') {
+                    return (
+                      <div
+                        key={cell.id}
+                        title="Driver"
+                        className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl border-2 border-slate-600 bg-slate-800 text-slate-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]"
+                      >
+                        <SteeringWheelIcon />
+                      </div>
+                    );
+                  }
+                  const state = seatState(cell.id);
+                  const disabled = state === 'available' && atLimit;
                   return (
-                    <div
+                    <button
                       key={cell.id}
-                      title="Driver"
-                      className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-muted)] sm:h-12 sm:w-12"
+                      type="button"
+                      aria-pressed={state === 'selected'}
+                      aria-label={`Seat ${cell.id}${
+                        state === 'booked' ? ' (booked)' : state === 'unavailable' ? ' (not offered)' : ''
+                      }`}
+                      disabled={state === 'booked' || state === 'unavailable'}
+                      onClick={() => handleClick(cell.id, state)}
+                      className={seatClasses(state, disabled)}
                     >
-                      <SteeringWheelIcon />
-                    </div>
+                      <CarSeatIcon />
+                    </button>
                   );
-                }
-                const state = seatState(cell.id);
-                const disabled = state === 'available' && atLimit;
-                return (
-                  <button
-                    key={cell.id}
-                    type="button"
-                    aria-pressed={state === 'selected'}
-                    aria-label={`Seat ${cell.id}${
-                      state === 'booked' ? ' (booked)' : state === 'unavailable' ? ' (not offered)' : ''
-                    }`}
-                    disabled={state === 'booked' || state === 'unavailable'}
-                    onClick={() => handleClick(cell.id, state)}
-                    className={seatClasses(state, disabled)}
-                  >
-                    {cell.id}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -149,6 +165,14 @@ function SteeringWheelIcon() {
       <circle cx="12" cy="12" r="9" />
       <circle cx="12" cy="12" r="2.2" />
       <path d="M12 14.2V21M4.5 8.5l5.6 3.2M19.5 8.5l-5.6 3.2" />
+    </svg>
+  );
+}
+
+function CarSeatIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M7 21h10a1 1 0 001-1v-4a1 1 0 00-1-1H7a1 1 0 00-1 1v4a1 1 0 001 1zm8-8h-6c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h6c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2z" />
     </svg>
   );
 }

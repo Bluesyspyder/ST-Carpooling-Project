@@ -59,9 +59,10 @@ export function generateSeatLayout(seatCount) {
   const ids = passengerSeatIds(seatCount);
   const rows = [];
 
-  // Front row: driver on the left, first passenger seat (if any) on the right.
-  const front = [{ id: DRIVER_SEAT_ID, type: 'driver' }];
+  // Front row: passenger on the left, driver on the right (RHD).
+  const front = [];
   if (ids.length >= 1) front.push({ id: ids[0], type: 'seat' });
+  front.push({ id: DRIVER_SEAT_ID, type: 'driver' });
   rows.push(front);
 
   // Rear rows: chunk the remaining passenger seats into groups of three.
