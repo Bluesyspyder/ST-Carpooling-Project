@@ -45,3 +45,22 @@ export const updateVehicle = async (vehicleId, userId, updateData) => {
 
   return updated;
 };
+
+/**
+ * Delete a vehicle (ensuring user owns it)
+ * @param {string} vehicleId - Vehicle ID
+ * @param {string} userId - User ID (owner verification)
+ */
+export const deleteVehicle = async (vehicleId, userId) => {
+  const vehicle = await Vehicle.findById(vehicleId);
+  
+  if (!vehicle) {
+    throw new ApiError(404, 'Vehicle not found');
+  }
+
+  if (vehicle.owner.toString() !== userId) {
+    throw new ApiError(403, 'You do not have permission to delete this vehicle');
+  }
+
+  await vehicle.deleteOne();
+};
