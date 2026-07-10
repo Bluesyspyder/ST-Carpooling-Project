@@ -105,7 +105,7 @@ const ToastItem = ({ notification, onDismiss }) => {
       {/* Close button */}
       <button
         onClick={dismiss}
-        className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[var(--bg-surface-hover)]/60 hover:bg-slate-700 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition text-xs"
+        className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[var(--bg-surface-hover)]/60 hover:bg-[var(--bg-surface-hover)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition text-xs"
       >
         ✕
       </button>

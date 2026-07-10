@@ -32,6 +32,7 @@ export const createRideSchema = z.object({
     pickupLocation: locationSchema,
     destinationLocation: locationSchema,
     notes: z.string().optional(),
+    femaleOnly: z.boolean().optional(),
   }),
 });
 
@@ -47,5 +48,6 @@ export const searchRidesSchema = z.object({
     pickupLng: z.union([z.string(), z.number()]).optional(),
     driverName: z.string().optional(),
     seats: z.string().or(z.number()).optional(),
+    femaleOnly: z.union([z.string(), z.boolean()]).optional(),
   }),
 });

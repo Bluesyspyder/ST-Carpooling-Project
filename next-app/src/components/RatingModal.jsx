@@ -58,7 +58,7 @@ const RatingModal = ({ bookingId, driverName, onClose, onSuccess }) => {
           {submitted ? (
             <div className="text-center py-8 space-y-3">
               <div className="text-5xl">⭐</div>
-              <h3 className="text-lg font-bold text-slate-100">Thanks for your feedback!</h3>
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">Thanks for your feedback!</h3>
               <p className="text-sm text-[var(--text-secondary)]">Your rating helps the ST Carpool community.</p>
             </div>
           ) : (
@@ -66,12 +66,12 @@ const RatingModal = ({ bookingId, driverName, onClose, onSuccess }) => {
               {/* Header */}
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-100">Rate Your Rider</h3>
+                  <h3 className="text-lg font-bold text-[var(--text-primary)]">Rate Your Rider</h3>
                   <p className="text-sm text-[var(--text-secondary)] mt-0.5">How was your ride with {driverName}?</p>
                 </div>
                 <button
                   onClick={onClose}
-                  className="w-8 h-8 rounded-full bg-[var(--bg-surface-hover)] hover:bg-slate-700 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition flex-shrink-0"
+                  className="w-8 h-8 rounded-full bg-[var(--bg-surface-hover)] hover:bg-[var(--bg-surface-hover)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition flex-shrink-0"
                 >
                   ✕
                 </button>
@@ -91,7 +91,7 @@ const RatingModal = ({ bookingId, driverName, onClose, onSuccess }) => {
                     <span className={`transition-colors duration-150 ${
                       star <= (hovered || rating)
                         ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.5)]'
-                        : 'text-slate-700'
+                        : 'text-[var(--text-muted)]'
                     }`}>
                       ★
                     </span>
@@ -110,7 +110,7 @@ const RatingModal = ({ bookingId, driverName, onClose, onSuccess }) => {
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Any comments? (optional)"
-                className="w-full px-4 py-3 bg-[var(--bg-surface)]/60 border border-[var(--border-default)] rounded-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 resize-none"
+                className="w-full px-4 py-3 bg-[var(--bg-surface)]/60 border border-[var(--border-default)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 resize-none"
               />
 
               {error && (
@@ -130,7 +130,7 @@ const RatingModal = ({ bookingId, driverName, onClose, onSuccess }) => {
                 <button
                   onClick={handleSubmit}
                   disabled={loading || rating === 0}
-                  className="flex-1 py-2.5 px-4 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-xl font-bold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-amber-400/20"
+                  className="flex-1 py-2.5 px-4 bg-amber-400 hover:bg-amber-500 text-[var(--text-primary)] rounded-xl font-bold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-amber-400/20"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">

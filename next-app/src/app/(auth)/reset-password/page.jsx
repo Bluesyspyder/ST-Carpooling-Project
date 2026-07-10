@@ -68,7 +68,7 @@ const ResetPasswordContent = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-2xl font-extrabold text-slate-100 mb-2">
+            <h2 className="text-2xl font-extrabold text-[var(--text-primary)] mb-2">
               Password Reset Successful
             </h2>
             <p className="text-[var(--text-secondary)] mb-6">
@@ -76,7 +76,7 @@ const ResetPasswordContent = () => {
             </p>
             <Link
               href="/login"
-              className="inline-block px-6 py-2 bg-emerald-400 text-slate-950 rounded-lg font-bold hover:bg-emerald-500 transition"
+              className="inline-block px-6 py-2 bg-emerald-400 text-[var(--text-primary)] rounded-lg font-bold hover:bg-emerald-500 transition"
             >
               Go to Login
             </Link>
@@ -91,7 +91,7 @@ const ResetPasswordContent = () => {
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-100">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-[var(--text-primary)]">
           Reset Password
         </h2>
         <p className="mt-2 text-center text-sm text-[var(--text-secondary)]">
@@ -119,7 +119,7 @@ const ResetPasswordContent = () => {
                 required
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 placeholder-slate-500 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
                 placeholder="Min 6 characters"
               />
             </div>
@@ -135,7 +135,7 @@ const ResetPasswordContent = () => {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 placeholder-slate-500 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
                 placeholder="Confirm your password"
               />
             </div>
@@ -143,7 +143,7 @@ const ResetPasswordContent = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 disabled:opacity-50"
+              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-[var(--text-primary)] bg-emerald-400 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 disabled:opacity-50"
             >
               {isSubmitting ? 'Resetting...' : 'Reset Password'}
             </button>

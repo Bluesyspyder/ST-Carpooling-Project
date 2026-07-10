@@ -57,7 +57,7 @@ const QuickLocationChips = ({
           <button
             key={addr._id}
             onClick={() => onSelect({ address: addr.address, latitude: addr.latitude, longitude: addr.longitude })}
-            className="flex items-center gap-1.5 bg-slate-700/60 border border-[var(--border-hover)]/40 hover:border-slate-500 text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-xs transition-all whitespace-nowrap"
+            className="flex items-center gap-1.5 bg-[var(--bg-surface-hover)] border border-[var(--border-hover)]/40 hover:border-[var(--border-hover)] text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-xs transition-all whitespace-nowrap"
           >
             <span>{addr.icon || '⭐'}</span>
             <span>{addr.label}</span>
@@ -66,7 +66,7 @@ const QuickLocationChips = ({
 
         {/* Separator */}
         {savedAddresses.length > 0 && top5Recent.length > 0 && (
-          <div className="w-px bg-slate-600/50 mx-1 self-stretch" />
+          <div className="w-px bg-[var(--bg-surface-hover)]/50 mx-1 self-stretch" />
         )}
 
         {/* Recent */}
@@ -76,7 +76,7 @@ const QuickLocationChips = ({
             <button
               key={i}
               onClick={() => onSelect({ address: addr.address, latitude: addr.latitude, longitude: addr.longitude })}
-              className="flex flex-col items-start bg-slate-700/40 border border-[var(--border-hover)]/30 hover:border-slate-500 text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-[10px] transition-all whitespace-nowrap"
+              className="flex flex-col items-start bg-[var(--bg-surface-hover)]/40 border border-[var(--border-hover)]/30 hover:border-[var(--border-hover)] text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-[10px] transition-all whitespace-nowrap"
             >
               <span className="font-medium text-xs text-[var(--text-primary)] truncate max-w-28">{label}</span>
               <span className="text-[var(--text-muted)]">{timeAgo(addr.lastUsedAt)}</span>
@@ -91,7 +91,7 @@ const QuickLocationChips = ({
             <button
               key={`freq-${i}`}
               onClick={() => onSelect({ address: addr.address, latitude: addr.latitude, longitude: addr.longitude })}
-              className="flex flex-col items-start bg-slate-700/40 border border-yellow-500/20 hover:border-yellow-500/50 text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-[10px] transition-all whitespace-nowrap"
+              className="flex flex-col items-start bg-[var(--bg-surface-hover)]/40 border border-yellow-500/20 hover:border-yellow-500/50 text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-[10px] transition-all whitespace-nowrap"
             >
               <span className="font-medium text-xs text-[var(--text-primary)] truncate max-w-28">{label}</span>
               <span className="text-yellow-500/70">Used {addr.useCount}×</span>

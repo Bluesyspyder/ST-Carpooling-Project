@@ -11,6 +11,7 @@ export const updateProfileSchema = z.object({
     phone:            z.string().min(5, 'Phone number must be valid').optional(),
     address:          z.string().min(2, 'Address must be at least 2 characters').optional(),
     bio:              z.string().max(300, 'Bio cannot exceed 300 characters').optional(),
+    gender:           z.enum(['M', 'F']).optional(),
     emergencyContact: z.string().optional(),
     profileImage:     z.string().url('Invalid profile image URL').optional().or(z.literal('')),
     homeLocation: z.object({

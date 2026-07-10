@@ -3,9 +3,11 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 import { useAuth } from '@/hooks/useAuth';
+import { avatarClasses } from '@/lib/genderTheme';
 import api from '@/services/api';
 import { getDrivingRoute, getMultiPointRoute } from '@/services/locationService';
 import RatingModal from '@/components/RatingModal';
+import TicketCard from '@/components/mobile/TicketCard';
 
 const ST_OFFICE_COORDS = { lat: 28.481200, lng: 77.481500 };
 
@@ -201,7 +203,8 @@ const Bookings = () => {
 
   return (
     <>
-    <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
+    {/* ═══════════ DESKTOP / BROWSER LAYOUT (unchanged) ═══════════ */}
+    <div className="hidden lg:block min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-5xl mx-auto space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-[var(--border-subtle)] pb-4">
           <div>
@@ -347,7 +350,7 @@ const Bookings = () => {
                     </div>
                   ) : (
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-sm flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)] uppercase">
+                      <div className={`w-8 h-8 rounded-sm border flex items-center justify-center text-[10px] font-bold uppercase ${avatarClasses(booking.passenger?.gender)}`}>
                         {booking.passenger?.firstName?.[0]}{booking.passenger?.lastName?.[0]}
                       </div>
                       <div>
@@ -507,6 +510,139 @@ const Bookings = () => {
           </div>
         )}
       </div>
+    </div>
+
+    {/* ═══════════ MOBILE LAYOUT ═══════════ */}
+    <div className="lg:hidden min-h-[calc(100vh-73px)] relative py-5 px-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-[var(--text-primary)]">Your Bookings</h2>
+        {user?.role === 'hybrid' && (
+          <div className="flex bg-[var(--bg-surface)] p-1 rounded-full border border-[var(--border-subtle)]">
+            <button
+              onClick={() => { setRoleMode('passenger'); setPage(1); }}
+              className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-full transition-all min-h-[32px] ${roleMode === 'passenger' ? 'bg-[var(--primary-base)] text-white' : 'text-[var(--text-muted)]'}`}
+            >
+              Co-Rider
+            </button>
+            <button
+              onClick={() => { setRoleMode('driver'); setPage(1); }}
+              className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest rounded-full transition-all min-h-[32px] ${roleMode === 'driver' ? 'bg-[var(--primary-base)] text-white' : 'text-[var(--text-muted)]'}`}
+            >
+              Rider
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Chip tabs */}
+      <div className="flex gap-2 overflow-x-auto -mx-4 px-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+        {(roleMode === 'passenger'
+          ? ['upcoming', 'pending', 'completed', 'cancelled'].map(t => ({ id: t, label: t }))
+          : [
+              { id: 'requests', label: 'Requests' },
+              { id: 'accepted', label: 'Accepted' },
+              { id: 'rejected', label: 'Rejected' },
+              { id: 'history', label: 'History' },
+            ]
+        ).map((tab) => {
+          const active = roleMode === 'passenger' ? passengerTab === tab.id : driverTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => roleMode === 'passenger'
+                ? (setPassengerTab(tab.id), setPage(1))
+                : (setDriverTab(tab.id), setPage(1))}
+              className={`flex-shrink-0 min-h-[36px] px-4 rounded-full text-xs font-bold uppercase tracking-wide border capitalize ${active ? 'bg-[var(--primary-base)] text-white border-[var(--primary-base)]' : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)]'}`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16 text-[var(--text-secondary)] text-sm">Loading bookings...</div>
+      ) : error ? (
+        <div className="bg-red-950/40 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm">{error}</div>
+      ) : bookings.length === 0 ? (
+        <div className="glass-panel py-16 text-center text-[var(--text-secondary)]">
+          <span className="text-3xl mb-3 block opacity-50">🗄️</span>
+          <span className="font-bold tracking-widest text-sm uppercase">No bookings found</span>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {bookings.map((booking) => (
+            <TicketCard
+              key={booking._id}
+              statusBadge={
+                <span className={`flex-shrink-0 px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-widest border ${
+                  booking.bookingStatus === 'confirmed' ? 'bg-emerald-950 text-emerald-400 border-emerald-500/20' :
+                  booking.bookingStatus === 'pending' ? 'bg-amber-950 text-amber-400 border-amber-500/20' :
+                  booking.bookingStatus === 'waitlisted' ? 'bg-violet-950 text-violet-400 border-violet-500/20' :
+                  'bg-red-950 text-red-400 border-red-500/20'
+                }`}>
+                  {booking.bookingStatus}
+                </span>
+              }
+              header={
+                <>
+                  <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">TKT-{booking._id.slice(-6).toUpperCase()}</p>
+                  <h3 className="text-base font-bold text-[var(--text-primary)] truncate">
+                    {booking.ride?.source} → {booking.ride?.destination}
+                  </h3>
+                </>
+              }
+              body={
+                <div className="space-y-2 text-xs">
+                  <p className="text-[var(--primary-base)] font-bold uppercase tracking-widest">
+                    DEP: {booking.ride?.journeyDate ? `${new Date(booking.ride.journeyDate).toLocaleDateString('en-US', { dateStyle: 'short' })} ${booking.ride.journeyTime}` : 'TBD'}
+                  </p>
+                  {roleMode === 'passenger' ? (
+                    <p className="text-[var(--text-secondary)]">Rider: {booking.ride?.driver?.firstName} {booking.ride?.driver?.lastName}</p>
+                  ) : (
+                    <p className="text-[var(--text-secondary)]">Co-Rider: {booking.passenger?.firstName} {booking.passenger?.lastName}</p>
+                  )}
+                  <div className="flex items-center gap-2 pt-1">
+                    {roleMode === 'passenger' && (booking.bookingStatus === 'pending' || booking.bookingStatus === 'confirmed') && (
+                      <button onClick={() => handleCancelBooking(booking._id)} className="btn-secondary min-h-[36px] px-3 text-[10px] text-red-500">
+                        Cancel
+                      </button>
+                    )}
+                    {roleMode === 'driver' && (booking.bookingStatus === 'pending' || booking.bookingStatus === 'waitlisted') && (
+                      <>
+                        <button onClick={() => handleStatusUpdate(booking._id, 'confirmed')} className="btn-primary min-h-[36px] px-3 text-[10px]">Accept</button>
+                        <button onClick={() => handleStatusUpdate(booking._id, 'rejected')} className="btn-secondary min-h-[36px] px-3 text-[10px] text-red-500">Reject</button>
+                      </>
+                    )}
+                    {roleMode === 'passenger' && booking.bookingStatus === 'confirmed' && !booking.rated && new Date(booking.ride?.departureTime) < new Date() && (
+                      <button
+                        onClick={() => setRatingModal({ bookingId: booking._id, driverName: `${booking.ride?.driver?.firstName || ''} ${booking.ride?.driver?.lastName || ''}`.trim() || 'Rider' })}
+                        className="btn-primary min-h-[36px] px-3 text-[10px] bg-amber-400 text-black"
+                      >
+                        ⭐ Rate
+                      </button>
+                    )}
+                  </div>
+                </div>
+              }
+              footer={
+                <>
+                  <span>{booking.seatsBooked} PAX</span>
+                  <span>₹{booking.bookingAmount}</span>
+                </>
+              }
+            />
+          ))}
+
+          {totalPages > 1 && (
+            <div className="flex justify-between items-center pt-2">
+              <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn-secondary min-h-[44px] px-4 text-xs disabled:opacity-40">Previous</button>
+              <span className="text-xs text-[var(--text-muted)] font-bold">Page {page}/{totalPages}</span>
+              <button disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} className="btn-secondary min-h-[44px] px-4 text-xs disabled:opacity-40">Next</button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
 
     {/* Rating Modal */}

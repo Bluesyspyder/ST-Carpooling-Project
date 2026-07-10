@@ -41,7 +41,7 @@ const VerifyEmailContent = () => {
         {status === 'verifying' && (
           <>
             <div className="w-16 h-16 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <h2 className="text-2xl font-bold text-slate-100">Verifying Email</h2>
+            <h2 className="text-2xl font-bold text-[var(--text-primary)]">Verifying Email</h2>
             <p className="text-[var(--text-secondary)] text-sm">Please wait while we verify your account...</p>
           </>
         )}
@@ -54,7 +54,7 @@ const VerifyEmailContent = () => {
             <h2 className="text-2xl font-bold text-emerald-400">Email Verified!</h2>
             <p className="text-[var(--text-primary)] text-sm leading-relaxed">{message}</p>
             <div className="pt-4">
-              <Link href="/login" className="block w-full py-3 px-4 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-slate-900 transition-colors shadow-lg shadow-emerald-500/20">
+              <Link href="/login" className="block w-full py-3 px-4 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-[var(--text-primary)] transition-colors shadow-lg shadow-emerald-500/20">
                 Continue to Login
               </Link>
             </div>
@@ -69,7 +69,7 @@ const VerifyEmailContent = () => {
             <h2 className="text-2xl font-bold text-red-400">Verification Failed</h2>
             <p className="text-[var(--text-primary)] text-sm leading-relaxed">{message}</p>
             <div className="pt-4">
-              <Link href="/login" className="block w-full py-3 px-4 rounded-xl font-bold bg-[var(--bg-surface-hover)] hover:bg-slate-700 text-[var(--text-primary)] transition-colors">
+              <Link href="/login" className="block w-full py-3 px-4 rounded-xl font-bold bg-[var(--bg-surface-hover)] hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)] transition-colors">
                 Back to Login
               </Link>
             </div>

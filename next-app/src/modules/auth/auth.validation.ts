@@ -16,6 +16,7 @@ export const registerSchema = z.object({
     phone: z.string().min(5, 'Please enter a valid phone number'),
     address: z.string().min(3, 'Address must be at least 3 characters'),
     role: z.enum(['passenger', 'hybrid']).default('passenger'),
+    gender: z.enum(['M', 'F'], { required_error: 'Gender is required' }),
     
     // Car Owner vehicle details (optional in base object, checked via refine)
     vehicleName: z.string().optional(),

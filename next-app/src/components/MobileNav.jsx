@@ -38,7 +38,10 @@ const MobileNav = () => {
   );
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-[var(--bg-base)]/90 backdrop-blur-xl border-t border-[var(--border-subtle)] z-[9999] flex items-center justify-around px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
+    <nav
+      className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-[var(--bg-base)]/90 backdrop-blur-xl border-t border-[var(--border-subtle)] z-[9999] flex items-center justify-around px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.2)]"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
+    >
       <NavItem href="/" icon={Home} label="Home" isActive={pathname === '/'} />
       <NavItem href="/search" icon={Search} label="Search" isActive={pathname === '/search'} />
       {isRider && (

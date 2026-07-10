@@ -164,7 +164,7 @@ const SavedLocationsManager = () => {
               <div className="flex gap-2 flex-wrap">
                 {ICONS.map((ic) => (
                   <button key={ic} onClick={() => setForm((f) => ({ ...f, icon: ic }))}
-                    className={`text-2xl p-1.5 rounded-lg transition-all ${form.icon === ic ? 'bg-violet-600/40 ring-1 ring-violet-500' : 'hover:bg-slate-700/50'}`}>
+                    className={`text-2xl p-1.5 rounded-lg transition-all ${form.icon === ic ? 'bg-violet-600/40 ring-1 ring-violet-500' : 'hover:bg-[var(--bg-surface-hover)]/50'}`}>
                     {ic}
                   </button>
                 ))}

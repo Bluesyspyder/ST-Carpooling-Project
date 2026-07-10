@@ -66,10 +66,15 @@ const rideSchema = new mongoose.Schema(
     routeDistance: { type: Number, default: null },
     routeDuration: { type: Number, default: null },
     notes: { type: String, default: '' },
+    femaleOnly: { type: Boolean, default: false },
     rideStatus: {
       type: String,
       enum: ['ACTIVE', 'FULL', 'CANCELLED', 'COMPLETED'],
       default: 'ACTIVE',
+    },
+    greenCreditsAwarded: {
+      type: Boolean,
+      default: false,
     },
   },
   {

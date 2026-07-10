@@ -11,7 +11,7 @@ import { createBookingSchema } from '@/modules/bookings/booking.validation';
 export const POST = apiHandler(async (req, { params, user }) => {
   const rawBody = await parseBody(req);
   const body = validate(createBookingSchema, { body: rawBody }).body;
-  const booking = await bookingService.createBooking({ ...body, passenger: user.id });
+  const booking = await bookingService.createBooking({ ...body, passenger: user.id, passengerGender: user.gender });
   const ride = await Ride.findById(booking.ride).select('driver source destination').lean();
   if (ride?.driver) { emitToUser(ride.driver.toString(), 'booking:new', { bookingId: booking._id, rideId: booking.ride, route: `${ride.source} → ${ride.destination}`, passengerName: `${user.firstName || ''} ${user.lastName || ''}`.trim(), seatsBooked: booking.seatsBooked, message: 'You have a new booking request!' }); }
   return NextResponse.json({ status: 'success', data: { booking } }, { status: 201 });

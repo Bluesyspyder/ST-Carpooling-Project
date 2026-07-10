@@ -80,16 +80,16 @@ export default function SeatMap({
       {/* Car body */}
       <div className="relative mx-auto max-w-[260px] pt-4 pb-6 px-6">
         {/* Left mirror */}
-        <div className="absolute top-16 -left-1 w-3 h-8 bg-slate-700 rounded-l-xl border border-[var(--border-hover)] shadow-md transform -skew-y-12" />
+        <div className="absolute top-16 -left-1 w-3 h-8 bg-[var(--bg-surface-hover)] rounded-l-xl border border-[var(--border-hover)] shadow-md transform -skew-y-12" />
         {/* Right mirror */}
-        <div className="absolute top-16 -right-1 w-3 h-8 bg-slate-700 rounded-r-xl border border-[var(--border-hover)] shadow-md transform skew-y-12" />
+        <div className="absolute top-16 -right-1 w-3 h-8 bg-[var(--bg-surface-hover)] rounded-r-xl border border-[var(--border-hover)] shadow-md transform skew-y-12" />
         
         {/* Car chassis */}
         <div className="relative rounded-t-[4rem] rounded-b-[2.5rem] border-[3px] border-[var(--border-default)] bg-[var(--bg-surface-hover)]/80 shadow-2xl p-5 pt-8 pb-10 overflow-hidden backdrop-blur-sm">
           
           {/* Windshield */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[70%] h-10 bg-[var(--bg-surface)]/60 rounded-t-[3rem] border-b-2 border-[var(--border-default)]/50 flex justify-center items-end pb-1 shadow-inner">
-            <div className="w-16 h-1 rounded-full bg-slate-600/30" />
+            <div className="w-16 h-1 rounded-full bg-[var(--bg-surface-hover)]/30" />
           </div>
 
           {/* Rear window */}

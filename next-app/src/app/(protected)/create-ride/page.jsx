@@ -12,6 +12,8 @@ import useCurrentLocation from '@/hooks/useCurrentLocation';
 import { fetchSavedAddresses } from '@/services/locationService';
 import { useProfileGuard } from '@/hooks/useProfileGuard';
 import { useAuth } from '@/hooks/useAuth';
+import PillInput from '@/components/mobile/PillInput';
+import StickyActionBar from '@/components/mobile/StickyActionBar';
 
 const emptyLoc = () => ({ address: '', latitude: null, longitude: null, verified: false });
 
@@ -30,6 +32,7 @@ const CreateRide = () => {
     flexibilityMinutes: 0,
     availableSeats: 3,
     notes: '',
+    femaleOnly: false,
   });
 
   const [vehicles, setVehicles] = useState([]);
@@ -167,6 +170,7 @@ const CreateRide = () => {
           longitude: Number(s.longitude),
           verified: true,
         })),
+        femaleOnly: user?.gender === 'F' ? !!formData.femaleOnly : undefined,
         // Add specific blocked seats logic later on backend if needed
       };
 
@@ -206,9 +210,11 @@ const CreateRide = () => {
   const selectedVehicle = vehicles.find(v => v._id === formData.driverVehicle);
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-[var(--bg-default)] py-8 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)]">
+    <>
+    {/* ═══════════ DESKTOP / BROWSER LAYOUT (unchanged) ═══════════ */}
+    <div className="hidden lg:block min-h-[calc(100vh-73px)] bg-[var(--bg-default)] py-8 px-4 sm:px-6 lg:px-8 text-[var(--text-primary)]">
       <div className="max-w-[1600px] mx-auto h-full flex flex-col xl:flex-row gap-6 items-stretch">
-        
+
         {/* ── LEFT COLUMN: Form ── */}
         <div className="xl:w-[45%] flex flex-col gap-6">
           <div className="glass-panel p-6 sm:p-8 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-xl overflow-y-auto max-h-[85vh] custom-scrollbar">
@@ -290,7 +296,7 @@ const CreateRide = () => {
                         onChange={(loc) => updateViaStop(index, loc)}
                         placeholder="Add a stop along the way..."
                       />
-                      <div className="absolute left-[-29px] top-[40px] w-1.5 h-1.5 rounded-full bg-slate-500"></div>
+                      <div className="absolute left-[-29px] top-[40px] w-1.5 h-1.5 rounded-full bg-[var(--bg-base)]0"></div>
                     </div>
                   ))}
                   
@@ -381,6 +387,25 @@ const CreateRide = () => {
                 </div>
               )}
 
+              {/* Female Passengers Only — visible only to female drivers */}
+              {user?.gender === 'F' && (
+                <div className="flex items-center justify-between bg-pink-500/10 border border-pink-500/20 p-4 rounded-xl">
+                  <div>
+                    <p className="text-sm font-semibold text-pink-400">🚺 Female Passengers Only</p>
+                    <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Only female colleagues will be able to book this ride.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={formData.femaleOnly}
+                    onClick={() => setFormData((p) => ({ ...p, femaleOnly: !p.femaleOnly }))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${formData.femaleOnly ? 'bg-pink-500' : 'bg-[var(--border-default)]'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.femaleOnly ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+              )}
+
               {/* Notes */}
               <div>
                 <label htmlFor="notes" className={labelClass}>Notes</label>
@@ -395,7 +420,7 @@ const CreateRide = () => {
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting || !pickupLoc.latitude || !destLoc.latitude || vehicles.length === 0}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+                className="w-full bg-emerald-500 hover:bg-emerald-400 text-[var(--text-primary)] font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
               >
                 {isSubmitting ? <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" /> : null}
                 {isSubmitting ? 'POSTING RIDE...' : 'PUBLISH RIDE'}
@@ -416,6 +441,211 @@ const CreateRide = () => {
 
       </div>
     </div>
+
+    {/* ═══════════ MOBILE LAYOUT ═══════════ */}
+    <div className="lg:hidden min-h-[calc(100vh-73px)] bg-[var(--bg-default)] text-[var(--text-primary)] pb-28">
+      <div className="px-4 py-5 space-y-5">
+        <div>
+          <p className="text-emerald-400 font-bold uppercase tracking-widest text-[10px] mb-1">Create Module</p>
+          <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Offer a Ride</h1>
+          <p className="text-xs text-[var(--text-secondary)]">Share your commute with fellow ST colleagues</p>
+        </div>
+
+        {error && (
+          <div className="bg-red-950/40 border border-red-500/20 text-red-400 p-3 rounded-lg text-xs flex items-start gap-2">
+            <span>⚠</span> {error}
+          </div>
+        )}
+
+        {/* Profile & Vehicle */}
+        <div className="glass-panel p-4 rounded-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg border border-emerald-500/30 flex-shrink-0">
+              {user?.firstName?.[0] || 'D'}
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] truncate">{user?.firstName} {user?.lastName}</h3>
+              <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wide">Driver</p>
+            </div>
+          </div>
+          {vehicles.length === 0 ? (
+            <div className="text-xs text-amber-400">No vehicles found. Add one in Profile.</div>
+          ) : (
+            <select
+              name="driverVehicle"
+              value={formData.driverVehicle} onChange={handleChange}
+              className={`${inputClass} min-h-[44px]`}
+            >
+              {vehicles.map((v) => (
+                <option key={v._id} value={v._id}>
+                  {v.vehicleName} · {v.vehiclePlateNumber} ({v.seatCount} seats)
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {/* Route Map preview */}
+        <div className="glass-panel rounded-xl h-[220px] overflow-hidden">
+          <RouteMap waypoints={waypoints} height="100%" />
+        </div>
+
+        {/* Locations */}
+        <div className="space-y-3">
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className={labelClass}>Pickup Location</label>
+              <button type="button" onClick={handleGPS} className="text-[10px] text-emerald-400 font-semibold">
+                📍 Use GPS
+              </button>
+            </div>
+            <AddressAutocomplete
+              value={pickupLoc.address}
+              onChange={(loc) => setPickupLoc({ ...loc, verified: true })}
+              placeholder="Start typing your pickup address…"
+              savedAddresses={savedAddresses}
+            />
+          </div>
+
+          {viaStops.map((stop, index) => (
+            <div key={index}>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className={labelClass}>Via Stop {index + 1}</label>
+                <button type="button" onClick={() => removeViaStop(index)} className="text-[10px] text-red-400">
+                  Remove
+                </button>
+              </div>
+              <AddressAutocomplete
+                value={stop.address}
+                onChange={(loc) => updateViaStop(index, loc)}
+                placeholder="Add a stop along the way..."
+              />
+            </div>
+          ))}
+
+          {viaStops.length < 3 && (
+            <button type="button" onClick={addViaStop} className="min-h-[44px] text-xs text-blue-400 font-medium flex items-center gap-1">
+              <span>+</span> Add Via Stop
+            </button>
+          )}
+
+          <div>
+            <label className={labelClass}>Destination</label>
+            <AddressAutocomplete
+              value={destLoc.address}
+              onChange={(loc) => setDestLoc({ ...loc, verified: true })}
+              placeholder="Where are you heading?"
+              savedAddresses={savedAddresses}
+            />
+          </div>
+        </div>
+
+        {/* Schedule */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelClass}>Date</label>
+            <input
+              name="journeyDate" type="date" required
+              value={formData.journeyDate} onChange={handleChange}
+              min={new Date().toISOString().split('T')[0]}
+              className={`${inputClass} min-h-[44px]`}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Time</label>
+            <input
+              name="journeyTime" type="time" required
+              value={formData.journeyTime} onChange={handleChange}
+              className={`${inputClass} min-h-[44px]`}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelClass}>Flexibility</label>
+            <select
+              name="flexibilityMinutes"
+              value={formData.flexibilityMinutes} onChange={handleChange}
+              className={`${inputClass} min-h-[44px]`}
+            >
+              <option value={0}>On Time</option>
+              <option value={10}>+ 10 mins</option>
+              <option value={20}>+ 20 mins</option>
+              <option value={30}>+ 30 mins</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelClass}>Available Seats</label>
+            <input
+              name="availableSeats" type="number" min="1" max={selectedVehicle?.seatCount || 8} required
+              value={formData.availableSeats} onChange={handleChange}
+              className={`${inputClass} min-h-[44px]`}
+            />
+          </div>
+        </div>
+
+        {selectedVehicle && (
+          <div className="bg-[var(--bg-surface-hover)] p-4 rounded-xl border border-[var(--border-default)]/50">
+            <label className={labelClass}>Block Specific Seats (Optional)</label>
+            <p className="text-[10px] text-[var(--text-secondary)] mb-3">Select seats you want to reserve for yourself or keep empty.</p>
+            <div className="flex justify-center overflow-x-auto">
+              <SeatMap
+                layout={generateSeatLayout(selectedVehicle.seatCount)}
+                selectedSeatIds={selectedSeats}
+                onToggleSeat={(seatId) => {
+                  setSelectedSeats(prev =>
+                    prev.includes(seatId)
+                      ? prev.filter(s => s !== seatId)
+                      : [...prev, seatId]
+                  );
+                }}
+                mode="offer"
+              />
+            </div>
+          </div>
+        )}
+
+        {user?.gender === 'F' && (
+          <div className="flex items-center justify-between bg-pink-500/10 border border-pink-500/20 p-4 rounded-xl">
+            <div className="min-w-0 pr-3">
+              <p className="text-sm font-semibold text-pink-400">🚺 Female Passengers Only</p>
+              <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Only female colleagues will be able to book this ride.</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={formData.femaleOnly}
+              onClick={() => setFormData((p) => ({ ...p, femaleOnly: !p.femaleOnly }))}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${formData.femaleOnly ? 'bg-pink-500' : 'bg-[var(--border-default)]'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.femaleOnly ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
+        )}
+
+        <div>
+          <label className={labelClass}>Notes</label>
+          <textarea
+            name="notes" rows="2"
+            value={formData.notes} onChange={handleChange}
+            className={inputClass} placeholder="e.g. 'Meet at gate 2'"
+          />
+        </div>
+      </div>
+
+      <StickyActionBar>
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting || !pickupLoc.latitude || !destLoc.latitude || vehicles.length === 0}
+          className="w-full bg-emerald-500 hover:bg-emerald-400 text-[var(--text-primary)] font-bold py-3.5 min-h-[48px] rounded-xl transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+        >
+          {isSubmitting ? <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" /> : null}
+          {isSubmitting ? 'POSTING RIDE...' : 'PUBLISH RIDE'}
+        </button>
+      </StickyActionBar>
+    </div>
+    </>
   );
 };
 

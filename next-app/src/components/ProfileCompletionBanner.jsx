@@ -130,7 +130,7 @@ const ProfileCompletionBanner = ({ compact = false }) => {
               item.done ? 'bg-emerald-500' : 'border border-[var(--border-hover)]'
             }`}>
               {item.done && (
-                <svg className="w-2.5 h-2.5 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-2.5 h-2.5 text-[var(--text-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
               )}

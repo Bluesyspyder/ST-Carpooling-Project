@@ -16,8 +16,10 @@ import {
   fetchSavedAddresses,
 } from '@/services/locationService';
 import { lookupVehicleByPlate } from '@/services/vehicleService';
+import { avatarClasses } from '@/lib/genderTheme';
 import { Capacitor } from '@capacitor/core';
 import { takePhoto, dataUrlToFile } from '@/services/nativeCamera';
+import SettingsRow from '@/components/mobile/SettingsRow';
 
 /* ──────────────────────────── helpers ──────────────────────────── */
 
@@ -98,6 +100,10 @@ const Profile = () => {
   const [homeLocSaving, setHomeLocSaving] = useState(false);
   const [homeLocGPSLoading, setHomeLocGPSLoading] = useState(false);
   const [homeLocError, setHomeLocError] = useState('');
+
+  /* ── mobile: expandable section state ── */
+  const [mobileExpanded, setMobileExpanded] = useState('personal');
+  const toggleMobileSection = (key) => setMobileExpanded((prev) => (prev === key ? null : key));
 
   /* ── initial data load ── */
   useEffect(() => {
@@ -277,6 +283,7 @@ const Profile = () => {
       address:          user.address          || '',
       bio:              user.bio              || '',
       emergencyContact: user.emergencyContact || '',
+      gender:           user.gender            || '',
     });
     setSaveError('');
     setSaveSuccess(false);
@@ -289,7 +296,9 @@ const Profile = () => {
     setSaveError('');
     setSaveSuccess(false);
     try {
-      const response = await api.patch('/users/profile', editForm);
+      const payload = { ...editForm };
+      if (!payload.gender) delete payload.gender;
+      const response = await api.patch('/users/profile', payload);
       setUser(response.data.data.user);
       setSaveSuccess(true);
       setEditMode(false);
@@ -359,16 +368,25 @@ const Profile = () => {
 
   /* ──────────────────────────────── RENDER ──────────────────────────────── */
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
+    <>
+    {/* ═══════════ DESKTOP / BROWSER LAYOUT (unchanged) ═══════════ */}
+    <div className="hidden lg:block min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-[1400px] mx-auto">
         <h2 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight mb-8">User Profile</h2>
 
         <div className="glass-panel p-6 sm:p-10 space-y-8 shadow-sm shadow-[var(--border-glow)]">
 
+          {/* ── Missing Gender Prompt ── */}
+          {!user.gender && (
+            <div className="bg-amber-500/10 border border-amber-500/40 text-amber-400 text-xs font-bold rounded-sm px-4 py-3 flex items-center gap-2">
+              ⚠️ Please set your gender below to continue booking or publishing rides.
+            </div>
+          )}
+
           {/* ── Profile Photo ── */}
           <div className="flex flex-col items-center pb-6 border-b border-[var(--border-subtle)]">
             <div className="relative group">
-              <div className="w-32 h-32 bg-emerald-500/10 border-4 border-emerald-500/30 rounded-full flex items-center justify-center text-5xl font-bold text-emerald-400 overflow-hidden">
+              <div className={`w-32 h-32 border-4 rounded-full flex items-center justify-center text-5xl font-bold overflow-hidden ${avatarClasses(user.gender)}`}>
                 {user.profileImage
                   ? <img src={user.profileImage} alt="Profile" className="w-full h-full object-cover" />
                   : <>{user.firstName?.[0]}{user.lastName?.[0]}</>}
@@ -449,6 +467,18 @@ const Profile = () => {
                 <EditField label="Address"    value={editForm.address}   onChange={(v) => setEditForm(f => ({ ...f, address: v }))} />
                 <EditField label="Emergency Contact" value={editForm.emergencyContact} onChange={(v) => setEditForm(f => ({ ...f, emergencyContact: v }))} type="tel" />
                 <EditField label="Email (read-only)" value={user.email} readOnly />
+                <div className="space-y-1">
+                  <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest">Gender</label>
+                  <select
+                    value={editForm.gender || ''}
+                    onChange={(e) => setEditForm(f => ({ ...f, gender: e.target.value }))}
+                    className="form-input w-full px-3 py-2.5 text-sm"
+                  >
+                    <option value="" disabled>Select gender</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                  </select>
+                </div>
                 <div className="sm:col-span-2 xl:col-span-3 space-y-1">
                   <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest">Bio <span className="opacity-70 normal-case">(max 300 chars)</span></label>
                   <textarea
@@ -459,7 +489,7 @@ const Profile = () => {
                     className="form-input w-full px-3 py-2.5 text-sm resize-none"
                     placeholder="Tell others about yourself…"
                   />
-                  <p className="text-right text-[10px] text-slate-600">{(editForm.bio || '').length}/300</p>
+                  <p className="text-right text-[10px] text-[var(--text-muted)]">{(editForm.bio || '').length}/300</p>
                 </div>
               </div>
             ) : (
@@ -468,6 +498,7 @@ const Profile = () => {
                   { label: 'Email',    value: user.email },
                   { label: 'Phone',    value: user.phone || 'Not provided' },
                   { label: 'Address',  value: user.address || 'Not provided' },
+                  { label: 'Gender',   value: user.gender === 'F' ? 'Female' : user.gender === 'M' ? 'Male' : 'Not set' },
                   { label: 'Member Since', value: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' },
                 ].map(({ label, value }) => (
                   <div key={label} className="space-y-1">
@@ -855,6 +886,384 @@ const Profile = () => {
         </div>
       </div>
     </div>
+
+    {/* ═══════════ MOBILE LAYOUT ═══════════ */}
+    <div className="lg:hidden min-h-[calc(100vh-73px)] relative py-5 px-4 space-y-5">
+      {/* Photo + name header */}
+      <div className="flex flex-col items-center pb-5 border-b border-[var(--border-subtle)]">
+        <div className="relative group">
+          <div className={`w-24 h-24 border-4 rounded-full flex items-center justify-center text-3xl font-bold overflow-hidden ${avatarClasses(user.gender)}`}>
+            {user.profileImage
+              ? <img src={user.profileImage} alt="Profile" className="w-full h-full object-cover" />
+              : <>{user.firstName?.[0]}{user.lastName?.[0]}</>}
+          </div>
+          <button
+            onClick={onProfilePhotoClick}
+            disabled={isUploadingProfile}
+            className="absolute bottom-0 right-0 p-2 bg-emerald-500/90 rounded-full transition disabled:opacity-50 min-h-[36px] min-w-[36px] flex items-center justify-center"
+          >
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+        </div>
+        <div className="text-center mt-3">
+          <h3 className="text-lg font-bold tracking-wide text-[var(--text-primary)]">{user.firstName} {user.lastName}</h3>
+          <p className="text-[var(--primary-base)] font-bold tracking-widest text-[10px] uppercase mt-1">
+            {user.role === 'hybrid' ? 'Car Owner' : 'Passenger'} Account
+          </p>
+          {isUploadingProfile && (
+            <p className="text-xs text-indigo-400 animate-pulse mt-1">Uploading photo…</p>
+          )}
+        </div>
+        {!user.gender && (
+          <div className="mt-3 bg-amber-500/10 border border-amber-500/40 text-amber-400 text-[10px] font-bold rounded-lg px-3 py-2 text-center">
+            ⚠️ Please set your gender below to continue booking or publishing rides.
+          </div>
+        )}
+      </div>
+
+      <div className="glass-panel rounded-2xl divide-y divide-[var(--border-subtle)] px-4">
+        {/* Personal Information */}
+        <SettingsRow
+          icon={<span>👤</span>}
+          title="Personal Information"
+          subtitle={user.email}
+          expanded={mobileExpanded === 'personal'}
+          onToggle={() => toggleMobileSection('personal')}
+        >
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              {!editMode ? (
+                <button onClick={handleStartEdit} className="btn-secondary min-h-[36px] px-4 text-[10px]">✏️ EDIT DETAILS</button>
+              ) : (
+                <div className="flex gap-2">
+                  <button onClick={() => setEditMode(false)} className="btn-secondary min-h-[36px] px-4 text-[10px]">CANCEL</button>
+                  <button onClick={handleSaveProfile} disabled={saving} className="btn-primary min-h-[36px] px-4 text-[10px] disabled:opacity-50">
+                    {saving ? 'SAVING...' : '✓ SAVE'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {saveError && (
+              <div className="bg-[var(--bg-surface)] border border-red-500 text-red-500 text-[10px] rounded-lg px-3 py-2 font-bold">{saveError}</div>
+            )}
+            {saveSuccess && (
+              <div className="bg-[var(--bg-surface)] border border-[var(--primary-base)] text-[var(--primary-base)] text-[10px] rounded-lg px-3 py-2 font-bold">
+                ✓ Profile updated successfully!
+              </div>
+            )}
+
+            {editMode ? (
+              <div className="space-y-3">
+                <EditField label="First Name" value={editForm.firstName} onChange={(v) => setEditForm(f => ({ ...f, firstName: v }))} />
+                <EditField label="Last Name" value={editForm.lastName} onChange={(v) => setEditForm(f => ({ ...f, lastName: v }))} />
+                <EditField label="Phone" value={editForm.phone} onChange={(v) => setEditForm(f => ({ ...f, phone: v }))} type="tel" />
+                <EditField label="Address" value={editForm.address} onChange={(v) => setEditForm(f => ({ ...f, address: v }))} />
+                <EditField label="Emergency Contact" value={editForm.emergencyContact} onChange={(v) => setEditForm(f => ({ ...f, emergencyContact: v }))} type="tel" />
+                <div className="space-y-1">
+                  <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest">Gender</label>
+                  <select
+                    value={editForm.gender || ''}
+                    onChange={(e) => setEditForm(f => ({ ...f, gender: e.target.value }))}
+                    className="form-input w-full px-3 py-2.5 text-sm min-h-[44px]"
+                  >
+                    <option value="" disabled>Select gender</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest">Bio</label>
+                  <textarea
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm(f => ({ ...f, bio: e.target.value }))}
+                    maxLength={300}
+                    rows={3}
+                    className="form-input w-full px-3 py-2.5 text-sm resize-none"
+                    placeholder="Tell others about yourself…"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 text-sm">
+                {[
+                  { label: 'Phone', value: user.phone || 'Not provided' },
+                  { label: 'Address', value: user.address || 'Not provided' },
+                  { label: 'Gender', value: user.gender === 'F' ? 'Female' : user.gender === 'M' ? 'Male' : 'Not set' },
+                  { label: 'Member Since', value: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <p className="text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-widest">{label}</p>
+                    <p className="text-[var(--text-primary)] text-sm font-bold text-right">{value}</p>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between">
+                  <p className="text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-widest">Rating</p>
+                  <p className="text-amber-400 font-bold text-sm">★ {user.averageRating?.toFixed(1) || '5.0'} / 5.0</p>
+                </div>
+                {user.bio && (
+                  <p className="text-[var(--text-primary)] text-sm bg-[var(--bg-surface)] p-3 rounded-lg border border-[var(--border-subtle)] italic">"{user.bio}"</p>
+                )}
+              </div>
+            )}
+          </div>
+        </SettingsRow>
+
+        {/* Home Location */}
+        {user.role === 'hybrid' && (
+          <SettingsRow
+            icon={<span>🏠</span>}
+            title="Home Location"
+            subtitle={user.homeLocation?.verified ? user.homeLocation.address : 'Not set'}
+            expanded={mobileExpanded === 'home'}
+            onToggle={() => toggleMobileSection('home')}
+          >
+            <div className="space-y-3">
+              {homeLocError && (
+                <div className="bg-[var(--bg-surface)] border border-red-500 text-red-500 text-[10px] rounded-lg px-3 py-2 font-bold">{homeLocError}</div>
+              )}
+              {!homeLocEdit ? (
+                <>
+                  {user.homeLocation?.verified ? (
+                    <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-lg p-3 flex items-start gap-2">
+                      <span className="text-xl">📍</span>
+                      <div className="min-w-0">
+                        <p className="text-[var(--text-primary)] text-sm font-bold truncate">{user.homeLocation.address || 'Verified Location'}</p>
+                        <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-bold bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--primary-base)] rounded-sm uppercase">✓ Verified</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-[var(--bg-surface)] border border-amber-500/50 rounded-lg p-3 text-[10px] font-bold text-amber-400">
+                      ⚠️ No home location set.
+                    </div>
+                  )}
+                  <button onClick={() => { setHomeLocEdit(true); setHomeLocError(''); }} className="btn-secondary min-h-[44px] w-full text-xs">
+                    {user.homeLocation?.verified ? '✏️ CHANGE' : '+ SET LOCATION'}
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <button
+                    onClick={handleUseGPS}
+                    disabled={homeLocGPSLoading}
+                    className="btn-secondary flex items-center justify-center gap-2 min-h-[44px] w-full disabled:opacity-50 text-xs"
+                  >
+                    {homeLocGPSLoading ? 'Getting your GPS…' : '📡 Use Current GPS Location'}
+                  </button>
+                  <div className="text-[var(--text-muted)] text-xs text-center">— or search an address below —</div>
+                  <AddressAutocomplete
+                    value={homeLoc.address}
+                    onChange={({ address, latitude, longitude }) => setHomeLoc({ address, latitude, longitude, verified: false })}
+                    placeholder="Search your home address…"
+                    showCurrentLocation
+                  />
+                  {homeLoc.latitude && (
+                    <MapPreview
+                      location={homeLoc}
+                      onLocationChange={(loc) => setHomeLoc((prev) => ({ ...prev, ...loc, verified: false }))}
+                      height="180px"
+                      interactive
+                      onConfirm={() => setHomeLoc((prev) => ({ ...prev, verified: true }))}
+                      onUnconfirm={() => setHomeLoc((prev) => ({ ...prev, verified: false }))}
+                      confirmed={homeLoc.verified}
+                      markerColor="#6366f1"
+                    />
+                  )}
+                  <div className="flex gap-2">
+                    <button onClick={() => { setHomeLocEdit(false); setHomeLocError(''); }} className="btn-secondary min-h-[44px] flex-1 text-xs">CANCEL</button>
+                    <button onClick={handleSaveHomeLocation} disabled={homeLocSaving || !homeLoc.latitude} className="btn-primary min-h-[44px] flex-1 text-xs disabled:opacity-50">
+                      {homeLocSaving ? 'SAVING...' : '✓ SAVE'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </SettingsRow>
+        )}
+
+        {/* Location Management */}
+        <SettingsRow
+          icon={<span>🗺️</span>}
+          title="Location Management"
+          subtitle={`${locationStats.saved} saved · ${locationStats.frequent} frequent`}
+          expanded={mobileExpanded === 'locations'}
+          onToggle={() => toggleMobileSection('locations')}
+        >
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { icon: '📌', label: 'Saved', value: locationStats.saved },
+                { icon: '🕐', label: 'Recent', value: locationStats.recent },
+                { icon: '🔥', label: 'Frequent', value: locationStats.frequent },
+                { icon: '🚗', label: 'Total Trips', value: locationStats.totalUses },
+              ].map(({ icon, label, value }) => (
+                <div key={label} className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-lg p-3 text-center">
+                  <div className="text-xl mb-1">{icon}</div>
+                  <div className="text-lg font-bold text-[var(--text-primary)]">{value}</div>
+                  <div className="text-[9px] uppercase font-bold text-[var(--text-secondary)] tracking-widest mt-0.5">{label}</div>
+                </div>
+              ))}
+            </div>
+
+            <SavedLocationsManager />
+
+            {recentAddresses.length > 0 && (
+              <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-lg p-4">
+                <h4 className="text-[var(--text-primary)] font-bold uppercase tracking-widest text-xs mb-3">Recently Used</h4>
+                <div className="space-y-2">
+                  {recentAddresses.slice(0, 6).map((addr, i) => (
+                    <div key={i} className="flex items-center justify-between bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-lg px-3 py-2">
+                      <p className="text-[var(--text-primary)] text-xs truncate flex-1 min-w-0">📍 {addr.address}</p>
+                      <span className="text-[var(--text-secondary)] text-[10px] flex-shrink-0 ml-2">{timeAgo(addr.lastUsedAt)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {frequentAddresses.length > 0 && (
+              <LocationInsights frequentAddresses={frequentAddresses} savedAddresses={savedAddresses} />
+            )}
+          </div>
+        </SettingsRow>
+
+        {/* Vehicles */}
+        <SettingsRow
+          icon={<span>🚗</span>}
+          title={user.role === 'hybrid' ? 'Vehicle Specifications' : 'Upgrade to Rider'}
+          subtitle={user.role === 'hybrid' ? `${vehicles.length} vehicle(s)` : 'Add a vehicle to start driving'}
+          expanded={mobileExpanded === 'vehicles'}
+          onToggle={() => toggleMobileSection('vehicles')}
+        >
+          <div className="space-y-4">
+            {!showAddVehicle && (
+              <button onClick={() => setShowAddVehicle(true)} className="btn-primary min-h-[44px] w-full text-xs">
+                {user.role === 'hybrid' ? '+ ADD VEHICLE' : 'UPGRADE NOW'}
+              </button>
+            )}
+
+            {showAddVehicle && (
+              <form onSubmit={handleAddVehicle} className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] p-4 rounded-lg space-y-3">
+                {addVehicleError && (
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-2 rounded-lg text-xs font-bold">{addVehicleError}</div>
+                )}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest mb-1 block">Plate Number</label>
+                    <input
+                      type="text" required
+                      value={newVehicle.vehiclePlateNumber}
+                      onChange={(e) => setNewVehicle({ ...newVehicle, vehiclePlateNumber: e.target.value })}
+                      onBlur={handlePlateLookup}
+                      className="form-input w-full px-3 py-2.5 text-sm uppercase min-h-[44px]"
+                      placeholder="e.g. DL-01-AB-1234"
+                    />
+                    {plateLookupError && <p className="text-amber-500 text-[10px] mt-1">{plateLookupError}</p>}
+                  </div>
+                  <div>
+                    <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest mb-1 block">Vehicle Name</label>
+                    <input
+                      type="text" required
+                      value={newVehicle.vehicleName}
+                      onChange={(e) => setNewVehicle({ ...newVehicle, vehicleName: e.target.value })}
+                      className="form-input w-full px-3 py-2.5 text-sm min-h-[44px]"
+                      placeholder="e.g. Honda City"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest mb-1 block">Fuel Type</label>
+                      <select
+                        value={newVehicle.vehicleType}
+                        onChange={(e) => setNewVehicle({ ...newVehicle, vehicleType: e.target.value })}
+                        className="form-input w-full px-3 py-2.5 text-sm min-h-[44px]"
+                      >
+                        <option value="petrol">Petrol</option>
+                        <option value="diesel">Diesel</option>
+                        <option value="ev">Electric (EV)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest mb-1 block">Mileage</label>
+                      <input
+                        type="number" required min="1" step="0.1"
+                        value={newVehicle.mileage}
+                        onChange={(e) => setNewVehicle({ ...newVehicle, mileage: e.target.value })}
+                        className="form-input w-full px-3 py-2.5 text-sm min-h-[44px]"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest mb-1 block">Seat Count</label>
+                    <input
+                      type="number" required min="1" max="10"
+                      value={newVehicle.seatCount}
+                      onChange={(e) => setNewVehicle({ ...newVehicle, seatCount: e.target.value })}
+                      className="form-input w-full px-3 py-2.5 text-sm min-h-[44px]"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button type="button" onClick={() => setShowAddVehicle(false)} className="btn-secondary min-h-[44px] flex-1 text-xs">CANCEL</button>
+                  <button type="submit" disabled={isAddingVehicle} className="btn-primary min-h-[44px] flex-1 text-xs">
+                    {isAddingVehicle ? 'SAVING...' : 'SAVE'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {user.role === 'hybrid' && vehicles.length > 0 && (
+              <div className="space-y-3">
+                {vehicles.map((vehicle) => (
+                  <div key={vehicle._id} className="border border-[var(--border-subtle)] p-4 rounded-lg bg-[var(--bg-surface)]">
+                    <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
+                      {[
+                        { label: 'Name', value: vehicle.vehicleName },
+                        { label: 'Plate', value: vehicle.vehiclePlateNumber },
+                        { label: 'Fuel', value: vehicle.vehicleType },
+                        { label: 'Seats', value: vehicle.seatCount },
+                      ].map(({ label, value }) => (
+                        <div key={label}>
+                          <p className="text-[var(--text-secondary)] font-bold text-[9px] uppercase tracking-widest">{label}</p>
+                          <p className="text-[var(--text-primary)] font-bold capitalize">{value || 'N/A'}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="relative">
+                      {vehicle.vehicleImage ? (
+                        <img src={vehicle.vehicleImage} alt={vehicle.vehicleName} className="w-full h-32 object-cover rounded-lg" />
+                      ) : (
+                        <div className="w-full h-32 bg-[var(--bg-surface-hover)]/50 rounded-lg border-2 border-dashed border-[var(--border-hover)] flex items-center justify-center">
+                          <p className="text-[var(--text-secondary)] text-xs">No vehicle photo</p>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => onVehiclePhotoClick(vehicle._id)}
+                        disabled={vehicleImageUpload[vehicle._id]}
+                        className="absolute bottom-2 right-2 btn-secondary min-h-[36px] px-3 text-[10px]"
+                      >
+                        {vehicleImageUpload[vehicle._id] ? 'Uploading…' : 'Change Photo'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </SettingsRow>
+      </div>
+
+      <button
+        onClick={handleLogout}
+        className="btn-secondary border-red-500 text-red-500 min-h-[48px] w-full text-xs"
+      >
+        SIGN OUT
+      </button>
+    </div>
+    </>
   );
 };
 

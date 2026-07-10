@@ -7,6 +7,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useViewMode } from '@/context/ViewModeContext';
 import api from '@/services/api';
 import ProfileCompletionBanner, { useProfileCompletion } from '@/components/ProfileCompletionBanner';
+import { avatarClasses } from '@/lib/genderTheme';
+import RideCalendar from '@/components/RideCalendar';
+import MobileHeader from '@/components/mobile/MobileHeader';
+import IconTileGrid, { IconTile } from '@/components/mobile/IconTileGrid';
+import HorizontalScroll from '@/components/mobile/HorizontalScroll';
 
 /**
  * Authenticated dashboard — protected route at `/`.
@@ -219,7 +224,7 @@ const Dashboard = () => {
         return { emoji: '❌', bg: 'bg-red-500/10 border-red-500/20' };
       case 'booking_cancelled':
       case 'ride_cancelled':
-        return { emoji: '🚫', bg: 'bg-slate-700/20 border-[var(--border-default)]/35' };
+        return { emoji: '🚫', bg: 'bg-[var(--bg-surface-hover)]/20 border-[var(--border-default)]/35' };
       case 'ride_published':
       default:
         return { emoji: '🚗', bg: 'bg-indigo-500/10 border-indigo-500/20' };
@@ -227,9 +232,11 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
+    <>
+    {/* ═══════════ DESKTOP / BROWSER LAYOUT (unchanged) ═══════════ */}
+    <div className="hidden lg:block min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8 relative">
-        
+
         {/* ── SECTION 1: Welcome Header (Ref 3 Mobile Style) ── */}
         <div className="glass-panel p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b-0 rounded-[2rem] shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-[var(--primary-base)]/10 rounded-full blur-3xl"></div>
@@ -370,7 +377,7 @@ const Dashboard = () => {
               <div className="p-6">
                 {loadingStats ? (
                   <div className="space-y-3">
-                    {[1, 2].map(i => <div key={i} className="h-16 bg-slate-850/50 rounded-xl animate-pulse" />)}
+                    {[1, 2].map(i => <div key={i} className="h-16 bg-[var(--bg-surface)] rounded-xl animate-pulse" />)}
                   </div>
                 ) : isRider ? (
                   // Rider list
@@ -465,7 +472,7 @@ const Dashboard = () => {
                 {loadingNearby ? (
                   <div className="grid sm:grid-cols-2 gap-4">
                     {[1, 2, 3, 4].map(i => (
-                      <div key={i} className="h-36 bg-slate-850/50 rounded-2xl animate-pulse" />
+                      <div key={i} className="h-36 bg-[var(--bg-surface)] rounded-2xl animate-pulse" />
                     ))}
                   </div>
                 ) : nearbyRides.length === 0 ? (
@@ -484,7 +491,7 @@ const Dashboard = () => {
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 min-w-0 pr-2">
-                            <p className="text-sm font-bold text-slate-100 truncate group-hover:text-emerald-400 transition">
+                            <p className="text-sm font-bold text-[var(--text-primary)] truncate group-hover:text-emerald-400 transition">
                               {ride.pickupLocation?.address || ride.source}
                             </p>
                             <p className="text-xs text-[var(--text-muted)] flex items-center gap-1 mt-0.5 truncate">
@@ -505,7 +512,7 @@ const Dashboard = () => {
 
                         {ride.driver && (
                           <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]/60 flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-bold text-indigo-400">
+                            <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[10px] font-bold ${avatarClasses(ride.driver.gender)}`}>
                               {ride.driver.firstName?.[0]}
                             </div>
                             <span className="text-xs text-[var(--text-secondary)]">{ride.driver.firstName} {ride.driver.lastName}</span>
@@ -535,7 +542,7 @@ const Dashboard = () => {
               {loadingStats ? (
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
                   {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="h-24 bg-slate-850/50 rounded-2xl animate-pulse" />
+                    <div key={i} className="h-24 bg-[var(--bg-surface)] rounded-2xl animate-pulse" />
                   ))}
                 </div>
               ) : (
@@ -607,63 +614,175 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* Recent Activity Timeline Feed */}
-            <div className="glass-panel p-6 relative overflow-hidden">
-              <h2 className="font-bold text-[var(--text-primary)] mb-6 uppercase tracking-widest text-sm flex items-center gap-2">
-                <span className="text-lg">⚡</span> Telemetry Log
-              </h2>
-              
-              {loadingStats ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="flex gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-850 animate-pulse" />
-                      <div className="flex-1 space-y-2 py-1">
-                        <div className="h-3 bg-slate-850 rounded animate-pulse w-3/4" />
-                        <div className="h-2 bg-slate-850 rounded animate-pulse w-1/4" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : stats.recentActivity.length === 0 ? (
-                <div className="text-center py-8 text-[var(--text-secondary)] text-sm">
-                  No recent activities recorded.
-                </div>
-              ) : (
-                <div className="relative border-l-2 border-[var(--border-subtle)] ml-5 pl-8 space-y-8 mt-4">
-                  {stats.recentActivity.map((activity, idx) => {
-                    const iconConfig = getActivityIcon(activity.type);
-                    return (
-                      <div key={idx} className="relative group">
-                        {/* Timeline node */}
-                        <div className={`absolute -left-[45px] top-0 w-8 h-8 rounded-full shadow-lg border-4 border-[var(--bg-surface)] flex items-center justify-center text-xs ${iconConfig.bg} z-10 transition-transform duration-300 group-hover:scale-110`}>
-                          {iconConfig.emoji}
-                        </div>
-                        
-                        <div className="bg-[var(--bg-surface)]/50 p-4 rounded-2xl border border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-surface)]">
-                          <p className="text-sm font-semibold text-[var(--text-primary)] transition">
-                            {activity.message}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                             <span className="text-xs text-[var(--text-secondary)] font-medium flex items-center gap-1">
-                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                               {getRelativeTime(activity.timestamp)}
-                             </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            <RideCalendar bookings={upcomingBookings} drivingRides={drivingRides} />
 
           </div>
-          
+
         </div>
 
       </div>
     </div>
+
+    {/* ═══════════ MOBILE LAYOUT ═══════════ */}
+    <div className="lg:hidden min-h-[calc(100vh-73px)] relative py-5 px-4 space-y-6">
+      <MobileHeader
+        subtitle={getGreeting()}
+        title={`Hey ${user?.firstName || ''}`}
+        avatar={
+          <div className={`w-full h-full flex items-center justify-center text-sm font-bold ${avatarClasses(user?.gender)}`}>
+            {user?.profileImage ? (
+              <img src={user.profileImage} alt={user.firstName} className="w-full h-full object-cover" />
+            ) : (
+              <span>{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
+            )}
+          </div>
+        }
+        actions={
+          <Link href="/profile" className="w-11 h-11 flex items-center justify-center rounded-full bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-lg">
+            {isRider ? '🚗' : '🧑‍💼'}
+          </Link>
+        }
+      />
+
+      {!isComplete && <ProfileCompletionBanner compact={true} />}
+
+      {/* Quick actions */}
+      <div>
+        <h2 className="text-sm font-bold text-[var(--text-primary)] mb-3 uppercase tracking-widest">Quick Actions</h2>
+        <IconTileGrid columns={isRider ? 4 : 3}>
+          {isRider ? (
+            <>
+              <IconTile href="/create-ride" label="Offer Ride" icon={<span className="text-lg">➕</span>} />
+              <IconTile href="/bookings" label="My Rides" icon={<span className="text-lg">🚗</span>} />
+              <IconTile href="/bookings" label="Bookings" icon={<span className="text-lg">📋</span>} />
+              <IconTile href="/green-impact" label="Green Impact" icon={<span className="text-lg">🌱</span>} />
+            </>
+          ) : (
+            <>
+              <IconTile href="/search" label="Find Ride" icon={<span className="text-lg">🔍</span>} />
+              <IconTile href="/bookings" label="Bookings" icon={<span className="text-lg">📋</span>} />
+              <IconTile href="/green-impact" label="Green Impact" icon={<span className="text-lg">🌱</span>} />
+            </>
+          )}
+        </IconTileGrid>
+      </div>
+
+      {/* Upcoming activity */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">Upcoming Activity</h2>
+          <Link href="/bookings" className="text-[10px] text-[var(--primary-base)] uppercase font-bold tracking-widest">View all</Link>
+        </div>
+        {loadingStats ? (
+          <div className="space-y-3">{[1, 2].map(i => <div key={i} className="h-16 bg-[var(--bg-surface)] rounded-xl animate-pulse" />)}</div>
+        ) : isRider ? (
+          drivingRides.length === 0 ? (
+            <div className="glass-panel text-center py-8 text-[var(--text-muted)]">
+              <span className="text-3xl block mb-2">🚗</span>
+              <p className="text-sm">No upcoming rides scheduled.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {drivingRides.slice(0, 3).map(ride => (
+                <Link key={ride._id} href={`/ride-details?id=${ride._id}`} className="flex items-center justify-between min-h-[44px] p-4 glass-panel">
+                  <div className="flex-1 min-w-0 pr-3">
+                    <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                      {ride.pickupLocation?.address || ride.source} → {ride.destinationLocation?.address || ride.destination}
+                    </p>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5 truncate">{fmtTime(ride)}</p>
+                  </div>
+                  <span className="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">
+                    {ride.availableSeats} left
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )
+        ) : upcomingBookings.length === 0 ? (
+          <div className="glass-panel text-center py-8 text-[var(--text-muted)]">
+            <span className="text-3xl block mb-2">📅</span>
+            <p className="text-sm">No upcoming bookings.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {upcomingBookings.slice(0, 3).map(booking => (
+              <Link key={booking._id} href={`/ride-details?id=${booking.ride?._id}`} className="flex items-center justify-between min-h-[44px] p-4 glass-panel">
+                <div className="flex-1 min-w-0 pr-3">
+                  <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                    {booking.ride?.pickupLocation?.address || booking.ride?.source} → {booking.ride?.destinationLocation?.address || booking.ride?.destination}
+                  </p>
+                  <p className="text-xs text-[var(--text-secondary)] mt-0.5 truncate">{fmtTime(booking.ride)}</p>
+                </div>
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full border flex-shrink-0 whitespace-nowrap ${booking.bookingStatus === 'confirmed' ? 'bg-emerald-950 text-emerald-400 border-emerald-500/20' : 'bg-amber-950 text-amber-400 border-amber-500/20'}`}>
+                  {booking.bookingStatus}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Nearby rides carousel (co-riders only) */}
+      {!isRider && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">
+              {user?.homeLocation?.latitude ? 'Rides Near You' : 'Available Rides'}
+            </h2>
+            <Link href="/search" className="text-[10px] text-[var(--primary-base)] uppercase font-bold tracking-widest">Filters</Link>
+          </div>
+          {loadingNearby ? (
+            <div className="flex gap-4">{[1, 2].map(i => <div key={i} className="h-36 w-64 flex-shrink-0 bg-[var(--bg-surface)] rounded-2xl animate-pulse" />)}</div>
+          ) : nearbyRides.length === 0 ? (
+            <div className="glass-panel py-10 text-center text-[var(--text-muted)]">
+              <span className="text-3xl block mb-2 opacity-50">📡</span>
+              <p className="text-xs font-bold uppercase tracking-wider">No active rides nearby.</p>
+            </div>
+          ) : (
+            <HorizontalScroll>
+              {nearbyRides.map(ride => (
+                <Link key={ride._id} href={`/ride-details?id=${ride._id}`} className="glass-panel p-4 w-64 flex-shrink-0 snap-start min-h-[44px]">
+                  <div className="flex items-start justify-between mb-2">
+                    <p className="text-sm font-bold text-[var(--text-primary)] truncate pr-2">{ride.pickupLocation?.address || ride.source}</p>
+                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full whitespace-nowrap">₹{ride.pricePerSeat}</span>
+                  </div>
+                  <p className="text-xs text-[var(--text-muted)] truncate mb-2">↓ {ride.destinationLocation?.address || ride.destination}</p>
+                  <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+                    <span>{fmtTime(ride)}</span>
+                    <span className={ride.availableSeats <= 1 ? 'text-red-400 font-semibold' : ''}>{ride.availableSeats} seats</span>
+                  </div>
+                </Link>
+              ))}
+            </HorizontalScroll>
+          )}
+        </div>
+      )}
+
+      {/* Stats */}
+      <div>
+        <h2 className="text-sm font-bold text-[var(--text-primary)] mb-3 uppercase tracking-widest">Your Statistics</h2>
+        <div className="grid grid-cols-2 gap-3">
+          {isRider ? (
+            <>
+              <StatCard title="Rides Offered" value={stats.ridesOffered} icon="🚗" colorClass="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" />
+              <StatCard title="Passengers" value={stats.passengersTransported} icon="🧑‍🤝‍🧑" colorClass="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" />
+              <StatCard title="Rating" value={Number(stats.averageRating).toFixed(1)} icon="⭐" colorClass="bg-amber-500/10 text-amber-400 border border-amber-500/20" />
+              <StatCard title="Reliability" value={`${stats.reliabilityScore}%`} icon="📈" colorClass="bg-violet-500/10 text-violet-400 border border-violet-500/20" />
+            </>
+          ) : (
+            <>
+              <StatCard title="Bookings" value={stats.totalBookings} icon="📋" colorClass="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" />
+              <StatCard title="Completed" value={stats.completedTrips} icon="🌍" colorClass="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" />
+              <StatCard title="Rating" value={Number(stats.averageRating).toFixed(1)} icon="⭐" colorClass="bg-amber-500/10 text-amber-400 border border-amber-500/20" />
+              <StatCard title="Reliability" value={`${stats.reliabilityScore}%`} icon="📈" colorClass="bg-violet-500/10 text-violet-400 border border-violet-500/20" />
+            </>
+          )}
+        </div>
+      </div>
+
+      <RideCalendar bookings={upcomingBookings} drivingRides={drivingRides} />
+    </div>
+    </>
   );
 };
 

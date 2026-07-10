@@ -46,6 +46,11 @@ const userSchema = new mongoose.Schema(
       enum: ['passenger', 'hybrid', 'admin'],
       default: 'passenger',
     },
+    gender: {
+      type: String,
+      enum: ['M', 'F'],
+      required: true,
+    },
     profileImage: {
       type: String,
       default: null,
@@ -146,6 +151,23 @@ const userSchema = new mongoose.Schema(
     cancellations2h: {
       type: Number,
       default: 0,
+    },
+    // Green Impact gamification totals
+    greenCredits: {
+      type: Number,
+      default: 0,
+    },
+    totalCO2Saved: {
+      type: Number,
+      default: 0,
+    },
+    sharedRides: {
+      type: Number,
+      default: 0,
+    },
+    greenBadge: {
+      type: String,
+      default: 'Beginner',
     },
   },
   {

@@ -41,7 +41,7 @@ const CheckEmail = () => {
           </svg>
         </div>
 
-        <h1 className="text-2xl font-extrabold text-slate-100 mb-3">Check your inbox</h1>
+        <h1 className="text-2xl font-extrabold text-[var(--text-primary)] mb-3">Check your inbox</h1>
 
         <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-6">
           We sent a verification link to{' '}
@@ -67,13 +67,13 @@ const CheckEmail = () => {
           <button
             onClick={handleResend}
             disabled={resending || !email}
-            className="w-full py-3 px-4 bg-[var(--bg-surface-hover)] hover:bg-slate-700 border border-[var(--border-default)] text-[var(--text-primary)] font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50 mb-4"
+            className="w-full py-3 px-4 bg-[var(--bg-surface-hover)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] text-[var(--text-primary)] font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50 mb-4"
           >
             {resending ? 'Resending...' : 'Resend verification email'}
           </button>
         )}
 
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-[var(--text-muted)]">
           Wrong account?{' '}
           <Link href="/login" className="text-emerald-400 hover:text-emerald-300 font-semibold">
             Sign in with a different account

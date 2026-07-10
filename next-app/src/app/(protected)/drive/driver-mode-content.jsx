@@ -30,9 +30,11 @@ export default function DriverModeContent() {
   const [error, setError] = useState('');
   const [isDriving, setIsDriving] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [routePath, setRoutePath] = useState(null);
   
   const socketRef = useRef(null);
   const watchIdRef = useRef(null);
+  const demoIntervalRef = useRef(null);
   
   // Custom marker for Driver Car
   const carIcon = typeof window !== 'undefined' ? new L.Icon({
@@ -53,6 +55,17 @@ export default function DriverModeContent() {
           return;
         }
         setRide(rideData);
+        
+        // Fetch route path for Demo Mode and Map display
+        try {
+          const routeRes = await api.post('/routes/calculate', {
+            origin: { latitude: rideData.pickupLocation.latitude, longitude: rideData.pickupLocation.longitude },
+            destination: { latitude: rideData.destinationLocation.latitude, longitude: rideData.destinationLocation.longitude }
+          });
+          setRoutePath(routeRes.data.data.routePath);
+        } catch (err) {
+          console.error('Failed to fetch route for demo/display:', err);
+        }
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load ride');
       } finally {
@@ -118,11 +131,58 @@ export default function DriverModeContent() {
     }
   };
 
+  const startDemo = () => {
+    if (!routePath || routePath.length === 0) {
+      alert("Route not available for demo yet. Please wait or try again.");
+      return;
+    }
+    
+    setIsDriving(true);
+    let currentIndex = 0;
+    
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+    const baseUrl = new URL(apiUrl, window.location.origin).origin;
+    socketRef.current = io(baseUrl);
+    
+    socketRef.current.on('connect', () => {
+      socketRef.current.emit('join_ride', id);
+    });
+
+    demoIntervalRef.current = setInterval(() => {
+      if (currentIndex >= routePath.length) {
+        clearInterval(demoIntervalRef.current);
+        return;
+      }
+      
+      const pos = routePath[currentIndex];
+      const loc = { lat: pos[0], lng: pos[1] };
+      setCurrentLocation(loc);
+      
+      if (socketRef.current) {
+         socketRef.current.emit('driver_location_update', {
+            rideId: id,
+            lat: loc.lat,
+            lng: loc.lng,
+            heading: 0,
+            speed: 40,
+            timestamp: Date.now()
+         });
+      }
+      
+      // Calculate next step
+      currentIndex += Math.max(2, Math.floor(routePath.length / 80)); // scale speed depending on distance
+    }, 150); // Fast interval for smooth and fast demo simulation
+  };
+
   const stopDriving = async () => {
     setIsDriving(false);
     if (watchIdRef.current !== null) {
       await Geolocation.clearWatch({ id: watchIdRef.current });
       watchIdRef.current = null;
+    }
+    if (demoIntervalRef.current) {
+      clearInterval(demoIntervalRef.current);
+      demoIntervalRef.current = null;
     }
     if (socketRef.current) {
       socketRef.current.emit('leave_ride', id);
@@ -149,6 +209,9 @@ export default function DriverModeContent() {
       if (watchIdRef.current !== null) {
         Geolocation.clearWatch({ id: watchIdRef.current }).catch(console.error);
       }
+      if (demoIntervalRef.current) {
+        clearInterval(demoIntervalRef.current);
+      }
       if (socketRef.current) {
         socketRef.current.disconnect();
       }
@@ -167,7 +230,7 @@ export default function DriverModeContent() {
         </div>
         <button 
           onClick={() => router.back()}
-          className="text-sm px-4 py-2 bg-[var(--bg-surface-hover)] rounded-lg hover:bg-slate-700"
+          className="text-sm px-4 py-2 bg-[var(--bg-surface-hover)] rounded-lg hover:bg-[var(--bg-surface-hover)]"
         >
           Exit
         </button>
@@ -195,18 +258,29 @@ export default function DriverModeContent() {
             <Marker position={[ride.destinationLocation.latitude, ride.destinationLocation.longitude]}>
               <Popup>End</Popup>
             </Marker>
+            {routePath && (
+              <Polyline positions={routePath} color="#3b82f6" weight={6} opacity={0.8} />
+            )}
           </MapContainer>
         )}
         
         {/* Overlay Controls */}
         <div className="absolute bottom-6 left-0 right-0 px-6 z-10 flex flex-col gap-4">
           {!isDriving ? (
-            <button 
-              onClick={startDriving}
-              className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-[var(--text-primary)] rounded-2xl font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-            >
-              Start Driving & Broadcasting
-            </button>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={startDriving}
+                className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-[var(--text-primary)] rounded-2xl font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+              >
+                Start Live GPS Broadcasting
+              </button>
+              <button 
+                onClick={startDemo}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+              >
+                Start Demo Simulator
+              </button>
+            </div>
           ) : (
             <>
               <button 
@@ -217,7 +291,7 @@ export default function DriverModeContent() {
               </button>
               <button 
                 onClick={stopDriving}
-                className="w-full py-3 bg-[var(--bg-surface-hover)] hover:bg-slate-700 border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl font-bold"
+                className="w-full py-3 bg-[var(--bg-surface-hover)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl font-bold"
               >
                 Stop Broadcasting
               </button>

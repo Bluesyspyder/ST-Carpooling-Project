@@ -42,7 +42,7 @@ const ForgotPassword = () => {
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-100">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-[var(--text-primary)]">
           Forgot Password
         </h2>
         <p className="mt-2 text-center text-sm text-[var(--text-secondary)]">
@@ -77,7 +77,7 @@ const ForgotPassword = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 placeholder-slate-500 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 placeholder-slate-500 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm"
                 placeholder="employee@st.com"
               />
             </div>
@@ -85,7 +85,7 @@ const ForgotPassword = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 disabled:opacity-50"
+              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-[var(--text-primary)] bg-emerald-400 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 disabled:opacity-50"
             >
               {isSubmitting ? 'Sending...' : 'Send OTP'}
             </button>

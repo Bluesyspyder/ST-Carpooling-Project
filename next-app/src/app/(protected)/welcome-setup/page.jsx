@@ -64,7 +64,7 @@ const WelcomeSetup = () => {
         {/* Step indicator */}
         <div className="flex justify-center gap-2 mb-8">
           {STEPS.map((s, i) => (
-            <div key={s.id} className={`h-1.5 rounded-full transition-all ${i <= step ? 'bg-violet-500 w-8' : 'bg-slate-700 w-4'}`} />
+            <div key={s.id} className={`h-1.5 rounded-full transition-all ${i <= step ? 'bg-violet-500 w-8' : 'bg-[var(--bg-surface-hover)] w-4'}`} />
           ))}
         </div>
 

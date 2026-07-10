@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 import { useAuth } from '@/hooks/useAuth';
+import PillInput from '@/components/mobile/PillInput';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -34,11 +35,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-12 px-4 sm:px-6 lg:px-8 flex flex-col justify-center overflow-hidden">
+    <>
+    {/* ═══════════ DESKTOP / BROWSER LAYOUT (unchanged) ═══════════ */}
+    <div className="hidden lg:flex min-h-[calc(100vh-73px)] relative py-12 px-4 sm:px-6 lg:px-8 flex-col justify-center overflow-hidden">
       {/* Background elements */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--primary-base)]/5 blur-[120px] rounded-full pointer-events-none" />
-      
-      <motion.div 
+
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -146,6 +149,72 @@ const Login = () => {
         </div>
       </motion.div>
     </div>
+
+    {/* ═══════════ MOBILE LAYOUT ═══════════ */}
+    <div className="lg:hidden min-h-[calc(100vh-73px)] relative flex flex-col justify-center px-5 py-10 safe-top safe-bottom overflow-hidden">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-[var(--primary-base)]/5 blur-[100px] rounded-full pointer-events-none" />
+
+      <div className="relative z-10 text-center mb-8">
+        <p className="text-[var(--primary-base)] font-bold uppercase tracking-widest text-[10px] mb-2">Authentication</p>
+        <h2 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Welcome back</h2>
+        <p className="mt-2 text-xs text-[var(--text-secondary)] font-medium">
+          Or{' '}
+          <Link href="/register" className="font-semibold text-[var(--primary-base)]">register for a new account</Link>
+        </p>
+      </div>
+
+      <div className="relative z-10 space-y-4">
+        {error && (
+          <div className="rounded-xl border border-red-500/50 bg-red-500/10 text-red-500 p-3 text-xs font-semibold flex items-center gap-2">
+            <span>⚠</span>
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <PillInput
+            icon={<span>✉️</span>}
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@example.com"
+          />
+          <div>
+            <PillInput
+              icon={<span>🔒</span>}
+              type={showPassword ? 'text' : 'password'}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              trailing={
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-[var(--text-muted)] text-xs font-bold min-h-[32px] px-1">
+                  {showPassword ? 'HIDE' : 'SHOW'}
+                </button>
+              }
+            />
+            <div className="flex justify-end mt-1.5">
+              <Link href="/forgot-password" className="text-[10px] text-[var(--primary-base)] font-bold min-h-[32px] flex items-center">
+                FORGOT PASSWORD?
+              </Link>
+            </div>
+          </div>
+
+          <button type="submit" disabled={isSubmitting} className="btn-primary w-full min-h-[48px] text-sm">
+            {isSubmitting ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Signing in...</span>
+              </div>
+            ) : (
+              'Sign In'
+            )}
+          </button>
+        </form>
+      </div>
+    </div>
+    </>
   );
 };
 

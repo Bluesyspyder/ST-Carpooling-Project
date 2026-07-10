@@ -366,14 +366,14 @@ const RouteMap = ({
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[var(--text-secondary)] text-xs">Distance</span>
-                  <span className="text-slate-100 font-semibold">
+                  <span className="text-[var(--text-primary)] font-semibold">
                     {routeInfo.distanceKm?.toFixed(1)} km
                   </span>
                 </div>
-                <div className="w-px h-4 bg-slate-600" />
+                <div className="w-px h-4 bg-[var(--bg-surface-hover)]" />
                 <div className="flex items-center gap-1.5">
                   <span className="text-[var(--text-secondary)] text-xs">ETA</span>
-                  <span className="text-slate-100 font-semibold">
+                  <span className="text-[var(--text-primary)] font-semibold">
                     {fmtDuration(routeInfo.durationMinutes)}
                   </span>
                 </div>

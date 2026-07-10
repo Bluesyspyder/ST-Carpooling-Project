@@ -133,7 +133,7 @@ const CustomDatePicker = ({
         onClick={() => handleSelectDay(day)}
         className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold transition-all cursor-pointer hover:scale-[1.08] active:scale-[0.92]
           ${isSelected
-            ? 'bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/25 hover:bg-emerald-400'
+            ? 'bg-emerald-500 text-[var(--text-primary)] font-bold shadow-md shadow-emerald-500/25 hover:bg-emerald-400'
             : isToday
               ? 'border border-emerald-500/50 text-emerald-400 hover:bg-[var(--bg-surface-hover)]'
               : 'text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]/80 hover:text-[var(--text-primary)]'
@@ -157,9 +157,9 @@ const CustomDatePicker = ({
           id={id}
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between px-3 py-2.5 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 hover:bg-[var(--bg-surface)]/80 text-slate-100 hover:border-[var(--border-default)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all duration-200 text-sm text-left cursor-pointer"
+          className="w-full flex items-center justify-between px-3 py-2.5 border border-[var(--border-subtle)] rounded-lg bg-[var(--bg-surface)]/50 hover:bg-[var(--bg-surface)]/80 text-[var(--text-primary)] hover:border-[var(--border-default)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all duration-200 text-sm text-left cursor-pointer"
         >
-          <span className={value ? 'text-slate-100' : 'text-[var(--text-muted)]'}>
+          <span className={value ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}>
             {value ? formatDisplay(value) : placeholder}
           </span>
           <span className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
@@ -179,7 +179,7 @@ const CustomDatePicker = ({
             >
               ◀
             </button>
-            <span className="text-sm font-bold text-slate-100">
+            <span className="text-sm font-bold text-[var(--text-primary)]">
               {MONTH_NAMES[currentMonth]} {currentYear}
             </span>
             <button

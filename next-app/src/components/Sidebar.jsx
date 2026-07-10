@@ -5,9 +5,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useViewMode } from '@/context/ViewModeContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { LogOut, Home, Search, PlusCircle, Calendar, User } from 'lucide-react';
+import { LogOut, Home, Search, PlusCircle, Calendar, User, Leaf } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { avatarClasses } from '@/lib/genderTheme';
 
 const NavLink = ({ href, icon: Icon, children, isActive }) => (
   <Link
@@ -95,6 +96,7 @@ const Sidebar = () => {
           <NavLink href="/create-ride" icon={PlusCircle} isActive={pathname === '/create-ride'}>Offer Ride</NavLink>
         )}
         <NavLink href="/bookings" icon={Calendar} isActive={pathname === '/bookings'}>Bookings</NavLink>
+        <NavLink href="/green-impact" icon={Leaf} isActive={pathname === '/green-impact'}>Green Impact</NavLink>
       </nav>
 
       {/* Footer Settings & Profile */}
@@ -108,7 +110,7 @@ const Sidebar = () => {
           href="/profile"
           className="flex items-center gap-3 p-3 rounded-xl hover:bg-[var(--bg-surface)] transition-colors border border-transparent hover:border-[var(--border-subtle)]"
         >
-          <div className="w-10 h-10 rounded-full bg-[var(--bg-surface)] border border-[var(--border-subtle)] overflow-hidden flex items-center justify-center flex-shrink-0">
+          <div className={`w-10 h-10 rounded-full border overflow-hidden flex items-center justify-center flex-shrink-0 ${avatarClasses(user.gender)}`}>
              {user.profileImage ? (
                 <img
                   src={user.profileImage}
@@ -116,7 +118,7 @@ const Sidebar = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-xs font-bold text-[var(--primary-base)] uppercase">
+                <span className="text-xs font-bold uppercase">
                   {user.firstName?.[0]}{user.lastName?.[0]}
                 </span>
               )}

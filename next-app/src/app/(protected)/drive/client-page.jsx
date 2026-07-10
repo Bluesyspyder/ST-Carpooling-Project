@@ -136,7 +136,7 @@ const DriveMode = () => {
         </div>
         <button
           onClick={() => navigate(`/rides/${id}`)}
-          className="px-6 py-3 bg-[var(--bg-surface-hover)] border border-[var(--border-default)] rounded-xl text-[var(--text-primary)] font-semibold text-sm hover:bg-slate-700 transition"
+          className="px-6 py-3 bg-[var(--bg-surface-hover)] border border-[var(--border-default)] rounded-xl text-[var(--text-primary)] font-semibold text-sm hover:bg-[var(--bg-surface-hover)] transition"
         >
           ← Back to Ride Details
         </button>
@@ -152,12 +152,12 @@ const DriveMode = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(`/rides/${id}`)}
-            className="w-9 h-9 rounded-xl bg-[var(--bg-surface-hover)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-primary)] hover:bg-slate-700 transition"
+            className="w-9 h-9 rounded-xl bg-[var(--bg-surface-hover)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition"
           >
             ←
           </button>
           <div>
-            <h1 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+            <h1 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-1.5">
               <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
               Drive Mode
             </h1>
@@ -179,14 +179,14 @@ const DriveMode = () => {
               <p className="text-[10px] text-[var(--text-muted)]">picked up</p>
             </div>
             <div>
-              <p className="text-[9px] text-slate-600 uppercase font-bold">{route?.algorithm?.replace(/-/g, ' ')}</p>
+              <p className="text-[9px] text-[var(--text-muted)] uppercase font-bold">{route?.algorithm?.replace(/-/g, ' ')}</p>
               <p className="text-[10px] text-[var(--text-muted)]">algorithm</p>
             </div>
           </div>
 
           <button
             onClick={fetchRoute}
-            className="w-9 h-9 rounded-xl bg-[var(--bg-surface-hover)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-primary)] hover:bg-slate-700 transition text-sm"
+            className="w-9 h-9 rounded-xl bg-[var(--bg-surface-hover)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition text-sm"
             title="Refresh route"
           >
             ↻
@@ -226,7 +226,7 @@ const DriveMode = () => {
             {route?.origin && (
               <Marker position={[route.origin.lat, route.origin.lng]} icon={originIcon}>
                 <Popup className="leaflet-popup-dark">
-                  <div className="text-xs font-semibold text-slate-800">🚗 Start: {route.origin.address}</div>
+                  <div className="text-xs font-semibold text-[var(--text-primary)]">🚗 Start: {route.origin.address}</div>
                 </Popup>
               </Marker>
             )}
@@ -242,8 +242,8 @@ const DriveMode = () => {
                 >
                   <Popup>
                     <div className="text-xs space-y-1">
-                      <p className="font-bold text-slate-800">Stop #{wp.position}: {wp.passenger.firstName} {wp.passenger.lastName}</p>
-                      <p className="text-slate-600">{wp.address}</p>
+                      <p className="font-bold text-[var(--text-primary)]">Stop #{wp.position}: {wp.passenger.firstName} {wp.passenger.lastName}</p>
+                      <p className="text-[var(--text-muted)]">{wp.address}</p>
                       {wp.passenger.phone && <p className="text-emerald-700 font-semibold">📞 {wp.passenger.phone}</p>}
                       <p className={isPickedUp ? 'text-gray-500' : 'text-emerald-700'}>{isPickedUp ? '✓ Picked up' : `${wp.seatsBooked} seat(s)`}</p>
                     </div>
@@ -256,7 +256,7 @@ const DriveMode = () => {
             {route?.destination && (
               <Marker position={[route.destination.lat, route.destination.lng]} icon={destIcon}>
                 <Popup>
-                  <div className="text-xs font-semibold text-slate-800">🏁 Destination: {route.destination.address}</div>
+                  <div className="text-xs font-semibold text-[var(--text-primary)]">🏁 Destination: {route.destination.address}</div>
                 </Popup>
               </Marker>
             )}
@@ -268,7 +268,7 @@ const DriveMode = () => {
 
           {/* Panel header */}
           <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex-shrink-0">
-            <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+            <h2 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
               Pickup Stops
               <span className="ml-auto text-xs font-semibold text-[var(--text-muted)]">{pickedUp.size}/{route?.orderedWaypoints?.length} done</span>
             </h2>
@@ -301,8 +301,8 @@ const DriveMode = () => {
                   <div className="flex items-start gap-3">
                     {/* Stop number */}
                     <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold border-2 ${
-                      isPickedUp ? 'bg-slate-700 border-[var(--border-hover)] text-[var(--text-muted)]' :
-                      isCurrent ? 'bg-emerald-400 border-emerald-400 text-slate-950' :
+                      isPickedUp ? 'bg-[var(--bg-surface-hover)] border-[var(--border-hover)] text-[var(--text-muted)]' :
+                      isCurrent ? 'bg-emerald-400 border-emerald-400 text-[var(--text-primary)]' :
                       'bg-[var(--bg-surface-hover)] border-[var(--border-default)] text-[var(--text-secondary)]'
                     }`}>
                       {isPickedUp ? '✓' : wp.position}
@@ -321,7 +321,7 @@ const DriveMode = () => {
                         <p className={`text-xs font-bold truncate ${isPickedUp ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-primary)]'}`}>
                           {wp.passenger.firstName} {wp.passenger.lastName}
                         </p>
-                        <span className="text-[10px] text-slate-600 flex-shrink-0">{wp.seatsBooked}×</span>
+                        <span className="text-[10px] text-[var(--text-muted)] flex-shrink-0">{wp.seatsBooked}×</span>
                       </div>
 
                       <p className="text-[10px] text-[var(--text-muted)] mt-0.5 truncate">{wp.address}</p>
@@ -341,8 +341,8 @@ const DriveMode = () => {
                       onClick={() => togglePickup(wp.bookingId.toString())}
                       className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
                         isPickedUp
-                          ? 'bg-[var(--bg-surface-hover)] text-[var(--text-muted)] border border-[var(--border-default)] hover:bg-slate-700 hover:text-[var(--text-primary)]'
-                          : 'bg-emerald-400 text-slate-950 hover:bg-emerald-500 shadow-sm shadow-emerald-400/30'
+                          ? 'bg-[var(--bg-surface-hover)] text-[var(--text-muted)] border border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
+                          : 'bg-emerald-400 text-[var(--text-primary)] hover:bg-emerald-500 shadow-sm shadow-emerald-400/30'
                       }`}
                     >
                       {isPickedUp ? 'Undo' : 'Picked Up ✓'}
@@ -362,7 +362,7 @@ const DriveMode = () => {
                 <p className="text-xs text-[var(--text-muted)]">Head to {route.destination.address}</p>
                 <Link
                   href={`/rides/${id}`}
-                  className="block w-full py-2.5 px-4 bg-emerald-400 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl transition text-sm text-center"
+                  className="block w-full py-2.5 px-4 bg-emerald-400 hover:bg-emerald-500 text-[var(--text-primary)] font-bold rounded-xl transition text-sm text-center"
                 >
                   Complete Ride
                 </Link>
@@ -370,7 +370,7 @@ const DriveMode = () => {
             ) : (
               <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
                 <span>{route?.orderedWaypoints?.length - pickedUp.size} stop{route?.orderedWaypoints?.length - pickedUp.size !== 1 ? 's' : ''} remaining</span>
-                <span className="text-slate-600">{route?.totalDistanceKm} km total</span>
+                <span className="text-[var(--text-muted)]">{route?.totalDistanceKm} km total</span>
               </div>
             )}
           </div>

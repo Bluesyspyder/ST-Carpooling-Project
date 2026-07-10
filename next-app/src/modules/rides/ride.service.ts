@@ -4,6 +4,7 @@ import Vehicle from '../vehicles/vehicle.model';
 import User from '../users/user.model';
 import { ApiError } from '@/lib/api-wrapper';
 import { recordLocationUsage } from '../users/user.service';
+import { awardGreenCredits } from '../greenCredits/greenCredits.service';
 
 /**
  * Build a validated, verified location object from raw input.
@@ -38,19 +39,26 @@ const buildVerifiedLocation = (raw, fieldName) => {
  * pickupLocation and destinationLocation must both be coordinate-verified.
  */
 export const createRide = async (rideData) => {
-  const vehicle = await Vehicle.findOne({ _id: rideData.driverVehicle, owner: rideData.driver });
+  const { driverGender, ...restRideData } = rideData;
+
+  if (!driverGender) {
+    throw new ApiError(403, 'Please update your profile with your gender before publishing a ride.');
+  }
+
+  const vehicle = await Vehicle.findOne({ _id: restRideData.driverVehicle, owner: restRideData.driver });
   if (!vehicle) throw new ApiError(403, 'You can only create rides with your own vehicle');
-  if (rideData.availableSeats > vehicle.seatCount) {
+  if (restRideData.availableSeats > vehicle.seatCount) {
     throw new ApiError(400, 'Available seats cannot exceed vehicle seat count');
   }
 
-  const pickup = buildVerifiedLocation(rideData.pickupLocation, 'Pickup location');
-  const destination = buildVerifiedLocation(rideData.destinationLocation, 'Destination location');
+  const pickup = buildVerifiedLocation(restRideData.pickupLocation, 'Pickup location');
+  const destination = buildVerifiedLocation(restRideData.destinationLocation, 'Destination location');
 
   const finalRideData = {
-    ...rideData,
+    ...restRideData,
     pickupLocation: pickup,
     destinationLocation: destination,
+    femaleOnly: restRideData.femaleOnly === true && driverGender === 'F',
     rideStatus: 'ACTIVE',
   };
 
@@ -58,8 +66,8 @@ export const createRide = async (rideData) => {
 
   // Record usage for frequent/recent address lists (fire-and-forget)
   Promise.all([
-    recordLocationUsage(rideData.driver, pickup),
-    recordLocationUsage(rideData.driver, destination),
+    recordLocationUsage(restRideData.driver, pickup),
+    recordLocationUsage(restRideData.driver, destination),
   ]).catch((err) => console.warn('[RIDE] recordLocationUsage error:', err.message));
 
   return ride;
@@ -67,7 +75,7 @@ export const createRide = async (rideData) => {
 
 export const getRideById = async (id) => {
   const ride = await Ride.findById(id)
-    .populate('driver', 'firstName lastName profileImage averageRating phone')
+    .populate('driver', 'firstName lastName profileImage averageRating phone gender')
     .populate('driverVehicle');
   if (!ride) throw new ApiError(404, 'Ride not found');
   return ride;
@@ -78,6 +86,14 @@ export const getRides = async (filters = {}) => {
 
   // Default to ACTIVE rides only
   query.rideStatus = 'ACTIVE';
+
+  // Male users (or unauthenticated) never see female-only restricted rides.
+  if (filters.requestingUserGender !== 'F') {
+    query.femaleOnly = { $ne: true };
+  } else if (filters.femaleOnly === true || filters.femaleOnly === 'true') {
+    // Female users can opt in to only seeing female-only rides.
+    query.femaleOnly = true;
+  }
 
   if (filters.journeyDate) {
     const date = new Date(filters.journeyDate);
@@ -119,7 +135,7 @@ export const getRides = async (filters = {}) => {
   }
 
   return await Ride.find(query)
-    .populate('driver', 'firstName lastName profileImage averageRating')
+    .populate('driver', 'firstName lastName profileImage averageRating gender')
     .populate('driverVehicle')
     .sort({ journeyDate: 1, journeyTime: 1 });
 };
@@ -131,7 +147,7 @@ export const getRidesByDriver = async (driverId) => {
 };
 
 export const updateRideStatus = async (id, driverId, status) => {
-  const ride = await Ride.findOne({ _id: id, driver: driverId });
+  const ride = await Ride.findOne({ _id: id, driver: driverId }).populate('driverVehicle');
   if (!ride) throw new ApiError(404, 'Ride not found or unauthorized');
   const allowed = ['ACTIVE', 'FULL', 'CANCELLED', 'COMPLETED'];
   if (!allowed.includes(status)) throw new ApiError(400, 'Invalid status');
@@ -160,5 +176,10 @@ export const updateRideStatus = async (id, driverId, status) => {
 
   ride.rideStatus = status;
   await ride.save();
+
+  if (status === 'COMPLETED') {
+    await awardGreenCredits(ride);
+  }
+
   return ride;
 };

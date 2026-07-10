@@ -7,7 +7,7 @@ import ClientPage from './client-page';
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-8 text-emerald-400">Loading Telemetry...</div>}>
+    <Suspense fallback={<div className="p-8 text-emerald-400">Loading Ride Details...</div>}>
       <ClientPage />
     </Suspense>
   );

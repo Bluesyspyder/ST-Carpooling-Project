@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { lookupVehicleByPlate } from '@/services/vehicleService';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import MapPreview from '@/components/MapPreview';
+import PillInput from '@/components/mobile/PillInput';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -17,6 +18,7 @@ const Register = () => {
     phone: '',
     address: '',
     role: 'passenger',
+    gender: '',
     vehicleName: '',
     vehiclePlateNumber: '',
     vehicleType: 'diesel',
@@ -39,6 +41,7 @@ const Register = () => {
 
   const emailRef = useRef(null);
   const addressRef = useRef(null);
+  const genderRef = useRef(null);
   const profileImageRef = useRef(null);
   const vehicleImageRef = useRef(null);
 
@@ -112,6 +115,12 @@ const Register = () => {
       return;
     }
 
+    if (!formData.gender) {
+      setError('Please select your gender');
+      genderRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     if (formData.role === 'hybrid' && !vehicleImage) {
       setError('Vehicle image is required for Riders');
       vehicleImageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -158,7 +167,9 @@ const Register = () => {
   const labelClass = 'block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2';
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-12 px-4 sm:px-6 lg:px-8 flex flex-col justify-center overflow-hidden">
+    <>
+    {/* ═══════════ DESKTOP / BROWSER LAYOUT (unchanged) ═══════════ */}
+    <div className="hidden lg:flex min-h-[calc(100vh-73px)] relative py-12 px-4 sm:px-6 lg:px-8 flex-col justify-center overflow-hidden">
       {/* Background elements */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--primary-base)]/5 blur-[120px] rounded-full pointer-events-none" />
 
@@ -253,6 +264,37 @@ const Register = () => {
                 value={formData.phone} onChange={handleChange}
                 className={inputClass} placeholder="+92 300 0000000"
               />
+            </div>
+
+            {/* Gender */}
+            <div ref={genderRef}>
+              <label className={labelClass}>Gender</label>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { value: 'M', label: 'Male' },
+                  { value: 'F', label: 'Female' },
+                ].map((option) => (
+                  <label
+                    key={option.value}
+                    className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold cursor-pointer transition-colors ${
+                      formData.gender === option.value
+                        ? 'border-[var(--primary-base)] bg-[var(--primary-base)]/10 text-[var(--primary-base)]'
+                        : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--primary-base)]/50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="gender"
+                      value={option.value}
+                      checked={formData.gender === option.value}
+                      onChange={handleChange}
+                      className="sr-only"
+                      required
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
             </div>
 
             {/* Address */}
@@ -455,6 +497,202 @@ const Register = () => {
         </div>
       </div>
     </div>
+
+    {/* ═══════════ MOBILE LAYOUT ═══════════ */}
+    <div className="lg:hidden min-h-[calc(100vh-73px)] relative px-4 py-8 safe-top safe-bottom overflow-hidden">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-[var(--primary-base)]/5 blur-[100px] rounded-full pointer-events-none" />
+
+      <div className="relative z-10 text-center mb-6">
+        <p className="text-[var(--primary-base)] font-bold uppercase tracking-widest text-[10px] mb-2">Registration</p>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight mb-2">Create your account</h1>
+        <p className="text-xs text-[var(--text-secondary)] font-medium">
+          Already have an account?{' '}
+          <Link href="/login" className="font-semibold text-[var(--primary-base)]">Sign in</Link>
+        </p>
+      </div>
+
+      {error && (
+        <div className="relative z-10 mb-4 rounded-xl border border-red-500/50 bg-red-500/10 text-red-500 p-3 text-xs font-semibold flex items-start gap-2">
+          <span>⚠</span>
+          <span>{error}</span>
+        </div>
+      )}
+
+      <form className="relative z-10 space-y-5" onSubmit={handleSubmit}>
+        {/* Basic Info */}
+        <div className="glass-panel p-4 rounded-2xl space-y-3">
+          <h3 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Basic Info</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <PillInput name="firstName" required value={formData.firstName} onChange={handleChange} placeholder="First name" />
+            <PillInput name="lastName" required value={formData.lastName} onChange={handleChange} placeholder="Last name" />
+          </div>
+          <PillInput icon={<span>✉️</span>} name="email" type="email" required value={formData.email} onChange={handleChange} placeholder="employee@st.com" />
+          <PillInput
+            icon={<span>🔒</span>}
+            name="password" type={showPassword ? 'text' : 'password'} required
+            value={formData.password} onChange={handleChange} placeholder="Min 6 characters"
+            trailing={
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-[var(--text-muted)] text-xs font-bold min-h-[32px] px-1">
+                {showPassword ? 'HIDE' : 'SHOW'}
+              </button>
+            }
+          />
+          <PillInput icon={<span>📞</span>} name="phone" type="text" required value={formData.phone} onChange={handleChange} placeholder="+92 300 0000000" />
+        </div>
+
+        {/* Gender */}
+        <div className="glass-panel p-4 rounded-2xl space-y-3">
+          <h3 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Gender</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {[{ value: 'M', label: 'Male' }, { value: 'F', label: 'Female' }].map((option) => (
+              <label
+                key={option.value}
+                className={`flex items-center justify-center gap-2 rounded-xl border min-h-[44px] px-4 py-3 text-sm font-semibold cursor-pointer transition-colors ${
+                  formData.gender === option.value
+                    ? 'border-[var(--primary-base)] bg-[var(--primary-base)]/10 text-[var(--primary-base)]'
+                    : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
+                }`}
+              >
+                <input type="radio" name="gender" value={option.value} checked={formData.gender === option.value} onChange={handleChange} className="sr-only" required />
+                {option.label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Address */}
+        <div className="glass-panel p-4 rounded-2xl space-y-3">
+          <h3 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Home / Office Address</h3>
+          <AddressAutocomplete
+            value={formData.address}
+            onChange={(loc) => {
+              setFormData((prev) => ({ ...prev, address: loc.address }));
+              setAddressLoc({ ...loc, verified: false });
+            }}
+            placeholder="Search your home or office address…"
+            showCurrentLocation
+          />
+          {addressLoc.latitude && (
+            <MapPreview
+              location={addressLoc}
+              onLocationChange={(loc) => {
+                setAddressLoc((prev) => ({ ...prev, ...loc, verified: false }));
+                setFormData((prev) => ({ ...prev, address: loc.address || prev.address }));
+              }}
+              height="180px"
+              interactive
+              onConfirm={() => setAddressLoc((prev) => ({ ...prev, verified: true }))}
+              onUnconfirm={() => setAddressLoc((prev) => ({ ...prev, verified: false }))}
+              confirmed={addressLoc.verified}
+              markerColor="var(--primary-base)"
+            />
+          )}
+        </div>
+
+        {/* Profile Photo */}
+        <div className="glass-panel p-4 rounded-2xl space-y-3">
+          <h3 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Profile Photo (Optional)</h3>
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              {profileImagePreview ? (
+                <img src={profileImagePreview} alt="Profile preview" className="h-16 w-16 object-cover rounded-full border-2 border-[var(--primary-base)]/30" />
+              ) : (
+                <div className="h-16 w-16 bg-[var(--bg-surface)] rounded-full flex items-center justify-center border-2 border-dashed border-[var(--border-subtle)]">
+                  <span className="text-xl">👤</span>
+                </div>
+              )}
+            </div>
+            <input
+              type="file" accept="image/*"
+              onChange={(e) => handleImageChange(e, 'profile')}
+              className="block w-full text-xs text-[var(--text-secondary)] file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[var(--primary-base)]/10 file:text-[var(--primary-base)]"
+            />
+          </div>
+        </div>
+
+        {/* Account Type */}
+        <div className="glass-panel p-4 rounded-2xl space-y-3">
+          <h3 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Account Type</h3>
+          <select name="role" value={formData.role} onChange={handleChange} className="form-input min-h-[44px]">
+            <option value="passenger">Co-Rider — I need a ride</option>
+            <option value="hybrid">Rider — I can drive &amp; take rides</option>
+          </select>
+          <p className="text-xs text-[var(--text-muted)] font-medium">
+            {formData.role === 'hybrid'
+              ? '🚗 As a Rider, you can both offer rides and book seats in other cars.'
+              : '🧑‍💼 As a Co-Rider, you can search and book available rides.'}
+          </p>
+        </div>
+
+        {/* Vehicle Details — Riders only */}
+        {formData.role === 'hybrid' && (
+          <div className="glass-panel p-4 rounded-2xl space-y-3">
+            <h3 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1">
+              <span>🚗</span> Vehicle Details
+            </h3>
+            <PillInput name="vehicleName" required value={formData.vehicleName} onChange={handleChange} placeholder="e.g. Toyota Corolla" />
+            <div>
+              <PillInput name="vehiclePlateNumber" required value={formData.vehiclePlateNumber} onChange={handleChange} onBlur={handlePlateLookup} placeholder="e.g. ABC-1234" />
+              {isLookingUpPlate && <p className="text-xs text-[var(--primary-base)] mt-1">Looking up...</p>}
+              {plateLookupError && <p className="text-amber-500 text-[10px] mt-1">{plateLookupError}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <select name="vehicleType" value={formData.vehicleType} onChange={handleChange} className="form-input min-h-[44px]">
+                <option value="diesel">Diesel</option>
+                <option value="petrol">Petrol</option>
+                <option value="ev">Electric (EV)</option>
+              </select>
+              <PillInput name="mileage" type="number" step="0.1" required value={formData.mileage} onChange={handleChange} placeholder="Mileage km/l" />
+            </div>
+            <PillInput name="seatCount" type="number" min="1" max="10" required value={formData.seatCount} onChange={handleChange} placeholder="Seat count" />
+            <div>
+              <p className="text-[10px] text-[var(--text-muted)] mb-2">Vehicle Photo <span className="text-red-500">(Required)</span></p>
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0">
+                  {vehicleImagePreview ? (
+                    <img src={vehicleImagePreview} alt="Vehicle preview" className="h-16 w-24 object-cover rounded-xl" />
+                  ) : (
+                    <div className="h-16 w-24 bg-[var(--bg-base)] rounded-xl flex items-center justify-center border-2 border-dashed border-[var(--border-subtle)]">
+                      <span className="text-xl">🚗</span>
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="file" accept="image/*" required
+                  onChange={(e) => handleImageChange(e, 'vehicle')}
+                  className="block w-full text-xs text-[var(--text-secondary)] file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[var(--primary-base)]/10 file:text-[var(--primary-base)]"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Optional fields */}
+        <div className="glass-panel p-4 rounded-2xl space-y-3">
+          <h3 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Additional Info (Optional)</h3>
+          <PillInput name="emergencyContact" type="text" value={formData.emergencyContact} onChange={handleChange} placeholder="Emergency contact phone" />
+          <textarea
+            name="bio" rows="2"
+            value={formData.bio} onChange={handleChange}
+            className="form-input" placeholder="Tell colleagues a bit about yourself..."
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="btn-primary w-full min-h-[48px] text-sm font-bold uppercase tracking-widest"
+        >
+          {isSubmitting ? (
+            <span className="flex justify-center items-center gap-2">
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              CREATING ACCOUNT...
+            </span>
+          ) : 'CREATE ACCOUNT'}
+        </button>
+      </form>
+    </div>
+    </>
   );
 };
 

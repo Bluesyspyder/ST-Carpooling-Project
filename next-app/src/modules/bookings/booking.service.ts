@@ -41,18 +41,27 @@ const buildVerifiedLocation = (raw, fieldName) => {
  * 24h booking policy: cannot book if departure is within 24 hours.
  */
 export const createBooking = async (bookingData) => {
-  const ride = await Ride.findById(bookingData.ride);
+  const { passengerGender, ...restBookingData } = bookingData;
+
+  if (!passengerGender) {
+    throw new ApiError(403, 'Please update your profile with your gender before booking a ride.');
+  }
+
+  const ride = await Ride.findById(restBookingData.ride);
   if (!ride) throw new ApiError(404, 'Ride not found');
-  if (ride.driver.toString() === bookingData.passenger.toString()) {
+  if (ride.driver.toString() === restBookingData.passenger.toString()) {
     throw new ApiError(400, 'You cannot book your own ride');
   }
   if (ride.rideStatus !== 'ACTIVE') {
     throw new ApiError(400, 'This ride is not available for booking');
   }
+  if (ride.femaleOnly && passengerGender !== 'F') {
+    throw new ApiError(403, 'This ride is restricted to female passengers only.');
+  }
 
   // 🚫 Max 3 pending requests rule
   const pendingRequestsCount = await Booking.countDocuments({
-    passenger: bookingData.passenger,
+    passenger: restBookingData.passenger,
     bookingStatus: { $in: ['pending', 'waitlisted'] },
   });
   if (pendingRequestsCount >= 3) {
@@ -60,7 +69,7 @@ export const createBooking = async (bookingData) => {
   }
   
   let initialStatus = 'pending';
-  if (ride.availableSeats < bookingData.seatsBooked) {
+  if (ride.availableSeats < restBookingData.seatsBooked) {
     initialStatus = 'waitlisted';
   }
 
@@ -78,15 +87,15 @@ export const createBooking = async (bookingData) => {
     );
   }
 
-  const pickup = buildVerifiedLocation(bookingData.pickupLocation, 'Pickup location');
+  const pickup = buildVerifiedLocation(restBookingData.pickupLocation, 'Pickup location');
 
-  bookingData.bookingAmount  = (ride.pricePerSeat || 0) * bookingData.seatsBooked;
-  bookingData.bookingStatus  = initialStatus;
-  bookingData.pickupLocation = pickup;
+  restBookingData.bookingAmount  = (ride.pricePerSeat || 0) * restBookingData.seatsBooked;
+  restBookingData.bookingStatus  = initialStatus;
+  restBookingData.pickupLocation = pickup;
 
-  const booking = await Booking.create(bookingData);
+  const booking = await Booking.create(restBookingData);
 
-  recordLocationUsage(bookingData.passenger, pickup)
+  recordLocationUsage(restBookingData.passenger, pickup)
     .catch((err) => console.warn('[BOOKING] recordLocationUsage error:', err.message));
 
   return booking;
@@ -98,7 +107,7 @@ export const getMyBookingsPaginated = async (userId, page = 1, limit = 10) => {
     .populate({
       path: 'ride',
       populate: [
-        { path: 'driver', select: 'firstName lastName profileImage email phone averageRating' },
+        { path: 'driver', select: 'firstName lastName profileImage email phone averageRating gender' },
         { path: 'driverVehicle' }
       ]
     })
@@ -127,7 +136,7 @@ export const getMyRidesBookingsPaginated = async (driverId, page = 1, limit = 10
   const rideIds = rides.map(r => r._id);
 
   const bookings = await Booking.find({ ride: { $in: rideIds } })
-    .populate('passenger', 'firstName lastName profileImage email phone averageRating cancellations24h cancellations6h cancellations2h')
+    .populate('passenger', 'firstName lastName profileImage email phone averageRating gender cancellations24h cancellations6h cancellations2h')
     .populate({
       path: 'ride',
       populate: [

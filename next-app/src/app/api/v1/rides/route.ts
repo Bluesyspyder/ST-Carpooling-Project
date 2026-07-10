@@ -10,15 +10,18 @@ export const GET = apiHandler(async (req, { params, user }) => {
   const url = new URL(req.url);
   const query = Object.fromEntries(url.searchParams.entries());
   const queryParams = validate(searchRidesSchema, { query }).query;
-  const { journeyDate, pickupArea, pickupLat, pickupLng, driverName, seats } = queryParams;
-  const rides = await rideService.getRides({ journeyDate, pickupArea, pickupLat, pickupLng, driverName, seats });
+  const { journeyDate, pickupArea, pickupLat, pickupLng, driverName, seats, femaleOnly } = queryParams;
+  const rides = await rideService.getRides({
+    journeyDate, pickupArea, pickupLat, pickupLng, driverName, seats, femaleOnly,
+    requestingUserGender: user.gender,
+  });
   return NextResponse.json({ status: 'success', results: rides.length, data: { rides } }, { status: 200 });
-}, {});
+}, { protect: true });
 
 export const POST = apiHandler(async (req, { params, user }) => {
   const rawBody = await parseBody(req);
   const body = validate(createRideSchema, { body: rawBody }).body;
-  const ride = await rideService.createRide({ ...body, driver: user.id });
+  const ride = await rideService.createRide({ ...body, driver: user.id, driverGender: user.gender });
   return NextResponse.json({ status: 'success', data: { ride } }, { status: 201 });
 }, { protect: true });
 

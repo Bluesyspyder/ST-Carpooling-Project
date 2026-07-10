@@ -26,7 +26,9 @@ export default function ClientProviders({ children }: { children: React.ReactNod
       <ViewModeProvider>
         <div className="min-h-screen bg-[var(--bg-base)] flex lg:flex-row flex-col">
           {!shouldHideHeader && <Sidebar />}
-          <div className="flex-grow flex flex-col min-w-0 pb-16 lg:pb-0"> {/* pb-16 for MobileNav spacing on small screens */}
+          <div
+            className="flex-grow flex flex-col min-w-0 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] lg:pb-0"
+          > {/* bottom padding reserves space for MobileNav + safe-area on small screens */}
             {children}
           </div>
           {!shouldHideHeader && <MobileNav />}

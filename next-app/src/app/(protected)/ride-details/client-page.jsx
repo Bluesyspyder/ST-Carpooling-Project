@@ -19,6 +19,8 @@ import {
   fetchFrequentAddresses,
 } from '@/services/locationService';
 import { useProfileGuard } from '@/hooks/useProfileGuard';
+import { avatarClasses } from '@/lib/genderTheme';
+import StickyActionBar from '@/components/mobile/StickyActionBar';
 
 /* ─── ST Office fixed destination ─────────────────────────────────────────── */
 const ST_OFFICE = { lat: 28.481200, lng: 77.481500, address: 'STMicroelectronics, Greater Noida' };
@@ -225,14 +227,14 @@ const DriverRoutePanel = ({ ride, bookings, liveDriverLocation, pendingPickup = 
             {/* Destination */}
             <StopRow
               badge="🏢"
-              badgeColor="bg-slate-600"
+              badgeColor="bg-[var(--bg-surface-hover)]"
               label="Destination"
               address={driverDestination.address || ST_OFFICE.address}
               isLast
             />
           </div>
 
-          <p className="text-[10px] text-slate-600 pt-1">
+          <p className="text-[10px] text-[var(--text-muted)] pt-1">
             Route optimised using Haversine permutation analysis · Provider: {routeData?.provider || 'Computing…'}
           </p>
         </div>
@@ -256,7 +258,7 @@ const StopRow = ({ badge, badgeColor, label, address, isFirst, isLast }) => (
       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)] flex-shrink-0 ${badgeColor}`}>
         {badge}
       </div>
-      {!isLast && <div className="w-px flex-1 bg-slate-700/60 my-0.5" style={{ minHeight: '16px' }} />}
+      {!isLast && <div className="w-px flex-1 bg-[var(--bg-surface-hover)] my-0.5" style={{ minHeight: '16px' }} />}
     </div>
     <div className="pb-2 min-w-0">
       <p className="text-[var(--text-primary)] text-xs font-semibold truncate">{label}</p>
@@ -499,7 +501,9 @@ const RideDetails = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative pt-8 pb-24 md:pb-8 px-4 sm:px-6 lg:px-8">
+    <>
+    {/* ═══════════ DESKTOP / BROWSER LAYOUT (unchanged) ═══════════ */}
+    <div className="hidden lg:block min-h-[calc(100vh-73px)] relative pt-8 pb-8 px-4 sm:px-6 lg:px-8">
 
       <div className="w-full max-w-[1500px] mx-auto space-y-6">
 
@@ -551,7 +555,7 @@ const RideDetails = () => {
               {bookings.map((booking, idx) => (
                 <div key={booking._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-sm bg-[var(--bg-surface)] border border-[var(--border-subtle)] gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center text-sm font-bold text-emerald-400 flex-shrink-0">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 border ${avatarClasses(booking.passenger?.gender)}`}>
                       {booking.passenger?.firstName?.[0] || 'P'}{booking.passenger?.lastName?.[0] || ''}
                     </div>
                     <div>
@@ -664,7 +668,7 @@ const RideDetails = () => {
               <div className="pt-6 border-t border-[var(--border-subtle)] space-y-3">
                 <h4 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Rider (Driver)</h4>
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-full flex items-center justify-center text-lg font-bold text-indigo-400">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold border ${avatarClasses(ride.driver.gender)}`}>
                     {ride.driver.firstName[0]}{ride.driver.lastName[0]}
                   </div>
                   <div>
@@ -818,6 +822,202 @@ const RideDetails = () => {
         </div>
       </div>
     </div>
+
+    {/* ═══════════ MOBILE LAYOUT ═══════════ */}
+    <div className="lg:hidden min-h-[calc(100vh-73px)] relative pt-5 pb-28 px-4 space-y-4">
+      {sosAlert && (
+        <div className="bg-red-900 border-2 border-red-500 rounded-xl p-4 animate-pulse">
+          <h3 className="text-[var(--text-primary)] font-bold text-sm flex items-center gap-2"><span>🚨</span> EMERGENCY S.O.S</h3>
+          <p className="text-red-100 text-xs mt-1">{sosAlert}</p>
+        </div>
+      )}
+
+      {/* Hero route card */}
+      <div className="glass-panel p-5 rounded-3xl">
+        <span className={`px-2.5 py-1 text-xs font-semibold border rounded-full capitalize ${statusBadge(ride.rideStatus?.toLowerCase())}`}>
+          {ride.rideStatus}
+        </span>
+        <h3 className="text-xl font-bold text-[var(--text-primary)] tracking-tight mt-3">
+          {ride.pickupLocation?.address?.split(',')[0]} → {ride.destinationLocation?.address?.split(',')[0]}
+        </h3>
+        <div className="flex items-center gap-4 mt-3 text-xs text-[var(--text-secondary)]">
+          <span>{new Date(ride.journeyDate).toLocaleDateString()} · {ride.journeyTime}</span>
+          <span>{ride.availableSeats} seats left</span>
+        </div>
+        {ride.driver && (
+          <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border ${avatarClasses(ride.driver.gender)}`}>
+              {ride.driver.firstName?.[0]}{ride.driver.lastName?.[0]}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{ride.driver.firstName} {ride.driver.lastName}</p>
+              <p className="text-xs text-amber-400 font-bold">⭐ {ride.driver.averageRating?.toFixed(1) || '5.0'}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Route map */}
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full inline-block ${isDriver ? 'bg-emerald-400' : 'bg-indigo-400'}`}></span>
+          {isDriver ? 'Driver Route Overview' : 'Ride Route Preview'}
+        </h3>
+        <DriverRoutePanel
+          ride={ride}
+          bookings={bookings}
+          liveDriverLocation={liveDriverLocation}
+          pendingPickup={!isDriver && !activeBooking && pickupLoc?.latitude ? pickupLoc : null}
+        />
+      </div>
+
+      {/* Vehicle */}
+      {ride.driverVehicle && (
+        <div className="glass-panel p-4 space-y-3">
+          <h4 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Vehicle</h4>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div><p className="text-xs text-[var(--text-secondary)]">Name</p><p className="text-[var(--text-primary)] font-medium">{ride.driverVehicle.vehicleName}</p></div>
+            <div><p className="text-xs text-[var(--text-secondary)]">Plate</p><p className="text-[var(--text-primary)] font-medium">{ride.driverVehicle.vehiclePlateNumber}</p></div>
+            <div><p className="text-xs text-[var(--text-secondary)]">Fuel</p><p className="text-[var(--text-primary)] font-medium capitalize">{ride.driverVehicle.vehicleType}</p></div>
+            <div><p className="text-xs text-[var(--text-secondary)]">Mileage</p><p className="text-[var(--text-primary)] font-medium">{ride.driverVehicle.mileage} km/l</p></div>
+          </div>
+        </div>
+      )}
+
+      {/* Passenger requests (driver view) */}
+      {bookings && bookings.length > 0 && (
+        <div className="glass-panel p-4 space-y-3">
+          <h4 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+            Passenger Requests
+          </h4>
+          <div className="space-y-2">
+            {bookings.map((booking) => (
+              <div key={booking._id} className="p-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 border ${avatarClasses(booking.passenger?.gender)}`}>
+                    {booking.passenger?.firstName?.[0] || 'P'}{booking.passenger?.lastName?.[0] || ''}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{booking.passenger?.firstName} {booking.passenger?.lastName}</p>
+                    <p className="text-xs text-[var(--text-secondary)] truncate">{booking.pickupLocation?.address}</p>
+                  </div>
+                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border capitalize flex-shrink-0 ${
+                    booking.bookingStatus === 'confirmed' ? 'bg-emerald-950 text-emerald-400 border-emerald-500/20' :
+                    booking.bookingStatus === 'pending'   ? 'bg-amber-950 text-amber-400 border-amber-500/20' :
+                    'bg-red-950 text-red-400 border-red-500/20'
+                  }`}>{booking.bookingStatus}</span>
+                </div>
+                {isDriver && booking.bookingStatus === 'pending' && (
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => handleStatusUpdate(booking._id, 'confirmed')} className="btn-primary flex-1 min-h-[44px] text-xs">Accept</button>
+                    <button onClick={() => handleStatusUpdate(booking._id, 'rejected')} className="btn-secondary flex-1 min-h-[44px] text-xs text-red-500">Reject</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Booking form (passenger only) */}
+      {!isDriver && !bookingSuccess && (
+        <div className="glass-panel p-4 space-y-4">
+          <h4 className="text-sm font-bold text-[var(--text-primary)]">Book this Ride</h4>
+          {bookingError && (
+            <div className="bg-red-950/40 border border-red-500/20 text-red-400 p-3 rounded-lg text-xs">{bookingError}</div>
+          )}
+          <AddressAutocomplete
+            value={pickupLoc.address}
+            onChange={handlePickupSelect}
+            placeholder="Search your pickup location…"
+            label="Your Pickup Location"
+            showCurrentLocation
+            savedAddresses={savedAddresses}
+          />
+          {pickupLoc.latitude && (
+            <MapPreview
+              location={pickupLoc}
+              onLocationChange={handlePickupMapChange}
+              height="180px"
+              interactive
+              onConfirm={handlePickupConfirm}
+              onUnconfirm={handlePickupUnconfirm}
+              confirmed={pickupLoc.verified}
+              markerColor="#10b981"
+              markerLabel="P"
+            />
+          )}
+          {ride?.driverVehicle && (
+            <div>
+              <label className="block text-xs text-[var(--text-secondary)] mb-3">Select your seats</label>
+              <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-lg p-4">
+                <SeatMap
+                  layout={generateSeatLayout(ride.driverVehicle.seatCount)}
+                  selectedSeatIds={selectedSeatIds}
+                  bookedSeatIds={bookedSeatIds}
+                  onToggleSeat={(seatId) => {
+                    setSelectedSeatIds(prev =>
+                      prev.includes(seatId) ? prev.filter(id => id !== seatId) : [...prev, seatId]
+                    );
+                  }}
+                  mode="book"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!isDriver && bookingSuccess && (
+        <div className="bg-green-950/40 border border-green-500/20 text-green-400 p-4 rounded-xl text-sm space-y-2">
+          <p className="font-bold">Booking Requested! ✓</p>
+          <p className="text-xs text-green-300">Your request is pending driver approval. Check <Link href="/bookings" className="underline">My Bookings</Link>.</p>
+        </div>
+      )}
+
+      {/* Sticky primary action */}
+      {isDriver ? (
+        bookings.filter(b => b.bookingStatus === 'confirmed').length > 0 ? (
+          <StickyActionBar>
+            <Link href={`/drive?id=${ride._id}`} className="btn-primary flex-1 flex items-center justify-center min-h-[48px]">
+              🚗 Start Drive Mode
+            </Link>
+          </StickyActionBar>
+        ) : (
+          <StickyActionBar>
+            <Link href="/bookings" className="btn-secondary flex-1 flex items-center justify-center min-h-[48px]">
+              Manage Requests →
+            </Link>
+          </StickyActionBar>
+        )
+      ) : !bookingSuccess ? (
+        <StickyActionBar>
+          <div className="flex-1 flex items-center justify-between text-xs text-[var(--text-secondary)] mr-2">
+            <span>Total</span>
+            <span className="text-[var(--text-primary)] font-extrabold text-base ml-2">
+              {ride.pricePerSeat && ride.pricePerSeat > 0 ? `₹${ride.pricePerSeat * selectedSeatIds.length}` : 'Free'}
+            </span>
+          </div>
+          <button
+            onClick={handleBooking}
+            disabled={isBooking || ride.availableSeats <= 0 || ride.rideStatus !== 'ACTIVE' || !pickupLoc.verified || selectedSeatIds.length === 0}
+            className="btn-primary flex-shrink-0 min-h-[48px] px-6 text-sm disabled:opacity-50"
+          >
+            {isBooking
+              ? 'Processing…'
+              : ride.availableSeats <= 0
+              ? 'Fully Booked'
+              : !pickupLoc.verified
+              ? 'Confirm Pickup'
+              : selectedSeatIds.length === 0
+              ? 'Select a Seat'
+              : 'Request Booking'}
+          </button>
+        </StickyActionBar>
+      ) : null}
+    </div>
+    </>
   );
 };
 

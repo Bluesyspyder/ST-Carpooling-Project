@@ -4,13 +4,18 @@ import { useState, useEffect } from 'react';
 
 import api from '@/services/api';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
+import { avatarClasses } from '@/lib/genderTheme';
+import { useAuth } from '@/hooks/useAuth';
+import PillInput from '@/components/mobile/PillInput';
 
 const SearchRide = () => {
+  const { user } = useAuth();
   const [filters, setFilters] = useState({
     pickupArea: '',
     driverName: '',
     journeyDate: '',
     seats: 1,
+    femaleOnly: false,
   });
   const [pickupLocation, setPickupLocation] = useState(null);
   const [rides, setRides] = useState([]);
@@ -33,6 +38,7 @@ const SearchRide = () => {
       if (filters.driverName) params.driverName = filters.driverName;
       if (filters.journeyDate) params.journeyDate = filters.journeyDate;
       if (filters.seats > 1) params.seats = filters.seats;
+      if (user?.gender === 'F' && filters.femaleOnly) params.femaleOnly = true;
 
       const response = await api.get('/rides', { params });
       setRides(response.data.data.rides || []);
@@ -47,7 +53,7 @@ const SearchRide = () => {
   useEffect(() => {
     fetchRides();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run on mount
+  }, [filters.femaleOnly]); // Run on mount + when the female-only filter toggles
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -61,7 +67,9 @@ const SearchRide = () => {
   const inputClass = "form-input block w-full px-4 py-2.5 text-sm";
 
   return (
-    <div className="min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
+    <>
+    {/* ═══════════ DESKTOP / BROWSER LAYOUT (unchanged) ═══════════ */}
+    <div className="hidden lg:block min-h-[calc(100vh-73px)] relative py-8 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-[1500px] mx-auto space-y-8">
         <div className="glass-panel p-6 sm:p-8 rounded-[2rem] shadow-2xl relative overflow-hidden mb-8 border-none bg-gradient-to-br from-[var(--bg-surface)] to-[var(--bg-base)]">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--primary-base)] to-[var(--secondary-base)]"></div>
@@ -131,6 +139,18 @@ const SearchRide = () => {
                 {loading ? 'SEARCHING...' : 'SEARCH'}
               </button>
             </div>
+
+            {user?.gender === 'F' && (
+              <label className="inline-flex items-center gap-2 text-xs font-semibold text-pink-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.femaleOnly}
+                  onChange={(e) => setFilters({ ...filters, femaleOnly: e.target.checked })}
+                  className="rounded accent-pink-500"
+                />
+                🚺 Show only Women-Only rides
+              </label>
+            )}
           </form>
         </div>
 
@@ -143,7 +163,7 @@ const SearchRide = () => {
             </div>
           ) : error ? (
             <div className="text-center py-12 text-red-500 glass-panel border-red-500/50 uppercase tracking-widest font-bold">
-              ⚠ Unable to fetch telemetry. Connection failure.
+              ⚠ Unable to fetch rides. Connection failure.
             </div>
           ) : rides.length > 0 ? (
             <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -156,7 +176,7 @@ const SearchRide = () => {
                     {/* Header: Driver + Status */}
                     <div className="flex justify-between items-start mb-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center text-sm font-bold text-emerald-600 dark:text-emerald-400 flex-shrink-0 uppercase">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 uppercase border ${avatarClasses(ride.driver?.gender)}`}>
                           {ride.driver?.firstName?.[0]}{ride.driver?.lastName?.[0]}
                         </div>
                         <div>
@@ -166,10 +186,15 @@ const SearchRide = () => {
                           <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">★ {ride.driver?.averageRating?.toFixed(1) || '5.0'}</p>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex flex-col items-end gap-1.5">
                         <span className="px-2 py-0.5 text-[10px] font-bold tracking-widest bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] rounded-sm uppercase">
                           {ride.rideStatus}
                         </span>
+                        {ride.femaleOnly && (
+                          <span className="px-2 py-0.5 text-[10px] font-bold tracking-widest bg-pink-500/10 text-pink-400 border border-pink-500/20 rounded-sm uppercase">
+                            🚺 Women Only
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -192,7 +217,7 @@ const SearchRide = () => {
                       <div className="flex items-start gap-3">
                         <div className="mt-1 flex flex-col items-center">
                           <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
-                          <div className="w-px h-5 bg-slate-300 dark:bg-slate-700/50 my-0.5"></div>
+                          <div className="w-px h-5 bg-slate-300 dark:bg-[var(--bg-surface-hover)]/50 my-0.5"></div>
                         </div>
                         <div>
                           <p className="text-[10px] text-[var(--text-muted)] font-semibold uppercase">Pickup</p>
@@ -231,14 +256,104 @@ const SearchRide = () => {
             </div>
           ) : (
             <div className="text-center py-16 text-[var(--text-secondary)] glass-panel flex flex-col items-center shadow-md shadow-[var(--border-glow)]">
-              <span className="text-4xl mb-3 opacity-50">📡</span>
-              <p className="text-sm font-bold uppercase tracking-widest text-[var(--text-primary)]">No active telemetry found</p>
-              <p className="text-[10px] mt-1 max-w-md uppercase tracking-wider font-bold">Adjust sensors or check back later.</p>
+              <span className="text-4xl mb-3 opacity-50">🚗</span>
+              <p className="text-sm font-bold uppercase tracking-widest text-[var(--text-primary)]">No active rides found</p>
+              <p className="text-[10px] mt-1 max-w-md uppercase tracking-wider font-bold">Adjust search criteria or check back later.</p>
             </div>
           )}
         </div>
       </div>
     </div>
+
+    {/* ═══════════ MOBILE LAYOUT ═══════════ */}
+    <div className="lg:hidden min-h-[calc(100vh-73px)] relative">
+      <div className="sticky top-0 z-20 safe-top bg-[var(--bg-base)]/95 backdrop-blur-xl border-b border-[var(--border-subtle)] px-4 py-3 space-y-3">
+        <h1 className="text-lg font-bold text-[var(--text-primary)]">Find a Ride</h1>
+        <form onSubmit={handleSearch} className="space-y-3">
+          <PillInput
+            icon={<span>📍</span>}
+            placeholder="Pickup area"
+            value={pickupLocation?.address || filters.pickupArea}
+            onChange={(e) => setFilters({ ...filters, pickupArea: e.target.value })}
+          />
+          <div className="flex gap-2 overflow-x-auto -mx-4 px-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+            <input
+              type="date"
+              name="journeyDate"
+              value={filters.journeyDate}
+              onChange={handleChange}
+              className="flex-shrink-0 min-h-[44px] px-4 rounded-full bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)]"
+            />
+            <input
+              type="number"
+              name="seats"
+              min="1"
+              max="8"
+              value={filters.seats}
+              onChange={handleChange}
+              aria-label="Required seats"
+              className="flex-shrink-0 w-20 min-h-[44px] px-4 rounded-full bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)]"
+            />
+            {user?.gender === 'F' && (
+              <button
+                type="button"
+                onClick={() => setFilters({ ...filters, femaleOnly: !filters.femaleOnly })}
+                className={`flex-shrink-0 min-h-[44px] px-4 rounded-full border text-xs font-semibold whitespace-nowrap ${filters.femaleOnly ? 'bg-pink-500/15 text-pink-400 border-pink-500/30' : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)]'}`}
+              >
+                🚺 Women Only
+              </button>
+            )}
+            <button type="submit" disabled={loading} className="flex-shrink-0 btn-primary min-h-[44px] px-6 text-xs disabled:opacity-50">
+              {loading ? '...' : 'Search'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="px-4 py-4 space-y-3">
+        {loading ? (
+          <div className="text-center py-12 text-[var(--text-secondary)] glass-panel font-bold text-sm">
+            <div className="w-5 h-5 border-2 border-[var(--primary-base)] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            Scanning transit grids...
+          </div>
+        ) : error ? (
+          <div className="text-center py-12 text-red-500 glass-panel text-sm">⚠ Unable to fetch rides.</div>
+        ) : rides.length > 0 ? (
+          rides.map((ride) => (
+            <Link
+              key={ride._id}
+              href={`/ride-details?id=${ride._id}`}
+              className="flex items-center gap-3 min-h-[44px] p-4 glass-panel"
+            >
+              <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 uppercase border ${avatarClasses(ride.driver?.gender)}`}>
+                {ride.driver?.firstName?.[0]}{ride.driver?.lastName?.[0]}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                  {ride.pickupLocation?.address?.split(',')[0]} → {ride.destinationLocation?.address?.split(',')[0]}
+                </p>
+                <p className="text-xs text-[var(--text-secondary)] truncate">
+                  {ride.driver?.firstName} {ride.driver?.lastName} · {new Date(ride.journeyDate).toLocaleDateString()} {ride.journeyTime}
+                </p>
+                {ride.femaleOnly && (
+                  <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-bold bg-pink-500/10 text-pink-400 border border-pink-500/20 rounded-full uppercase">Women Only</span>
+                )}
+              </div>
+              <div className="text-right flex-shrink-0">
+                <p className="text-sm font-bold text-emerald-500">{ride.availableSeats} seats</p>
+                <p className="text-[10px] text-[var(--text-muted)]">{ride.routeDistance ? `${ride.routeDistance.toFixed(1)} km` : ''}</p>
+              </div>
+            </Link>
+          ))
+        ) : (
+          <div className="text-center py-16 text-[var(--text-secondary)] glass-panel flex flex-col items-center">
+            <span className="text-4xl mb-3 opacity-50">🚗</span>
+            <p className="text-sm font-bold uppercase tracking-widest text-[var(--text-primary)]">No active rides found</p>
+          </div>
+        )}
+      </div>
+    </div>
+    </>
   );
 };
 
