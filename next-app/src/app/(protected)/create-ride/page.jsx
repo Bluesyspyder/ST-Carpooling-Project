@@ -7,6 +7,7 @@ import api from '@/services/api';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import RouteMap from '@/components/RouteMap';
 import SeatMap from '@/components/SeatMap';
+import { generateSeatLayout } from '@/shared/utils/seatLayout';
 import useCurrentLocation from '@/hooks/useCurrentLocation';
 import { fetchSavedAddresses } from '@/services/locationService';
 import { useProfileGuard } from '@/hooks/useProfileGuard';
@@ -365,18 +366,16 @@ const CreateRide = () => {
                   <p className="text-[10px] text-slate-400 mb-3">Select seats you want to reserve for yourself or keep empty.</p>
                   <div className="flex justify-center scale-90 origin-top">
                     <SeatMap 
-                      totalSeats={selectedVehicle.seatCount}
-                      selectedSeats={selectedSeats}
-                      onSeatToggle={(seatId) => {
+                      layout={generateSeatLayout(selectedVehicle.seatCount)}
+                      selectedSeatIds={selectedSeats}
+                      onToggleSeat={(seatId) => {
                         setSelectedSeats(prev => 
                           prev.includes(seatId) 
                             ? prev.filter(s => s !== seatId) 
                             : [...prev, seatId]
                         );
                       }}
-                      bookedSeats={[]} // None booked yet
-                      driverSeatId="driver"
-                      isDriverView={true}
+                      mode="offer"
                     />
                   </div>
                 </div>
