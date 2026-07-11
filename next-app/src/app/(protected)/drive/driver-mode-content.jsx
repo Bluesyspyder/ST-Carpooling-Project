@@ -41,16 +41,19 @@ export default function DriverModeContent() {
   const pickedUpRef = useRef(new Set());
   
   // Custom marker for Driver Car
-  const carIcon = typeof window !== 'undefined' ? new L.Icon({
-    iconUrl: 'https://cdn-icons-png.flaticon.com/512/3204/3204018.png',
+  const carIcon = typeof window !== 'undefined' ? new L.DivIcon({
+    className: 'bg-transparent',
+    html: `<div style="display:flex; align-items:center; justify-content:center; width: 40px; height: 40px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5);">
+      <svg viewBox="0 0 24 24" fill="#10b981" style="width: 24px; height: 24px; transform: rotate(-45deg);"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </div>`,
     iconSize: [40, 40],
     iconAnchor: [20, 20],
   }) : null;
 
   const getDemoCarIcon = (statusMsg) => typeof window !== 'undefined' ? new L.DivIcon({
     className: 'bg-transparent',
-    html: `<div class="bg-slate-800 text-amber-500 px-3 py-1.5 rounded-full text-sm font-bold border border-slate-700 shadow-lg flex items-center gap-2 whitespace-nowrap" style="transform: translate(-50%, -100%); margin-top: 10px;">
-      🚙 ${statusMsg}
+    html: `<div class="bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-full text-sm font-bold border border-slate-700 shadow-lg flex items-center gap-2 whitespace-nowrap" style="transform: translate(-50%, -100%); margin-top: 10px;">
+      <svg viewBox="0 0 24 24" fill="#10b981" style="width: 16px; height: 16px; transform: rotate(-45deg);"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg> ${statusMsg}
     </div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
@@ -255,11 +258,18 @@ export default function DriverModeContent() {
          const dLat = b.pickupLocation.latitude - loc.lat;
          const dLng = b.pickupLocation.longitude - loc.lng;
          const dist = Math.sqrt(dLat*dLat + dLng*dLng);
-         return dist < 0.002; // approx 200m
+         return dist < 0.02; // Increased radius to ensure fast-moving demo car doesn't jump over it
       });
 
       if (nearbyPassenger) {
          pickedUpRef.current.add(nearbyPassenger._id);
+         
+         // Snap car exactly to passenger location for the visual wait
+         setCurrentLocation({
+             lat: nearbyPassenger.pickupLocation.latitude,
+             lng: nearbyPassenger.pickupLocation.longitude
+         });
+         
          setDemoStatus(`Waiting for ${nearbyPassenger.passenger?.firstName || 'Passenger'}...`);
          clearInterval(demoIntervalRef.current);
          setTimeout(() => {
@@ -268,7 +278,7 @@ export default function DriverModeContent() {
          }, 4000); // Wait 4 seconds
       } else {
          // Calculate next step
-         currentIndex += Math.max(5, Math.floor(routePath.length / 50)); // Faster speed
+         currentIndex += Math.max(1, Math.floor(routePath.length / 200)); // Slower speed
       }
     };
 
