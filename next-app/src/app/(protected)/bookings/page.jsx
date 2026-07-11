@@ -290,7 +290,7 @@ const Bookings = () => {
                       </span>
                     </div>
                     <h3 className="text-xl font-bold text-[var(--text-primary)] tracking-wide">
-                      {booking.ride?.source} <span className="text-[var(--text-secondary)] mx-1">→</span> {booking.ride?.destination}
+                      {booking.ride?.pickupLocation?.address?.split(',')[0] || booking.ride?.source || 'Start'} <span className="text-[var(--text-secondary)] mx-1">→</span> {booking.ride?.destinationLocation?.address?.split(',')[0] || booking.ride?.destination || 'Destination'}
                     </h3>
                     <p className="text-[10px] text-[var(--primary-base)] font-bold tracking-widest uppercase mt-2">
                       DEP: {booking.ride?.journeyDate ? `${new Date(booking.ride.journeyDate).toLocaleDateString('en-US', { dateStyle: 'short' })} ${booking.ride.journeyTime}` : booking.ride?.departureTime ? new Date(booking.ride.departureTime).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }) : 'TBD'}
@@ -351,11 +351,11 @@ const Bookings = () => {
                   ) : (
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-sm border flex items-center justify-center text-[10px] font-bold uppercase ${avatarClasses(booking.passenger?.gender)}`}>
-                        {booking.passenger?.firstName?.[0]}{booking.passenger?.lastName?.[0]}
+                        {booking.passenger?.firstName?.[0] || 'U'}{booking.passenger?.lastName?.[0] || ''}
                       </div>
                       <div>
                         <p className="text-[var(--text-primary)] font-bold text-[10px] flex items-center gap-2 uppercase tracking-widest">
-                          Co-Rider: {booking.passenger?.firstName} {booking.passenger?.lastName}
+                          Co-Rider: {booking.passenger?.firstName || 'Unknown'} {booking.passenger?.lastName || ''}
                         </p>
                         <p className="text-[10px] text-[var(--text-muted)] mb-1 uppercase">LOC: {booking.pickupLocation?.address}</p>
                         
@@ -588,7 +588,7 @@ const Bookings = () => {
                 <>
                   <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">TKT-{booking._id.slice(-6).toUpperCase()}</p>
                   <h3 className="text-base font-bold text-[var(--text-primary)] truncate">
-                    {booking.ride?.source} → {booking.ride?.destination}
+                    {booking.ride?.pickupLocation?.address?.split(',')[0] || booking.ride?.source || 'Start'} → {booking.ride?.destinationLocation?.address?.split(',')[0] || booking.ride?.destination || 'Destination'}
                   </h3>
                 </>
               }
@@ -598,9 +598,9 @@ const Bookings = () => {
                     DEP: {booking.ride?.journeyDate ? `${new Date(booking.ride.journeyDate).toLocaleDateString('en-US', { dateStyle: 'short' })} ${booking.ride.journeyTime}` : 'TBD'}
                   </p>
                   {roleMode === 'passenger' ? (
-                    <p className="text-[var(--text-secondary)]">Rider: {booking.ride?.driver?.firstName} {booking.ride?.driver?.lastName}</p>
+                    <p className="text-[var(--text-secondary)]">Rider: {booking.ride?.driver?.firstName || 'Unknown'} {booking.ride?.driver?.lastName || ''}</p>
                   ) : (
-                    <p className="text-[var(--text-secondary)]">Co-Rider: {booking.passenger?.firstName} {booking.passenger?.lastName}</p>
+                    <p className="text-[var(--text-secondary)]">Co-Rider: {booking.passenger?.firstName || 'Unknown'} {booking.passenger?.lastName || ''}</p>
                   )}
                   <div className="flex items-center gap-2 pt-1">
                     {roleMode === 'passenger' && (booking.bookingStatus === 'pending' || booking.bookingStatus === 'confirmed') && (

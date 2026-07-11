@@ -56,6 +56,13 @@ export default function DriverModeContent() {
     iconAnchor: [0, 0],
   }) : null;
 
+  const passengerIcon = typeof window !== 'undefined' ? new L.DivIcon({
+    className: 'bg-transparent',
+    html: `<div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg text-lg">🧍</div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  }) : null;
+
   useEffect(() => {
     const fetchRide = async () => {
       try {
@@ -76,7 +83,22 @@ export default function DriverModeContent() {
             origin: { latitude: rideData.pickupLocation.latitude, longitude: rideData.pickupLocation.longitude },
             destination: { latitude: rideData.destinationLocation.latitude, longitude: rideData.destinationLocation.longitude }
           });
-          setRoutePath(routeRes.data.data.routePath);
+          
+          let finalRoute = [...routeRes.data.data.routePath];
+          
+          // Inject passenger pickup locations into the demo route so the car drives to them
+          const bookingsList = res.data.data.bookings || [];
+          if (bookingsList.length > 0) {
+             const midIndex = Math.floor(finalRoute.length / 2);
+             const stops = bookingsList.map(b => ({
+                 lat: b.pickupLocation.latitude, 
+                 lng: b.pickupLocation.longitude 
+             }));
+             // Insert stops into the middle of the route
+             finalRoute.splice(midIndex, 0, ...stops);
+          }
+          
+          setRoutePath(finalRoute);
         } catch (err) {
           console.error('Failed to fetch route for demo/display:', err);
         }
@@ -403,7 +425,7 @@ export default function DriverModeContent() {
             </Marker>
             {/* Passenger Pickups */}
             {bookings.map(booking => (
-              <Marker key={booking._id} position={[booking.pickupLocation.latitude, booking.pickupLocation.longitude]}>
+              <Marker key={booking._id} position={[booking.pickupLocation.latitude, booking.pickupLocation.longitude]} icon={passengerIcon}>
                 <Popup>Passenger: {booking.passenger?.firstName || 'Unknown'} (Status: {booking.bookingStatus})</Popup>
               </Marker>
             ))}
