@@ -288,22 +288,22 @@ export default function DriverModeContent() {
     };
   }, []);
 
-  if (loading) return <div className="p-6 text-[var(--text-primary)]">Loading Driver Mode...</div>;
+  if (loading) return <div className="p-6 text-slate-300">Loading Driver Mode...</div>;
   if (error) return <div className="p-6 text-red-400 font-bold">{error}</div>;
 
   return (
-    <div className="flex flex-col h-screen bg-[var(--bg-default)] text-[var(--text-primary)]">
-      <div className="p-4 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] flex flex-col md:flex-row justify-between items-start md:items-center z-10 shadow-lg gap-4">
+    <div className="flex flex-col h-screen bg-slate-950 text-slate-200">
+      <div className="p-4 bg-slate-900 border-b border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center z-10 shadow-lg gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-[var(--text-primary)]">Driver Mode</h1>
+            <h1 className="text-xl font-bold text-white">Driver Mode</h1>
             {isDemo && (
               <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-900/50 border border-amber-700 text-amber-500 uppercase tracking-widest flex items-center gap-1">
                 🎥 Demo
               </span>
             )}
           </div>
-          <p className="text-xs text-[var(--text-secondary)]">
+          <p className="text-xs text-slate-400">
             Ride #{id.substring(0, 6)} · ACTIVE
             {isDemo && <span className="text-amber-500 font-bold ml-2">[DRIVING TO PICKUP]</span>}
           </p>
@@ -314,7 +314,7 @@ export default function DriverModeContent() {
               {!isDriving && (
                 <button 
                   onClick={startDemo}
-                  className="text-sm px-4 py-2 bg-[var(--bg-surface-hover)] border border-[var(--border-default)] rounded-lg hover:bg-[var(--bg-surface)] flex items-center gap-2 transition"
+                  className="text-sm px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700 text-white flex items-center gap-2 transition"
                 >
                   🎥 Demo Mode
                 </button>
@@ -341,7 +341,7 @@ export default function DriverModeContent() {
           )}
           <button 
             onClick={() => router.back()}
-            className="text-sm px-4 py-2 bg-[var(--bg-surface-hover)] border border-[var(--border-default)] rounded-lg hover:bg-[var(--bg-surface)] transition"
+            className="text-sm px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700 text-white transition"
           >
             Exit
           </button>
@@ -357,7 +357,8 @@ export default function DriverModeContent() {
             zoomControl={false}
           >
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              url={`https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/{z}/{x}/{y}.png?api_key=${process.env.NEXT_PUBLIC_OLA_MAPS_API_KEY}`}
+              attribution="© Ola Maps"
             />
             {currentLocation && (
               <Marker position={[currentLocation.lat, currentLocation.lng]} icon={isDemo ? demoCarIcon : carIcon}>
@@ -376,19 +377,18 @@ export default function DriverModeContent() {
           </MapContainer>
         )}
         
-        {/* Overlay Controls */}
         <div className="absolute bottom-6 left-0 right-0 px-6 z-10 flex flex-col gap-4">
           {!isDriving ? (
             <button 
               onClick={startDriving}
-              className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-[var(--text-primary)] rounded-2xl font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+              className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)]"
             >
               Start Driving & Broadcasting
             </button>
           ) : isDemo ? (
             <button 
               onClick={stopDriving}
-              className="w-full py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[var(--text-primary)] rounded-2xl font-bold text-lg shadow-lg"
+              className="w-full py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white rounded-2xl font-bold text-lg shadow-lg"
             >
               ✕ Stop Demo
             </button>
@@ -402,7 +402,7 @@ export default function DriverModeContent() {
               </button>
               <button 
                 onClick={stopDriving}
-                className="w-full py-3 bg-[var(--bg-surface-hover)] hover:bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl font-bold text-lg"
+                className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl font-bold text-lg"
               >
                 Stop Broadcasting
               </button>
