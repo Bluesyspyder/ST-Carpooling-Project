@@ -32,10 +32,13 @@ export default function DriverModeContent() {
   const [isDemo, setIsDemo] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [routePath, setRoutePath] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [demoStatus, setDemoStatus] = useState('Driving to pickup...');
   
   const socketRef = useRef(null);
   const watchIdRef = useRef(null);
   const demoIntervalRef = useRef(null);
+  const pickedUpRef = useRef(new Set());
   
   // Custom marker for Driver Car
   const carIcon = typeof window !== 'undefined' ? new L.Icon({
@@ -44,10 +47,10 @@ export default function DriverModeContent() {
     iconAnchor: [20, 20],
   }) : null;
 
-  const demoCarIcon = typeof window !== 'undefined' ? new L.DivIcon({
+  const getDemoCarIcon = (statusMsg) => typeof window !== 'undefined' ? new L.DivIcon({
     className: 'bg-transparent',
-    html: `<div class="bg-[var(--bg-surface-hover)] text-[var(--brand-primary)] px-3 py-1.5 rounded-full text-sm font-bold border border-[var(--border-default)] shadow-lg flex items-center gap-2 whitespace-nowrap" style="transform: translate(-50%, -100%); margin-top: 10px;">
-      🚙 Driving to pickup...
+    html: `<div class="bg-slate-800 text-amber-500 px-3 py-1.5 rounded-full text-sm font-bold border border-slate-700 shadow-lg flex items-center gap-2 whitespace-nowrap" style="transform: translate(-50%, -100%); margin-top: 10px;">
+      🚙 ${statusMsg}
     </div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
@@ -65,6 +68,7 @@ export default function DriverModeContent() {
           return;
         }
         setRide(rideData);
+        setBookings(res.data.data.bookings || []);
         
         // Fetch route path for Demo Mode and Map display
         try {
@@ -183,6 +187,8 @@ export default function DriverModeContent() {
     
     setIsDriving(true);
     setIsDemo(true);
+    setDemoStatus('Driving to pickup...');
+    pickedUpRef.current = new Set();
     let currentIndex = 0;
     
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
@@ -193,9 +199,11 @@ export default function DriverModeContent() {
       socketRef.current.emit('join_ride', id);
     });
 
-    demoIntervalRef.current = setInterval(() => {
+    const stepDemo = () => {
       if (currentIndex >= routePath.length) {
         clearInterval(demoIntervalRef.current);
+        demoIntervalRef.current = null;
+        setDemoStatus('Arrived at destination');
         return;
       }
       
@@ -218,9 +226,31 @@ export default function DriverModeContent() {
          });
       }
       
-      // Calculate next step
-      currentIndex += Math.max(5, Math.floor(routePath.length / 50)); // Faster speed
-    }, 100); // 100ms interval for very fast demo simulation
+      // Check for passenger pickups
+      const activeBookings = bookings.filter(b => b.bookingStatus === 'confirmed' || b.bookingStatus === 'pending' || b.bookingStatus === 'waitlisted');
+      const nearbyPassenger = activeBookings.find(b => {
+         if (pickedUpRef.current.has(b._id)) return false;
+         const dLat = b.pickupLocation.latitude - loc.lat;
+         const dLng = b.pickupLocation.longitude - loc.lng;
+         const dist = Math.sqrt(dLat*dLat + dLng*dLng);
+         return dist < 0.002; // approx 200m
+      });
+
+      if (nearbyPassenger) {
+         pickedUpRef.current.add(nearbyPassenger._id);
+         setDemoStatus(`Waiting for ${nearbyPassenger.passenger?.firstName || 'Passenger'}...`);
+         clearInterval(demoIntervalRef.current);
+         setTimeout(() => {
+             setDemoStatus('Driving to destination...');
+             demoIntervalRef.current = setInterval(stepDemo, 100);
+         }, 4000); // Wait 4 seconds
+      } else {
+         // Calculate next step
+         currentIndex += Math.max(5, Math.floor(routePath.length / 50)); // Faster speed
+      }
+    };
+
+    demoIntervalRef.current = setInterval(stepDemo, 100);
   };
 
   const stopDriving = async () => {
@@ -305,7 +335,7 @@ export default function DriverModeContent() {
           </div>
           <p className="text-xs text-slate-400">
             Ride #{id.substring(0, 6)} · ACTIVE
-            {isDemo && <span className="text-amber-500 font-bold ml-2">[DRIVING TO PICKUP]</span>}
+            {isDemo && <span className="text-amber-500 font-bold ml-2">[{demoStatus.toUpperCase()}]</span>}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -361,7 +391,7 @@ export default function DriverModeContent() {
               attribution="© Ola Maps"
             />
             {currentLocation && (
-              <Marker position={[currentLocation.lat, currentLocation.lng]} icon={isDemo ? demoCarIcon : carIcon}>
+              <Marker position={[currentLocation.lat, currentLocation.lng]} icon={isDemo ? getDemoCarIcon(demoStatus) : carIcon}>
                 <Popup>Your Car</Popup>
               </Marker>
             )}
@@ -371,6 +401,12 @@ export default function DriverModeContent() {
             <Marker position={[ride.destinationLocation.latitude, ride.destinationLocation.longitude]}>
               <Popup>End</Popup>
             </Marker>
+            {/* Passenger Pickups */}
+            {bookings.map(booking => (
+              <Marker key={booking._id} position={[booking.pickupLocation.latitude, booking.pickupLocation.longitude]}>
+                <Popup>Passenger: {booking.passenger?.firstName || 'Unknown'} (Status: {booking.bookingStatus})</Popup>
+              </Marker>
+            ))}
             {routePath && (
               <Polyline positions={routePath} color={isDemo ? "#10b981" : "#3b82f6"} weight={6} opacity={0.8} />
             )}
