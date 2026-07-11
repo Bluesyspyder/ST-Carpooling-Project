@@ -488,7 +488,8 @@ const RideDetails = () => {
       console.error('[RideDetails] Booking request failed:', err);
       console.error('[RideDetails] Error data:', err.response?.data);
       
-      setBookingError(errMsg);
+      const errorMessage = err.response?.data?.message || err.message || 'Booking failed';
+      setBookingError(errorMessage);
       setIsBooking(false);
     }
   };

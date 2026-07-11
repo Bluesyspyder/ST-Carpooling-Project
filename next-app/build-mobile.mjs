@@ -11,6 +11,12 @@ try {
     console.log('Temporarily hiding API routes for mobile export...');
   }
   
+  // Clear the Next.js cache so it doesn't crash looking for the old API routes
+  if (fs.existsSync('./.next')) {
+    fs.rmSync('./.next', { recursive: true, force: true });
+    console.log('Cleared Next.js cache.');
+  }
+
   // 2. Run the static export build
   execSync('npx cross-env BUILD_MODE=export next build', { stdio: 'inherit' });
   
