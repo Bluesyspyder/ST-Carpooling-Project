@@ -52,8 +52,13 @@ export default function DriverModeContent() {
 
   const getDemoCarIcon = (statusMsg) => typeof window !== 'undefined' ? new L.DivIcon({
     className: 'bg-transparent',
-    html: `<div class="bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-full text-sm font-bold border border-slate-700 shadow-lg flex items-center gap-2 whitespace-nowrap" style="transform: translate(-50%, -100%); margin-top: 10px;">
-      <svg viewBox="0 0 24 24" fill="#10b981" style="width: 16px; height: 16px; transform: rotate(-45deg);"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg> ${statusMsg}
+    html: `<div style="position: relative;">
+      <div style="display:flex; align-items:center; justify-content:center; width: 40px; height: 40px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5); position: absolute; top: -20px; left: -20px;">
+        <svg viewBox="0 0 24 24" fill="#10b981" style="width: 24px; height: 24px; transform: rotate(-45deg);"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </div>
+      <div class="bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-full text-sm font-bold border border-slate-700 shadow-lg flex items-center gap-2 whitespace-nowrap" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);">
+        ${statusMsg}
+      </div>
     </div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
@@ -82,26 +87,28 @@ export default function DriverModeContent() {
         
         // Fetch route path for Demo Mode and Map display
         try {
-          const routeRes = await api.post('/routes/calculate', {
-            origin: { latitude: rideData.pickupLocation.latitude, longitude: rideData.pickupLocation.longitude },
-            destination: { latitude: rideData.destinationLocation.latitude, longitude: rideData.destinationLocation.longitude }
-          });
-          
-          let finalRoute = [...routeRes.data.data.routePath];
-          
-          // Inject passenger pickup locations into the demo route so the car drives to them
           const bookingsList = res.data.data.bookings || [];
+          let waypoints = [];
+          
           if (bookingsList.length > 0) {
-             const midIndex = Math.floor(finalRoute.length / 2);
-             const stops = bookingsList.map(b => ({
-                 lat: b.pickupLocation.latitude, 
-                 lng: b.pickupLocation.longitude 
-             }));
-             // Insert stops into the middle of the route
-             finalRoute.splice(midIndex, 0, ...stops);
+            waypoints = [
+              { latitude: rideData.pickupLocation.latitude, longitude: rideData.pickupLocation.longitude },
+              ...bookingsList.map(b => ({ latitude: b.pickupLocation.latitude, longitude: b.pickupLocation.longitude })),
+              { latitude: rideData.destinationLocation.latitude, longitude: rideData.destinationLocation.longitude }
+            ];
+          }
+
+          let routeRes;
+          if (waypoints.length >= 2) {
+             routeRes = await api.post('/routes/calculate', { waypoints });
+          } else {
+             routeRes = await api.post('/routes/calculate', {
+               origin: { latitude: rideData.pickupLocation.latitude, longitude: rideData.pickupLocation.longitude },
+               destination: { latitude: rideData.destinationLocation.latitude, longitude: rideData.destinationLocation.longitude }
+             });
           }
           
-          setRoutePath(finalRoute);
+          setRoutePath(routeRes.data.data.routePath);
         } catch (err) {
           console.error('Failed to fetch route for demo/display:', err);
         }
