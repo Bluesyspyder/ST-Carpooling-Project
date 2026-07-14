@@ -93,14 +93,24 @@ const Bookings = () => {
   const filterPassengerBookings = (list) => {
     const now = new Date();
     return list.filter(b => {
-      const depTime = new Date(b.ride?.departureTime);
-      const isPast = depTime < now || b.ride?.status === 'completed';
+      let depTime;
+      if (b.ride?.journeyDate && b.ride?.journeyTime) {
+        depTime = new Date(b.ride.journeyDate);
+        const [hours, minutes] = b.ride.journeyTime.split(':');
+        depTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      } else if (b.ride?.departureTime) {
+        depTime = new Date(b.ride.departureTime);
+      } else {
+        depTime = new Date(); // fallback
+      }
+      
+      const isPast = depTime < now || b.ride?.rideStatus === 'COMPLETED';
 
       if (passengerTab === 'upcoming') {
         return b.bookingStatus === 'confirmed' && !isPast;
       }
       if (passengerTab === 'pending') {
-        return b.bookingStatus === 'pending' || b.bookingStatus === 'waitlisted';
+        return (b.bookingStatus === 'pending' || b.bookingStatus === 'waitlisted') && !isPast;
       }
       if (passengerTab === 'completed') {
         return b.bookingStatus === 'confirmed' && isPast;
@@ -115,8 +125,18 @@ const Bookings = () => {
   const filterDriverBookings = (list) => {
     const now = new Date();
     return list.filter(b => {
-      const depTime = new Date(b.ride?.departureTime);
-      const isPast = depTime < now || b.ride?.status === 'completed';
+      let depTime;
+      if (b.ride?.journeyDate && b.ride?.journeyTime) {
+        depTime = new Date(b.ride.journeyDate);
+        const [hours, minutes] = b.ride.journeyTime.split(':');
+        depTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      } else if (b.ride?.departureTime) {
+        depTime = new Date(b.ride.departureTime);
+      } else {
+        depTime = new Date(); // fallback
+      }
+      
+      const isPast = depTime < now || b.ride?.rideStatus === 'COMPLETED';
 
       if (driverTab === 'requests') {
         return b.bookingStatus === 'pending' || b.bookingStatus === 'waitlisted';
@@ -128,7 +148,7 @@ const Bookings = () => {
         return b.bookingStatus === 'rejected';
       }
       if (driverTab === 'history') {
-        return isPast || b.ride?.status === 'completed';
+        return isPast || b.ride?.rideStatus === 'COMPLETED';
       }
       return true;
     });

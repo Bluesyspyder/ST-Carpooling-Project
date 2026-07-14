@@ -134,10 +134,19 @@ export const getRides = async (filters = {}) => {
     }
   }
 
-  return await Ride.find(query)
+  const rides = await Ride.find(query)
     .populate('driver', 'firstName lastName profileImage averageRating gender')
     .populate('driverVehicle')
     .sort({ journeyDate: 1, journeyTime: 1 });
+
+  const now = new Date();
+  return rides.filter(ride => {
+    if (!ride.journeyDate || !ride.journeyTime) return true;
+    const rideTime = new Date(ride.journeyDate);
+    const [hh, mm] = ride.journeyTime.split(':');
+    rideTime.setHours(parseInt(hh, 10), parseInt(mm, 10), 0, 0);
+    return rideTime > now;
+  });
 };
 
 export const getRidesByDriver = async (driverId) => {

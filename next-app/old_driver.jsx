@@ -1,0 +1,577 @@
+﻿"use client";
+
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import api, { SOCKET_URL } from '@/services/api';
+import { io } from 'socket.io-client';
+import { Geolocation } from '@capacitor/geolocation';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import useDemoAnimation, { DEMO_STAGES } from '@/hooks/useDemoAnimation';
+
+import DemoCompletionModal from '@/components/DemoCompletionModal';
+
+export default function DriverModeContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
+  const router = useRouter();
+  const { user } = useAuth();
+
+  const [ride, setRide] = useState(null);
+  const [orderedWaypoints, setOrderedWaypoints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [isDriving, setIsDriving] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [currentHeading, setCurrentHeading] = useState(0);
+  const [socketConnected, setSocketConnected] = useState(true);
+  const [statusUpdating, setStatusUpdating] = useState(false);
+  const [staticRoutePolyline, setStaticRoutePolyline] = useState([]);
+
+  // ΓöÇΓöÇ Demo Mode state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [demoStage, setDemoStage] = useState(DEMO_STAGES.IDLE);
+  const [demoCountdown, setDemoCountdown] = useState(null);
+  const [demoResult, setDemoResult] = useState(null);   // result object from onComplete
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+
+  const socketRef = useRef(null);
+  const watchIdRef = useRef(null);
+  const rideRef = useRef(null);
+  const autoCompletingRef = useRef(false);
+
+  // Great-circle distance in km
+  const haversineKm = (lat1, lng1, lat2, lng2) => {
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  // ΓöÇΓöÇ Car icon ΓÇö rotates with heading ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  const buildCarIcon = useCallback((heading = 0) => {
+    if (typeof window === 'undefined') return null;
+    return new L.DivIcon({
+      className: '',
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
+      html: `<div style="
+        width:44px;height:44px;
+        display:flex;align-items:center;justify-content:center;
+        transform: rotate(${heading}deg);
+        transition: transform 0.3s linear;
+        filter: drop-shadow(0 0 6px rgba(16,185,129,0.6));
+      ">
+        <svg viewBox="0 0 40 40" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,4 34,34 20,28 6,34" fill="#10b981" stroke="white" stroke-width="1.5"/>
+        </svg>
+      </div>`,
+    });
+  }, []);
+
+  // Stop marker icons (A=origin, B=pickup, C=via, D=destination)
+  const buildStopIcon = (label, color) => {
+    if (typeof window === 'undefined') return null;
+    return new L.DivIcon({
+      className: '',
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      html: `<div style="
+        width:32px;height:32px;
+        border-radius:50% 50% 50% 0;
+        transform:rotate(-45deg);
+        background:${color};
+        color:#fff;border:2px solid rgba(255,255,255,0.9);
+        display:flex;align-items:center;justify-content:center;
+        font-weight:800;font-size:13px;
+        box-shadow:0 4px 10px rgba(0,0,0,0.4);
+      "><span style="transform:rotate(45deg)">${label}</span></div>`,
+    });
+  };
+
+  // ΓöÇΓöÇ Demo Animation Hook ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  const { stage: animStage, polyline: demoPolyline, start: startDemo, stop: stopDemo } = useDemoAnimation({
+    ride,
+    orderedWaypoints,
+    rideId: id,
+    onLocationUpdate: ({ lat, lng, heading }) => {
+      setCurrentLocation({ lat, lng });
+      setCurrentHeading(heading);
+    },
+    onStageChange: (stage, extra = {}) => {
+      setDemoStage(stage);
+      if (extra.countdown !== undefined) setDemoCountdown(extra.countdown);
+      else setDemoCountdown(null);
+    },
+    onComplete: (result) => {
+      setDemoResult(result);
+      setShowCompletionModal(true);
+      // Refresh ride data so the status badge in the header updates
+      api.get(`/rides/${id}`).then((res) => setRide(res.data.data.ride)).catch(() => {});
+    },
+  });
+
+  useEffect(() => {
+    const fetchRide = async () => {
+      try {
+        const [res, routeRes] = await Promise.all([
+          api.get(`/rides/${id}`),
+          api.get(`/rides/${id}/optimized-route`)
+        ]);
+        const rideData = res.data.data.ride;
+        if (rideData.driver?._id !== user?._id && rideData.driver !== user?._id) {
+          setError('Only the assigned driver can enter Driver Mode.');
+          return;
+        }
+        setRide(rideData);
+        const waypoints = routeRes.data?.data?.orderedWaypoints || [];
+        setOrderedWaypoints(waypoints);
+
+        // Fetch static route polyline for the map view
+        try {
+          const pickup = rideData.pickupLocation;
+          const dest = rideData.destinationLocation;
+          const via = (rideData.viaStops || []).filter((v) => v.latitude && v.longitude);
+          const middle = waypoints.length > 0 ? waypoints.map((w) => [w.lat, w.lng]) : via.map((v) => [v.latitude, v.longitude]);
+          
+          const pts = [
+            [pickup.latitude, pickup.longitude],
+            ...middle,
+            [dest.latitude, dest.longitude],
+          ];
+          
+          const coords = pts.map((p) => `${p[1]},${p[0]}`).join(';');
+          const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
+          const osrmRes = await fetch(url);
+          const osrmData = await osrmRes.json();
+          if (osrmData.routes?.[0]?.geometry?.coordinates) {
+            setStaticRoutePolyline(osrmData.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]));
+          } else {
+            setStaticRoutePolyline(pts); // fallback straight lines
+          }
+        } catch (e) {
+          console.warn('Failed to fetch static route', e);
+        }
+
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load ride');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (user && id) fetchRide();
+  }, [id, user]);
+
+  useEffect(() => {
+    rideRef.current = ride;
+  }, [ride]);
+
+  // ΓöÇΓöÇ Real GPS driving (unchanged) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  const startDriving = async () => {
+    try {
+      const permissions = await Geolocation.checkPermissions();
+      if (permissions.location !== 'granted') {
+        const req = await Geolocation.requestPermissions();
+        if (req.location !== 'granted') {
+          alert('Location permission is required for Live Tracking.');
+          return;
+        }
+      }
+
+      setIsDriving(true);
+      const baseUrl = SOCKET_URL || window.location.origin;
+      socketRef.current = io(baseUrl, {
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 10000,
+      });
+      socketRef.current.on('connect', () => {
+        setSocketConnected(true);
+        // (Re)join the ride room on every (re)connect so location keeps flowing.
+        socketRef.current.emit('join_ride', id);
+      });
+      socketRef.current.on('disconnect', (reason) => {
+        console.warn('[DriverMode] socket disconnected:', reason);
+        setSocketConnected(false);
+      });
+      socketRef.current.on('connect_error', (err) => {
+        console.error('[DriverMode] socket connect_error:', err?.message);
+        setSocketConnected(false);
+      });
+
+      const watchId = await Geolocation.watchPosition(
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+        (position, err) => {
+          if (err) { console.error('GPS Watch Error:', err); return; }
+          if (position) {
+            const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+            setCurrentLocation(loc);
+            setCurrentHeading(position.coords.heading || 0);
+
+            socketRef.current.emit('driver_location_update', {
+              rideId: id, lat: loc.lat, lng: loc.lng,
+              heading: position.coords.heading, speed: position.coords.speed,
+              timestamp: Date.now(),
+            });
+
+            const currentRide = rideRef.current;
+            const dest = currentRide?.destinationLocation;
+            if (currentRide?.rideStatus === 'IN_PROGRESS' && dest?.latitude && dest?.longitude && !autoCompletingRef.current) {
+              const distanceKm = haversineKm(loc.lat, loc.lng, dest.latitude, dest.longitude);
+              if (distanceKm <= 0.15) {
+                autoCompletingRef.current = true;
+                updateRideStatus('COMPLETED', { auto: true });
+              }
+            }
+          }
+        }
+      );
+      watchIdRef.current = watchId;
+    } catch (err) {
+      alert('Could not start GPS tracking: ' + err.message);
+      setIsDriving(false);
+    }
+  };
+
+  const stopDriving = async () => {
+    setIsDriving(false);
+    setSocketConnected(true);
+    if (watchIdRef.current !== null) {
+      await Geolocation.clearWatch({ id: watchIdRef.current });
+      watchIdRef.current = null;
+    }
+    if (socketRef.current) {
+      socketRef.current.emit('leave_ride', id);
+      socketRef.current.disconnect();
+    }
+  };
+
+  // Push a ride-status change to the ride room. The live-tracking socket is torn
+  // down by stopDriving() before we get here (and may never have existed for a
+  // pre-start cancel), so use a short-lived connection to guarantee delivery.
+  const broadcastRideStatus = (status, message) => {
+    try {
+      const baseUrl = SOCKET_URL || window.location.origin;
+      const tmp = io(baseUrl);
+      tmp.on('connect', () => {
+        tmp.emit('ride_status_changed', { rideId: id, status, message });
+        setTimeout(() => tmp.disconnect(), 500);
+      });
+    } catch (err) {
+      console.warn('[DriverMode] failed to broadcast ride status:', err?.message);
+    }
+  };
+
+  const updateRideStatus = async (status, { auto = false } = {}) => {
+    if (statusUpdating) return; // guard against double-clicks / duplicate PATCHes
+    let pin;
+    if (status === 'IN_PROGRESS') {
+      pin = window.prompt("Enter the pickup PIN shown on your passenger's booking to start the ride:");
+      if (pin === null) return;
+      pin = pin.trim();
+      if (!/^\d{4}$/.test(pin)) { alert('The pickup PIN must be exactly 4 digits.'); return; }
+    } else if (!auto) {
+      const confirmMessage =
+        status === 'CANCELLED' ? 'Cancel this ride? All passengers will be notified immediately.'
+        : status === 'COMPLETED' ? 'Mark this ride as completed?'
+        : status === 'FROZEN' ? 'Freeze bookings? No new passengers will be able to book this ride.'
+        : 'Start this ride and begin live GPS tracking?';
+      if (!window.confirm(confirmMessage)) return;
+    }
+    setStatusUpdating(true);
+    try {
+      if (status === 'COMPLETED' || status === 'CANCELLED') await stopDriving();
+      const res = await api.patch(`/rides/${id}/status`, pin ? { status, pin } : { status });
+      setRide(res.data.data.ride);
+      // Notify passengers viewing this ride so their screen updates live instead
+      // of letting them submit a booking against a cancelled/completed "ghost" ride.
+      if (status === 'CANCELLED' || status === 'COMPLETED') {
+        const message = status === 'CANCELLED'
+          ? 'The driver has cancelled this ride.'
+          : 'This ride has been marked as completed.';
+        broadcastRideStatus(status, message);
+      }
+      if (status === 'IN_PROGRESS') await startDriving();
+      return res.data.data.ride;
+    } catch (err) {
+      alert(err.response?.data?.message || `Failed to update ride status.`);
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+
+  const handleSos = () => {
+    if (window.confirm('EMERGENCY: This will immediately alert all passengers and ST Security. Are you sure?')) {
+      const message = 'SOS ALERT: Driver has triggered an emergency panic button. The ride is paused.';
+      if (socketRef.current) socketRef.current.emit('sos_alert', { rideId: id, message, location: currentLocation });
+      api.post('/safety/sos', {
+        rideId: id, triggeredBy: 'driver', message,
+        location: currentLocation ? { latitude: currentLocation.lat, longitude: currentLocation.lng } : null,
+      }).catch((err) => console.warn('[SOS] failed to persist alert:', err?.message));
+      alert('SOS signal dispatched.');
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) Geolocation.clearWatch({ id: watchIdRef.current }).catch(console.error);
+      if (socketRef.current) socketRef.current.disconnect();
+    };
+  }, []);
+
+  if (loading) return <div className="p-6 text-slate-300">Loading Driver Mode...</div>;
+  if (error) return <div className="p-6 text-red-400 font-bold">{error}</div>;
+
+  // Pause stages for the countdown overlay
+  const isPaused = demoStage === DEMO_STAGES.PAUSED_AT_PICKUP || demoStage === DEMO_STAGES.PAUSED_AT_VIA;
+  const isDemoRunning = isDemoMode && demoStage !== DEMO_STAGES.IDLE && demoStage !== DEMO_STAGES.ARRIVED;
+
+  // Generate Map markers
+  const stopMarkers = ride ? [
+    {
+      lat: ride.pickupLocation.latitude,
+      lng: ride.pickupLocation.longitude,
+      label: 'O',
+      color: '#ef4444',
+      popup: 'Origin'
+    },
+    ...orderedWaypoints.map((w, i) => ({
+      lat: w.lat,
+      lng: w.lng,
+      label: `P${i + 1}`,
+      color: '#3b82f6',
+      popup: `Pickup: ${w.passenger.firstName} ${w.passenger.lastName}`
+    })),
+    {
+      lat: ride.destinationLocation.latitude,
+      lng: ride.destinationLocation.longitude,
+      label: 'D',
+      color: '#10b981',
+      popup: 'Destination'
+    },
+  ] : [];
+
+  if (demoResult && showCompletionModal) {
+    return (
+      <div className="min-h-screen bg-[#020617] pt-24 pb-8 text-white flex flex-col relative overflow-hidden items-center justify-center">
+        <DemoCompletionModal
+          isOpen={showCompletionModal}
+          onClose={() => router.push('/drive')}
+          driverCreditsEarned={demoResult.driverCreditsEarned}
+          totalEmissionSavedKg={demoResult.totalEmissionSavedKg}
+          routeDistance={demoResult.routeDistance}
+          vehicleType={demoResult.vehicleType}
+          passengerCount={ride?.bookedSeats || 1}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-screen bg-slate-950 text-slate-200">
+      {/* Header */}
+      <div className="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center z-10 shadow-lg">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white">Driver Mode</h1>
+            {isDemoMode && (
+              <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
+                ≡ƒÄ¼ Demo
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-slate-400">
+            Ride #{id.substring(0, 6)} ┬╖ {ride.rideStatus}
+            {isDemoMode && demoStage !== DEMO_STAGES.IDLE && (
+              <span className="ml-2 text-amber-400">[{demoStage.replace(/_/g, ' ')}]</span>
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* Demo Mode toggle ΓÇö only available before ride starts */}
+          {!isDriving && demoStage === DEMO_STAGES.IDLE && (
+            <button
+              onClick={() => setIsDemoMode((p) => !p)}
+              className={`text-xs px-3 py-2 rounded-lg font-semibold border transition-all ${
+                isDemoMode
+                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-amber-500/30 hover:text-amber-400'
+              }`}
+            >
+              ≡ƒÄ¼ Demo Mode
+            </button>
+          )}
+          {/* Real mode buttons */}
+          {!isDemoMode && (
+            <>
+              {(ride.rideStatus === 'ACTIVE' || ride.rideStatus === 'FULL') && (
+                <button onClick={() => updateRideStatus('FROZEN')} disabled={statusUpdating} className="text-sm px-3 py-2 bg-sky-700 rounded-lg hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                  Freeze Bookings
+                </button>
+              )}
+              {ride.rideStatus === 'FROZEN' && (
+                <button onClick={() => updateRideStatus('IN_PROGRESS')} disabled={statusUpdating} className="text-sm px-3 py-2 bg-indigo-700 rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                  Start Ride
+                </button>
+              )}
+              {['ACTIVE', 'FULL', 'FROZEN', 'IN_PROGRESS'].includes(ride.rideStatus) && (
+                <>
+                  <button onClick={() => updateRideStatus('COMPLETED')} disabled={statusUpdating} className="text-sm px-3 py-2 bg-emerald-700 rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed">{statusUpdating ? 'WorkingΓÇª' : 'Complete Ride'}</button>
+                  <button onClick={() => updateRideStatus('CANCELLED')} disabled={statusUpdating} className="text-sm px-3 py-2 bg-red-700 rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed">Cancel Ride</button>
+                </>
+              )}
+            </>
+          )}
+          <button onClick={() => router.back()} className="text-sm px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700">Exit</button>
+        </div>
+      </div>
+
+      {/* Live-tracking connection warning ΓÇö location broadcasting is paused while disconnected */}
+      {isDriving && !socketConnected && (
+        <div className="px-4 py-2 bg-amber-500/15 border-b border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center gap-2 z-10">
+          <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          Reconnecting to live trackingΓÇª passengers may not see your location until this clears.
+        </div>
+      )}
+
+      {/* Map */}
+      <div className="flex-1 relative">
+        {typeof window !== 'undefined' && ride.pickupLocation?.latitude && (
+          <MapContainer
+            center={currentLocation || [ride.pickupLocation.latitude, ride.pickupLocation.longitude]}
+            zoom={15}
+            className="w-full h-full z-0"
+            zoomControl={false}
+          >
+            <TileLayer url={`https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/{z}/{x}/{y}.png?api_key=${process.env.NEXT_PUBLIC_OLA_MAPS_API_KEY}`} />
+
+            {/* Moving car marker */}
+            {currentLocation && (
+              <Marker position={[currentLocation.lat, currentLocation.lng]} icon={buildCarIcon(currentHeading)}>
+                <Popup>{isDemoMode ? '≡ƒÄ¼ Demo Car' : 'Your Car'}</Popup>
+              </Marker>
+            )}
+
+            {/* Route polyline (Real mode uses static route, Demo uses animated route) */}
+            {(isDemoMode ? demoPolyline : staticRoutePolyline).length > 1 && (
+              <Polyline
+                positions={isDemoMode ? demoPolyline : staticRoutePolyline}
+                pathOptions={{ color: '#10b981', weight: 4, opacity: 0.7, dashArray: isDemoMode ? '8 4' : undefined }}
+              />
+            )}
+
+            {/* Stop markers (Origin, Pickups, Destination) */}
+            {stopMarkers.map((sm, i) => (
+              <Marker key={i} position={[sm.lat, sm.lng]} icon={buildStopIcon(sm.label, sm.color)}>
+                <Popup>{sm.popup}</Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        )}
+
+        {/* ΓöÇΓöÇ Demo pause overlay ΓöÇΓöÇ */}
+        {isDemoMode && isPaused && (
+          <div
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-white shadow-lg"
+            style={{
+              background: 'rgba(15,23,42,0.9)',
+              border: '1px solid rgba(245,158,11,0.4)',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            <span className="text-amber-400 animate-pulse">≡ƒÜù</span>
+            Picking up passengerΓÇª
+            {demoCountdown !== null && (
+              <span className="ml-1 bg-amber-500 text-black rounded-full w-7 h-7 flex items-center justify-center text-xs font-black">
+                {demoCountdown}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* ΓöÇΓöÇ Demo stage banner ΓöÇΓöÇ */}
+        {isDemoMode && !isPaused && demoStage !== DEMO_STAGES.IDLE && demoStage !== DEMO_STAGES.ARRIVED && (
+          <div
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-full text-xs font-bold text-emerald-400 shadow"
+            style={{
+              background: 'rgba(15,23,42,0.85)',
+              border: '1px solid rgba(16,185,129,0.3)',
+              backdropFilter: 'blur(6px)',
+            }}
+          >
+            {demoStage === DEMO_STAGES.FREEZING && '≡ƒöÆ Freezing bookingsΓÇª'}
+            {demoStage === DEMO_STAGES.DRIVING_TO_PICKUP && '≡ƒÜù Driving to pickupΓÇª'}
+            {demoStage === DEMO_STAGES.DRIVING_TO_VIA && '≡ƒÜù Driving to stopΓÇª'}
+            {demoStage === DEMO_STAGES.DRIVING_TO_DEST && '≡ƒÜù Driving to destinationΓÇª'}
+            {demoStage === DEMO_STAGES.ARRIVING && 'Γ£à ArrivingΓÇª'}
+          </div>
+        )}
+
+        {/* Bottom controls */}
+        <div className="absolute bottom-6 left-0 right-0 px-6 z-10 flex flex-col gap-3">
+          {isDemoMode ? (
+            /* ΓöÇΓöÇ Demo controls ΓöÇΓöÇ */
+            demoStage === DEMO_STAGES.IDLE ? (
+              <button
+                onClick={startDemo}
+                className="w-full py-4 rounded-2xl font-bold text-lg text-white shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                  boxShadow: '0 0 30px rgba(245,158,11,0.35)',
+                }}
+              >
+                ≡ƒÄ¼ Start Demo Ride
+              </button>
+            ) : demoStage === DEMO_STAGES.ARRIVED ? (
+              <button
+                onClick={() => { stopDemo(); setIsDemoMode(false); setCurrentLocation(null); }}
+                className="w-full py-4 rounded-2xl font-bold text-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700"
+              >
+                Exit Demo
+              </button>
+            ) : (
+              <button
+                onClick={() => { stopDemo(); setCurrentLocation(null); }}
+                className="w-full py-3 rounded-xl font-bold text-sm bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700"
+              >
+                Γ£ò Stop Demo
+              </button>
+            )
+          ) : (
+            /* ΓöÇΓöÇ Real GPS controls (unchanged) ΓöÇΓöÇ */
+            !isDriving ? (
+              <button
+                onClick={startDriving}
+                className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+              >
+                Start Driving & Broadcasting
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleSos}
+                  className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(220,38,38,0.4)] animate-pulse"
+                >
+                  ≡ƒÜ¿ EMERGENCY S.O.S ≡ƒÜ¿
+                </button>
+                <button
+                  onClick={stopDriving}
+                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl font-bold"
+                >
+                  Stop Broadcasting
+                </button>
+              </>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

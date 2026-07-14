@@ -24,7 +24,13 @@ export const GET = apiHandler(async (req, { params, user }) => {
     .limit(5)
     .lean();
     
-  const filteredBookings = upcomingBookings.filter((b: any) => b.ride !== null);
+  const filteredBookings = upcomingBookings.filter((b: any) => {
+    if (!b.ride) return false;
+    const rideTime = new Date(b.ride.journeyDate);
+    const [hh, mm] = (b.ride.journeyTime || "00:00").split(':');
+    rideTime.setHours(parseInt(hh, 10), parseInt(mm, 10), 0, 0);
+    return rideTime > now;
+  });
   
   const drivingRidesRaw = await Ride.find({ 
     driver: userId, 
@@ -32,7 +38,14 @@ export const GET = apiHandler(async (req, { params, user }) => {
     rideStatus: { $in: ['ACTIVE', 'FULL'] } 
   }).select('pickupLocation destinationLocation journeyDate journeyTime availableSeats pricePerSeat rideStatus').sort({ journeyDate: 1 }).limit(5).lean();
   
-  const drivingRides = await Promise.all(drivingRidesRaw.map(async (ride: any) => { 
+  const drivingRidesFiltered = drivingRidesRaw.filter((ride: any) => {
+    const rideTime = new Date(ride.journeyDate);
+    const [hh, mm] = (ride.journeyTime || "00:00").split(':');
+    rideTime.setHours(parseInt(hh, 10), parseInt(mm, 10), 0, 0);
+    return rideTime > now;
+  });
+  
+  const drivingRides = await Promise.all(drivingRidesFiltered.map(async (ride: any) => { 
     const pendingRequests = await Booking.countDocuments({ ride: ride._id, bookingStatus: 'pending' }); 
     return { ...ride, pendingRequests }; 
   }));

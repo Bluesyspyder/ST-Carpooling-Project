@@ -9,6 +9,8 @@ import { Geolocation } from '@capacitor/geolocation';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import useDemoAnimation, { DEMO_STAGES } from '@/hooks/useDemoAnimation';
+import DemoCompletionModal from '@/components/DemoCompletionModal';
 
 if (typeof window !== 'undefined') {
   delete L.Icon.Default.prototype._getIconUrl;
@@ -31,51 +33,71 @@ export default function DriverModeContent() {
   const [isDriving, setIsDriving] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [currentHeading, setCurrentHeading] = useState(0);
   const [routePath, setRoutePath] = useState(null);
   const [bookings, setBookings] = useState([]);
-  const [demoStatus, setDemoStatus] = useState('Driving to pickup...');
+  
+  const [demoStage, setDemoStage] = useState(DEMO_STAGES.IDLE);
+  const [demoCountdown, setDemoCountdown] = useState(null);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
   
   const socketRef = useRef(null);
   const watchIdRef = useRef(null);
-  const demoIntervalRef = useRef(null);
-  const pickedUpRef = useRef(new Set());
   
-  // Custom marker for Driver Car
-  const carIcon = useMemo(() => {
-    return typeof window !== 'undefined' ? new L.DivIcon({
-      className: 'bg-transparent',
-      html: `<div style="display:flex; align-items:center; justify-content:center; width: 40px; height: 40px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5);">
-        <svg viewBox="0 0 24 24" fill="#10b981" style="width: 24px; height: 24px; transform: rotate(-45deg);"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+  const buildCarIcon = useCallback((heading = 0) => {
+    if (typeof window === 'undefined') return null;
+    return new L.DivIcon({
+      className: '',
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
+      html: `<div style="
+        width:44px;height:44px;
+        display:flex;align-items:center;justify-content:center;
+        transform: rotate(${heading}deg);
+        transition: transform 0.1s linear;
+        filter: drop-shadow(0 0 6px rgba(16,185,129,0.6));
+      ">
+        <svg viewBox="0 0 40 40" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,4 34,34 20,28 6,34" fill="#10b981" stroke="white" stroke-width="1.5"/>
+        </svg>
       </div>`,
-      iconSize: [40, 40],
-      iconAnchor: [20, 20],
-    }) : null;
+    });
   }, []);
 
-  const demoCarIcon = useMemo(() => {
-    return typeof window !== 'undefined' ? new L.DivIcon({
-      className: 'bg-transparent',
-      html: `<div style="position: relative;">
-        <div style="display:flex; align-items:center; justify-content:center; width: 40px; height: 40px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5); position: absolute; top: -20px; left: -20px;">
-          <svg viewBox="0 0 24 24" fill="#10b981" style="width: 24px; height: 24px; transform: rotate(-45deg);"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-        </div>
-        <div class="bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-full text-sm font-bold border border-slate-700 shadow-lg flex items-center gap-2 whitespace-nowrap" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);">
-          ${demoStatus}
-        </div>
-      </div>`,
-      iconSize: [0, 0],
-      iconAnchor: [0, 0],
-    }) : null;
-  }, [demoStatus]);
-
-  const passengerIcon = useMemo(() => {
-    return typeof window !== 'undefined' ? new L.DivIcon({
-      className: 'bg-transparent',
-      html: `<div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg text-lg">🧍</div>`,
+  const buildStopIcon = useCallback((label, color) => {
+    if (typeof window === 'undefined') return null;
+    return new L.DivIcon({
+      className: '',
       iconSize: [32, 32],
-      iconAnchor: [16, 16],
-    }) : null;
+      iconAnchor: [16, 32],
+      html: `<div style="
+        width:32px;height:32px;
+        border-radius:50% 50% 50% 0;
+        transform:rotate(-45deg);
+        background:${color};
+        color:#fff;border:2px solid rgba(255,255,255,0.9);
+        display:flex;align-items:center;justify-content:center;
+        font-weight:800;font-size:13px;
+        box-shadow:0 4px 10px rgba(0,0,0,0.4);
+      "><span style="transform:rotate(45deg)">${label}</span></div>`,
+    });
   }, []);
+
+  const { start: startDemoHook, stop: stopDemoHook } = useDemoAnimation({
+      routePath: routePath,
+      passengerPickups: bookings.map(b => ({id: b._id, lat: b.pickupLocation.latitude, lng: b.pickupLocation.longitude})),
+      onLocationUpdate: ({lat, lng, heading}) => {
+          setCurrentLocation({lat, lng});
+          setCurrentHeading(heading);
+      },
+      onStageChange: (stage, extra = {}) => {
+          setDemoStage(stage);
+          if (extra.countdown !== undefined) setDemoCountdown(extra.countdown);
+          if (stage === DEMO_STAGES.ARRIVED) {
+              setShowCompletionModal(true);
+          }
+      }
+  });
 
   useEffect(() => {
     const fetchRide = async () => {
@@ -223,15 +245,8 @@ export default function DriverModeContent() {
       return;
     }
     
-    if (demoIntervalRef.current) {
-      clearInterval(demoIntervalRef.current);
-    }
-    
     setIsDriving(true);
     setIsDemo(true);
-    setDemoStatus('Driving to pickup...');
-    pickedUpRef.current = new Set();
-    let currentIndex = 0;
     
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
     const baseUrl = new URL(apiUrl, window.location.origin).origin;
@@ -241,59 +256,7 @@ export default function DriverModeContent() {
       socketRef.current.emit('join_ride', id);
     });
 
-    const stepDemo = () => {
-      if (currentIndex >= routePath.length) {
-        clearInterval(demoIntervalRef.current);
-        demoIntervalRef.current = null;
-        setDemoStatus('Arrived at destination');
-        return;
-      }
-      
-      const pos = routePath[currentIndex];
-      // handle if pos is array [lat, lng] or object {lat, lng}
-      const lat = pos.lat !== undefined ? pos.lat : pos[0];
-      const lng = pos.lng !== undefined ? pos.lng : pos[1];
-      const loc = { lat, lng };
-      
-      setCurrentLocation(loc);
-      
-      if (socketRef.current) {
-         socketRef.current.emit('driver_location_update', {
-            rideId: id,
-            lat: loc.lat,
-            lng: loc.lng,
-            heading: 0,
-            speed: 40,
-            timestamp: Date.now()
-         });
-      }
-      
-      // Check for passenger pickups
-      const activeBookings = bookings.filter(b => b.bookingStatus === 'confirmed' || b.bookingStatus === 'pending' || b.bookingStatus === 'waitlisted');
-      const nearbyPassenger = activeBookings.find(b => {
-         if (pickedUpRef.current.has(b._id)) return false;
-         const dLat = b.pickupLocation.latitude - loc.lat;
-         const dLng = b.pickupLocation.longitude - loc.lng;
-         const dist = Math.sqrt(dLat*dLat + dLng*dLng);
-         return dist < 0.0005; // 50 meters radius to trigger wait
-      });
-
-      if (nearbyPassenger) {
-         pickedUpRef.current.add(nearbyPassenger._id);
-         
-         setDemoStatus(`Waiting for ${nearbyPassenger.passenger?.firstName || 'Passenger'}...`);
-         clearInterval(demoIntervalRef.current);
-         setTimeout(() => {
-             setDemoStatus('Driving to destination...');
-             demoIntervalRef.current = setInterval(stepDemo, 100);
-         }, 4000); // Wait 4 seconds
-      } else {
-         // Calculate next step
-         currentIndex += Math.max(1, Math.floor(routePath.length / 200)); // Slower speed
-      }
-    };
-
-    demoIntervalRef.current = setInterval(stepDemo, 100);
+    startDemoHook();
   };
 
   const stopDriving = async () => {
@@ -310,9 +273,8 @@ export default function DriverModeContent() {
       }
       watchIdRef.current = null;
     }
-    if (demoIntervalRef.current) {
-      clearInterval(demoIntervalRef.current);
-      demoIntervalRef.current = null;
+    if (isDemo) {
+      stopDemoHook();
     }
     if (socketRef.current) {
       socketRef.current.emit('leave_ride', id);
@@ -352,8 +314,8 @@ export default function DriverModeContent() {
       if (watchIdRef.current !== null) {
         Geolocation.clearWatch({ id: watchIdRef.current }).catch(console.error);
       }
-      if (demoIntervalRef.current) {
-        clearInterval(demoIntervalRef.current);
+      if (isDemo) {
+        stopDemoHook();
       }
       if (socketRef.current) {
         socketRef.current.disconnect();
@@ -364,98 +326,148 @@ export default function DriverModeContent() {
   if (loading) return <div className="p-6 text-slate-300">Loading Driver Mode...</div>;
   if (error) return <div className="p-6 text-red-400 font-bold">{error}</div>;
 
+  const isPaused = demoStage === DEMO_STAGES.PAUSED_AT_PICKUP;
+
+  if (showCompletionModal) {
+    return (
+      <div className="min-h-screen bg-[#020617] pt-24 pb-8 text-white flex flex-col relative overflow-hidden items-center justify-center">
+        <DemoCompletionModal
+          isOpen={showCompletionModal}
+          onClose={() => router.push('/drive')}
+          driverCreditsEarned={ride?.distance * 10 || 150}
+          totalEmissionSavedKg={ride?.distance * 0.2 || 3.5}
+          routeDistance={ride?.distance || 15}
+          vehicleType={'ev'}
+          passengerCount={bookings.length || 1}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-slate-200">
-      <div className="p-4 bg-slate-900 border-b border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center z-10 shadow-lg gap-4">
+      {/* Header */}
+      <div className="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center z-10 shadow-lg">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-white">Driver Mode</h1>
             {isDemo && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-900/50 border border-amber-700 text-amber-500 uppercase tracking-widest flex items-center gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
                 🎥 Demo
               </span>
             )}
           </div>
           <p className="text-xs text-slate-400">
-            Ride #{id.substring(0, 6)} · ACTIVE
-            {isDemo && <span className="text-amber-500 font-bold ml-2">[{demoStatus.toUpperCase()}]</span>}
+            Ride #{id.substring(0, 6)} · {ride.rideStatus}
+            {isDemo && demoStage !== DEMO_STAGES.IDLE && (
+              <span className="ml-2 text-amber-400">[{demoStage.replace(/_/g, ' ')}]</span>
+            )}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* Demo Mode toggle — only available before ride starts */}
+          {!isDriving && demoStage === DEMO_STAGES.IDLE && (
+            <button
+              onClick={startDemo}
+              className={`text-xs px-3 py-2 rounded-lg font-semibold border transition-all ${
+                isDemo
+                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-amber-500/30 hover:text-amber-400'
+              }`}
+            >
+              🎥 Demo Mode
+            </button>
+          )}
+          {/* Real mode buttons */}
           {!isDemo && (
             <>
-              {!isDriving && (
-                <button 
-                  onClick={startDemo}
-                  className="text-sm px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700 text-white flex items-center gap-2 transition"
-                >
-                  🎥 Demo Mode
+              {(ride.rideStatus === 'ACTIVE' || ride.rideStatus === 'FULL') && (
+                <button onClick={() => alert("Freeze Bookings not yet implemented")} className="text-sm px-3 py-2 bg-sky-700 rounded-lg hover:bg-sky-600">
+                  Freeze Bookings
                 </button>
               )}
-              <button 
-                onClick={() => alert("Freeze Bookings not yet implemented")}
-                className="text-sm px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
-              >
-                Freeze Bookings
-              </button>
-              <button 
-                onClick={handleCompleteRide}
-                className="text-sm px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition"
-              >
-                Complete Ride
-              </button>
-              <button 
-                onClick={() => alert("Cancel Ride not yet implemented")}
-                className="text-sm px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
-              >
-                Cancel Ride
-              </button>
+              {['ACTIVE', 'FULL', 'FROZEN', 'IN_PROGRESS'].includes(ride.rideStatus) && (
+                <>
+                  <button onClick={handleCompleteRide} className="text-sm px-3 py-2 bg-emerald-700 rounded-lg hover:bg-emerald-600">Complete Ride</button>
+                  <button onClick={() => alert("Cancel Ride not yet implemented")} className="text-sm px-3 py-2 bg-red-700 rounded-lg hover:bg-red-600">Cancel Ride</button>
+                </>
+              )}
             </>
           )}
-          <button 
-            onClick={() => router.back()}
-            className="text-sm px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700 text-white transition"
-          >
-            Exit
-          </button>
+          <button onClick={() => router.back()} className="text-sm px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700">Exit</button>
         </div>
       </div>
 
+      {/* Map */}
       <div className="flex-1 relative">
         {typeof window !== 'undefined' && ride.pickupLocation?.latitude && (
-          <MapContainer 
-            center={currentLocation || [ride.pickupLocation.latitude, ride.pickupLocation.longitude]} 
-            zoom={15} 
+          <MapContainer
+            center={currentLocation || [ride.pickupLocation.latitude, ride.pickupLocation.longitude]}
+            zoom={15}
             className="w-full h-full z-0"
             zoomControl={false}
           >
-            <TileLayer
-              url={`https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/{z}/{x}/{y}.png?api_key=${process.env.NEXT_PUBLIC_OLA_MAPS_API_KEY}`}
-              attribution="© Ola Maps"
-            />
+            <TileLayer url={`https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/{z}/{x}/{y}.png?api_key=${process.env.NEXT_PUBLIC_OLA_MAPS_API_KEY}`} />
+
+            {/* Moving car marker */}
             {currentLocation && (
-              <Marker position={[currentLocation.lat, currentLocation.lng]} icon={isDemo ? demoCarIcon : carIcon}>
-                <Popup>Your Car</Popup>
+              <Marker position={[currentLocation.lat, currentLocation.lng]} icon={buildCarIcon(currentHeading)}>
+                <Popup>{isDemo ? '🎥 Demo Car' : 'Your Car'}</Popup>
               </Marker>
             )}
-            <Marker position={[ride.pickupLocation.latitude, ride.pickupLocation.longitude]}>
-              <Popup>Start</Popup>
+
+            {/* Route polyline */}
+            {routePath && (
+              <Polyline
+                positions={routePath}
+                pathOptions={{ color: '#10b981', weight: 4, opacity: 0.7, dashArray: isDemo ? '8 4' : undefined }}
+              />
+            )}
+
+            {/* Stop markers */}
+            <Marker position={[ride.pickupLocation.latitude, ride.pickupLocation.longitude]} icon={buildStopIcon('O', '#ef4444')}>
+               <Popup>Start</Popup>
             </Marker>
-            <Marker position={[ride.destinationLocation.latitude, ride.destinationLocation.longitude]}>
-              <Popup>End</Popup>
+            <Marker position={[ride.destinationLocation.latitude, ride.destinationLocation.longitude]} icon={buildStopIcon('D', '#10b981')}>
+               <Popup>End</Popup>
             </Marker>
-            {/* Passenger Pickups */}
-            {bookings.map(booking => (
-              <Marker key={booking._id} position={[booking.pickupLocation.latitude, booking.pickupLocation.longitude]} icon={passengerIcon}>
-                <Popup>Passenger: {booking.passenger?.firstName || 'Unknown'} (Status: {booking.bookingStatus})</Popup>
+            {bookings.map((booking, i) => (
+              <Marker key={booking._id} position={[booking.pickupLocation.latitude, booking.pickupLocation.longitude]} icon={buildStopIcon(`P${i+1}`, '#3b82f6')}>
+                <Popup>Passenger: {booking.passenger?.firstName || 'Unknown'}</Popup>
               </Marker>
             ))}
-            {routePath && (
-              <Polyline positions={routePath} color={isDemo ? "#10b981" : "#3b82f6"} weight={6} opacity={0.8} />
-            )}
           </MapContainer>
         )}
-        
+
+        {/* ┌── Demo pause overlay ──┐ */}
+        {isDemo && isPaused && (
+          <div
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-white shadow-lg"
+            style={{
+              background: 'rgba(15,23,42,0.9)',
+              border: '1px solid rgba(245,158,11,0.4)',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            <span className="text-amber-400 animate-pulse">🛑</span>
+            Picking up passenger...
+            {demoCountdown !== null && (
+              <span className="ml-1 bg-amber-500 text-black rounded-full w-7 h-7 flex items-center justify-center text-xs font-black">
+                {demoCountdown}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* ┌── Demo stage banner ──┐ */}
+        {isDemo && !isPaused && demoStage !== DEMO_STAGES.IDLE && demoStage !== DEMO_STAGES.ARRIVED && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 bg-slate-800/90 border border-slate-700 rounded-full text-sm font-bold text-emerald-400 shadow-lg backdrop-blur">
+            <span className="text-emerald-500">🚙</span>
+            {demoStage.replace(/_/g, ' ')}...
+          </div>
+        )}
+
+        {/* Controls Overlay */}
         <div className="absolute bottom-6 left-0 right-0 px-6 z-10 flex flex-col gap-4">
           {!isDriving ? (
             <button 
