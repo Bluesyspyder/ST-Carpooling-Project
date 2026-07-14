@@ -19,7 +19,7 @@ const Bookings = () => {
   const [ratingModal, setRatingModal] = useState(null); // { bookingId, driverName }
 
   // Tab control: 'passenger' or 'driver'
-  const [roleMode, setRoleMode] = useState('passenger');
+  const [roleMode, setRoleMode] = useState(null);
   // Filters
   const [passengerTab, setPassengerTab] = useState('upcoming');
   const [driverTab, setDriverTab] = useState('requests');
@@ -40,17 +40,19 @@ const Bookings = () => {
       router.push('/login');
       return;
     }
-    // Set default role mode based on user role
-    if (user.role === 'hybrid') {
-      setRoleMode('driver');
-    } else {
-      setRoleMode('passenger');
+    // Set default role mode based on user role ONLY on initial load
+    if (!roleMode) {
+      if (user.role === 'hybrid') {
+        setRoleMode('driver');
+      } else {
+        setRoleMode('passenger');
+      }
     }
   }, [user]);
 
   // Fetch bookings whenever active tab, role mode or page changes
   useEffect(() => {
-    if (!user) return;
+    if (!user || !roleMode) return;
     fetchData();
   }, [roleMode, passengerTab, driverTab, page]);
 
