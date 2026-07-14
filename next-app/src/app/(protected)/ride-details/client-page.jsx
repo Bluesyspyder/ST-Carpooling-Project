@@ -1070,6 +1070,29 @@ const RideDetails = () => {
               </div>
             </div>
           )}
+
+          <div className="flex justify-between items-center text-sm pt-2">
+            <span className="text-emerald-400 font-semibold">Green Credits</span>
+            <span className="text-emerald-400 font-extrabold text-lg">
+              +{Math.floor((ride.routeDistance || 15) / 5) * 10 * (selectedSeatIds.length || 1)} pts
+            </span>
+          </div>
+
+          <button
+            onClick={handleBooking}
+            disabled={isBooking || ride.availableSeats <= 0 || ride.rideStatus !== 'ACTIVE' || !pickupLoc.verified || selectedSeatIds.length === 0}
+            className="btn-primary w-full py-2.5 px-4 text-sm disabled:opacity-50"
+          >
+            {isBooking
+              ? 'Processing…'
+              : ride.availableSeats <= 0
+              ? 'Fully Booked'
+              : !pickupLoc.verified
+              ? 'Confirm Pickup'
+              : selectedSeatIds.length === 0
+              ? 'Select a Seat'
+              : 'Request Booking'}
+          </button>
         </div>
       )}
 
@@ -1095,30 +1118,6 @@ const RideDetails = () => {
             </Link>
           </StickyActionBar>
         )
-      ) : activeBooking ? null : !bookingSuccess ? (
-        <StickyActionBar>
-          <div className="flex-1 flex items-center justify-between text-xs text-[var(--text-secondary)] mr-2">
-            <span className="text-emerald-400 font-semibold">Green Credits</span>
-            <span className="text-emerald-400 font-extrabold text-base ml-2">
-              +{Math.floor((ride.routeDistance || 15) / 5) * 10 * (selectedSeatIds.length || 1)} pts
-            </span>
-          </div>
-          <button
-            onClick={handleBooking}
-            disabled={isBooking || ride.availableSeats <= 0 || ride.rideStatus !== 'ACTIVE' || !pickupLoc.verified || selectedSeatIds.length === 0}
-            className="btn-primary flex-shrink-0 min-h-[48px] px-6 text-sm disabled:opacity-50"
-          >
-            {isBooking
-              ? 'Processing…'
-              : ride.availableSeats <= 0
-              ? 'Fully Booked'
-              : !pickupLoc.verified
-              ? 'Confirm Pickup'
-              : selectedSeatIds.length === 0
-              ? 'Select a Seat'
-              : 'Request Booking'}
-          </button>
-        </StickyActionBar>
       ) : null}
 
       {isRatingModalOpen && activeBooking && (

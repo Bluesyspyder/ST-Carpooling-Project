@@ -154,7 +154,7 @@ const SavedLocationsManager = () => {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
           <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
             <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-5">{editId ? 'Edit Location' : 'Add Location'}</h3>
 
@@ -222,7 +222,7 @@ const SavedLocationsManager = () => {
 
       {/* View on Map Modal */}
       {viewLocation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setViewLocation(null)}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setViewLocation(null)}>
           <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[var(--text-primary)] font-semibold">{viewLocation.icon} {viewLocation.label}</h3>

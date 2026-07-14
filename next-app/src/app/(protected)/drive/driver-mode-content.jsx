@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/services/api';
@@ -41,35 +41,41 @@ export default function DriverModeContent() {
   const pickedUpRef = useRef(new Set());
   
   // Custom marker for Driver Car
-  const carIcon = typeof window !== 'undefined' ? new L.DivIcon({
-    className: 'bg-transparent',
-    html: `<div style="display:flex; align-items:center; justify-content:center; width: 40px; height: 40px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5);">
-      <svg viewBox="0 0 24 24" fill="#10b981" style="width: 24px; height: 24px; transform: rotate(-45deg);"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-    </div>`,
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
-  }) : null;
-
-  const getDemoCarIcon = (statusMsg) => typeof window !== 'undefined' ? new L.DivIcon({
-    className: 'bg-transparent',
-    html: `<div style="position: relative;">
-      <div style="display:flex; align-items:center; justify-content:center; width: 40px; height: 40px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5); position: absolute; top: -20px; left: -20px;">
+  const carIcon = useMemo(() => {
+    return typeof window !== 'undefined' ? new L.DivIcon({
+      className: 'bg-transparent',
+      html: `<div style="display:flex; align-items:center; justify-content:center; width: 40px; height: 40px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5);">
         <svg viewBox="0 0 24 24" fill="#10b981" style="width: 24px; height: 24px; transform: rotate(-45deg);"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-      </div>
-      <div class="bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-full text-sm font-bold border border-slate-700 shadow-lg flex items-center gap-2 whitespace-nowrap" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);">
-        ${statusMsg}
-      </div>
-    </div>`,
-    iconSize: [0, 0],
-    iconAnchor: [0, 0],
-  }) : null;
+      </div>`,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+    }) : null;
+  }, []);
 
-  const passengerIcon = typeof window !== 'undefined' ? new L.DivIcon({
-    className: 'bg-transparent',
-    html: `<div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg text-lg">🧍</div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  }) : null;
+  const demoCarIcon = useMemo(() => {
+    return typeof window !== 'undefined' ? new L.DivIcon({
+      className: 'bg-transparent',
+      html: `<div style="position: relative;">
+        <div style="display:flex; align-items:center; justify-content:center; width: 40px; height: 40px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5); position: absolute; top: -20px; left: -20px;">
+          <svg viewBox="0 0 24 24" fill="#10b981" style="width: 24px; height: 24px; transform: rotate(-45deg);"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </div>
+        <div class="bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-full text-sm font-bold border border-slate-700 shadow-lg flex items-center gap-2 whitespace-nowrap" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);">
+          ${demoStatus}
+        </div>
+      </div>`,
+      iconSize: [0, 0],
+      iconAnchor: [0, 0],
+    }) : null;
+  }, [demoStatus]);
+
+  const passengerIcon = useMemo(() => {
+    return typeof window !== 'undefined' ? new L.DivIcon({
+      className: 'bg-transparent',
+      html: `<div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg text-lg">🧍</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    }) : null;
+  }, []);
 
   useEffect(() => {
     const fetchRide = async () => {
@@ -217,6 +223,10 @@ export default function DriverModeContent() {
       return;
     }
     
+    if (demoIntervalRef.current) {
+      clearInterval(demoIntervalRef.current);
+    }
+    
     setIsDriving(true);
     setIsDemo(true);
     setDemoStatus('Driving to pickup...');
@@ -265,17 +275,11 @@ export default function DriverModeContent() {
          const dLat = b.pickupLocation.latitude - loc.lat;
          const dLng = b.pickupLocation.longitude - loc.lng;
          const dist = Math.sqrt(dLat*dLat + dLng*dLng);
-         return dist < 0.02; // Increased radius to ensure fast-moving demo car doesn't jump over it
+         return dist < 0.0005; // 50 meters radius to trigger wait
       });
 
       if (nearbyPassenger) {
          pickedUpRef.current.add(nearbyPassenger._id);
-         
-         // Snap car exactly to passenger location for the visual wait
-         setCurrentLocation({
-             lat: nearbyPassenger.pickupLocation.latitude,
-             lng: nearbyPassenger.pickupLocation.longitude
-         });
          
          setDemoStatus(`Waiting for ${nearbyPassenger.passenger?.firstName || 'Passenger'}...`);
          clearInterval(demoIntervalRef.current);
@@ -430,7 +434,7 @@ export default function DriverModeContent() {
               attribution="© Ola Maps"
             />
             {currentLocation && (
-              <Marker position={[currentLocation.lat, currentLocation.lng]} icon={isDemo ? getDemoCarIcon(demoStatus) : carIcon}>
+              <Marker position={[currentLocation.lat, currentLocation.lng]} icon={isDemo ? demoCarIcon : carIcon}>
                 <Popup>Your Car</Popup>
               </Marker>
             )}

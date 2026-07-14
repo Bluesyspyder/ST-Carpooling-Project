@@ -634,16 +634,14 @@ const CreateRide = () => {
         </div>
       </div>
 
-      <StickyActionBar>
-        <button
-          onClick={handleSubmit}
-          disabled={isSubmitting || !pickupLoc.latitude || !destLoc.latitude || vehicles.length === 0}
-          className="w-full bg-emerald-500 hover:bg-emerald-400 text-[var(--text-primary)] font-bold py-3.5 min-h-[48px] rounded-xl transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
-        >
-          {isSubmitting ? <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" /> : null}
-          {isSubmitting ? 'POSTING RIDE...' : 'PUBLISH RIDE'}
-        </button>
-      </StickyActionBar>
+      <button
+        onClick={handleSubmit}
+        disabled={isSubmitting || !pickupLoc.latitude || !destLoc.latitude || vehicles.length === 0}
+        className="w-full bg-emerald-500 hover:bg-emerald-400 text-[var(--text-primary)] font-bold py-3.5 min-h-[48px] rounded-xl transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+      >
+        {isSubmitting ? <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" /> : null}
+        {isSubmitting ? 'POSTING RIDE...' : 'PUBLISH RIDE'}
+      </button>
     </div>
     </>
   );

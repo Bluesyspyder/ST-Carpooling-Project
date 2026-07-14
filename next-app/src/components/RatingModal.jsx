@@ -47,12 +47,12 @@ const RatingModal = ({ bookingId, driverName, onClose, onSuccess }) => {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[10000]"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="fixed inset-x-4 bottom-6 sm:inset-auto sm:left-1/2 sm:-translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md z-50">
+      <div className="fixed inset-x-4 bottom-6 sm:inset-auto sm:left-1/2 sm:-translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md z-[10000]">
         <div className="glass-panel rounded-2xl border border-[var(--border-default)]/80 p-6 shadow-2xl">
 
           {submitted ? (
