@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense, useMemo } from 'react';
+import { useEffect, useState, useRef, Suspense, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/services/api';
@@ -100,6 +100,11 @@ export default function DriverModeContent() {
   });
 
   useEffect(() => {
+    if (!id) {
+      router.push('/');
+      return;
+    }
+
     const fetchRide = async () => {
       try {
         const res = await api.get(`/rides/${id}`);
